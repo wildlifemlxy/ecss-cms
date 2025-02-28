@@ -473,7 +473,7 @@ class RegistrationPaymentSection extends Component {
         });
   
         const receiptCreationResponse = await axios.post(
-          //"http://localhost:3001/receipt", //Ok
+          //"http://localhost:3001/receipt",
           "https://ecss-backend-node-backup.azurewebsites.net/receipt",
           {
             purpose: "createReceipt",
