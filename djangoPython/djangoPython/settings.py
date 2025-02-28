@@ -27,6 +27,7 @@ SECRET_KEY = 'django-insecure-u=^cvw++1jd=0wwq6e2j*zo!i8f8z8o)o87v@c0ik^@ml8-6%b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+#ecss-backend-django-backup.azurewebsites.net
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ecss-backend-django-backup.azurewebsites.net', 'ecss.org.sg']
 
 WOOCOMMERCE_API_URL = 'https://ecss.org.sg/wp-json/wc/v3/'
@@ -51,7 +52,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000', 
     'http://localhost:3001', 
     'http://localhost:3002',
-    'https://ecss-backend-django-backup.azurewebsites.net',
+    'https://ecss-backend-django-backup.azurewebsites.net', #https://ecss-backend-django-backup.azurewebsites.net/
     'https://ecss.org.sg'
 ]
 
@@ -59,7 +60,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000', 
     'http://localhost:3001', 
     'http://localhost:3002',
-    'https://ecss-backend-django-backup.azurewebsites.net',
+    'https://ecss-backend-django-backup.azurewebsites.net', #https://ecss-backend-django-backup.azurewebsites.net/
     'https://ecss.org.sg'
 ]
 
