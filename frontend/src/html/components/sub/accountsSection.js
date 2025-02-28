@@ -24,7 +24,7 @@ class AccountsSection extends Component {
   toggleRowExpansion = (index) => {
     console.log(index);
     this.setState((prevState) => ({
-      expandedRowIndex: prevState.expandedRowIndex === index ? null : index, // Toggle between expanded and collapsed
+      expandedRowIndex: prevState.expandedRowIndex === index ? null : index,
     }));
   };
 
