@@ -1,0 +1,85 @@
+.view-toggle1 {
+   /* display: flex;*/
+    flex-direction: column !important; /* Stack button container and items per page */
+    align-items: center !important; /* Center everything */
+    background-color: none !important; /* Background color to ensure readability */
+    z-index: 10 !important; /* Ensure it stays above other content */
+    padding: 10px !important; /* Add some padding for spacing */
+    width: 20rem !important;
+}
+
+.button-row {
+    display: flex !important; /* Keep buttons in a row */
+    justify-content: center !important; /* Center buttons */
+    gap: 1rem;
+}
+
+.view-toggle .button-row button {
+    margin: 0 10px !important;
+    padding: 10px 20px !important;
+    border: none !important;
+    border-radius: 4px !important;
+    background-color: #f8f8f8 !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+}
+
+.view-toggle .button-row button.active {
+    background-color: #007bff !important;
+    color: #ffffff !important;
+}
+
+.items-per-page {
+    display: flex;
+    flex-direction: column; /* Align label and input vertically */
+    margin-top: 10px; /* Space between buttons and input */
+    width: 90%; /* Adjust to your layout */
+}
+
+.entries-label {
+    font-size: 14px; /* Match font size */
+    font-weight: normal; /* Match weight */
+    margin-bottom: 0.5rem; /* Space between label and input */
+}
+
+.per-page-select {
+    width: 100%; /* Ensures the input field takes full width */
+    height: 2.5rem; /* Match button height */
+    padding: 0.5rem; /* Adds padding inside the input field */
+    box-sizing: border-box; /* Includes padding in width calculation */
+    border: none; /* Border styling */
+    border-radius: 4px; /* Rounded corners */
+}
+
+.dropdown-list {
+    position: absolute; /* Positions the dropdown list absolutely */
+    top: 100%; /* Positions the list below the input field */
+    left: 0; /* Aligns the list with the left edge of the input */
+    width: 100%; /* Ensures the list takes full width of the input */
+    max-height: 200px; /* Limits the height of the dropdown list */
+    overflow-y: auto; /* Adds vertical scrolling if content overflows */
+    background: #fff; /* Background color of the dropdown list */
+    border: none; /* Border to match the input field */
+    border-radius: 4px; /* Rounded corners */
+    z-index: 10; /* Ensures the list appears above other content */
+    list-style: none; /* Removes default list styling */
+    padding: 0; /* Removes default padding */
+    margin: 0; /* Removes default margin */
+  }
+
+.dropdown-list-toggle {
+    display: block; /* Make sure it’s displayed when visible */
+    position: absolute; /* Position it correctly */
+    z-index: 1000; /* Ensure it appears on top */
+    background-color: white; /* Set a background color for visibility */
+    border: 1px solid #ccc; /* Optional: Add a border for clarity */
+    margin: 0; /* Reset default margin */
+    padding: 0; /* Reset default padding */
+    list-style-type: none; /* Remove bullet points */
+}
+
+.dropdown-list-toggle li {
+    padding: 0.5rem; /* Adds padding inside each list item */
+    cursor: pointer; /* Changes cursor to pointer for list items */
+  }
+  

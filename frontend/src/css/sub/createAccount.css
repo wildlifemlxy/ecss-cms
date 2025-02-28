@@ -1,0 +1,31 @@
+.new-account
+{
+    margin-left: 2.5rem;
+    margin-top: -10rem;
+}
+
+.form-wrapper
+{
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+}
+
+.error-message1
+{
+    color: #FF0000;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.radio-group {
+    display: flex;
+    flex-direction: row; /* Aligns items in a row */
+    gap: 1rem; /* Space between radio buttons */
+}
+
+.radio-group label {
+    display: flex; /* Allows for better alignment */
+    align-items: center; /* Vertically center-aligns the radio button and text */
+    white-space: nowrap;
+}

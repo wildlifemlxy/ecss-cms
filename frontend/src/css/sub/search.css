@@ -1,0 +1,122 @@
+/* Existing styles */
+.filter-section {
+  width: 80vw; /* Sets the width of the filter section */
+  margin-top: 2.5rem; /* Adds margin at the top */
+}
+
+.form-group-row {
+  display: flex; /* Aligns child elements in a row */
+  gap: 1rem; /* Adds space between elements */
+  flex-wrap: wrap; /* Allows wrapping to the next line if needed */
+  align-items: center; /* Vertically aligns items in the center */
+}
+
+.form-group {
+  flex: 1; /* Allows form groups to grow and fill available space */
+  min-width: 150px; /* Ensures form groups have a minimum width */
+  display: flex;
+  flex-direction: column; /* Aligns label and input in a column */
+}
+
+.dropdown-container {
+  position: relative; /* Ensures the icon is positioned correctly */
+}
+
+.dropdown-icon {
+  position: absolute; /* Positions the icon inside the input field */
+  right: 0.5rem; /* Adjust as needed */
+  top: 50%; /* Center vertically */
+  transform: translateY(-50%); /* Center vertically */
+  pointer-events: none; /* Prevents the icon from blocking clicks */
+  font-size: 1rem; /* Adjust size as needed */
+  color: #000; /* Set color of the dropdown icon to black */
+}
+
+/* Input field styles */
+.form-group input[type="text"] {
+  width: 100%; /* Ensures the input field takes full width */
+  height: 2rem; /* Adjust the height as needed */
+  margin-top: 0.5rem; /* Adds margin at the top */
+  padding: 0.5rem; /* Adds padding inside the input field */
+  padding-right: 2rem; /* Adds padding to make room for the icon */
+  box-sizing: border-box; /* Includes padding in width calculation */
+  border: none; /* Border to match the dropdown look */
+  border-radius: 4px; /* Rounded corners */
+  position: relative; /* Position relative to contain the icon */
+}
+
+.form-group input[type="text"]:focus {
+  outline: none; /* Removes default focus outline */
+  border-color: #007bff; /* Changes border color on focus */
+}
+
+/* Dropdown list styling */
+.dropdown-list {
+  position: absolute; /* Positions the dropdown list absolutely */
+  top: 100%; /* Positions the list below the input field */
+  left: 0; /* Aligns the list with the left edge of the input */
+  width: 100%; /* Ensures the list takes full width of the input */
+  max-height: 200px; /* Limits the height of the dropdown list */
+  overflow-y: auto; /* Adds vertical scrolling if content overflows */
+  background: #fff; /* Background color of the dropdown list */
+  border: none; /* Border to match the input field */
+  border-radius: 4px; /* Rounded corners */
+  z-index: 10; /* Ensures the list appears above other content */
+  list-style: none; /* Removes default list styling */
+  padding: 0; /* Removes default padding */
+  margin: 0; /* Removes default margin */
+}
+  
+.dropdown-list li {
+  padding: 0.5rem; /* Adds padding inside each list item */
+  cursor: pointer; /* Changes cursor to pointer for list items */
+}
+
+/* Search container styling */
+.search-container {
+  position: relative; /* Positions the icon correctly */
+}
+
+.search-icon {
+  position: absolute; /* Positions the icon inside the input field */
+  right: 0.5rem; /* Adjust as needed */
+  top: 50%; /* Center vertically */
+  transform: translateY(-50%); /* Center vertically */
+  pointer-events: none; /* Prevents the icon from blocking clicks */
+  font-size: 0.75rem; /* Adjust size as needed */
+  color: #000; /* Set color of the search icon to black */
+}
+
+/* Dropdown icon styling */
+.dropdown-container .dropdown-icon {
+  position: absolute; /* Position the dropdown icon inside the input field */
+  right: 0.5rem; /* Adjust as needed */
+  top: 50%; /* Center vertically */
+  transform: translateY(-50%); /* Center vertically */
+  pointer-events: none; /* Prevents the icon from blocking clicks */
+  font-size: 0.75rem; /* Adjust size as needed */
+  color: #000; /* Set color of the dropdown icon to black */
+}
+
+/* Specific styles for view toggle */
+.items-per-page {
+  position: relative; /* Positions dropdown relative to textbox */
+  display: inline-block; /* Keeps the dropdown inline with the textbox */
+}
+
+.items-per-page ul {
+  position: absolute; /* Positions dropdown options */
+  top: 100%; /* Below the input */
+  left: 0; /* Align with left edge */
+  width: 100%; /* Match input width */
+  background: white; /* Background color */
+  border: 1px solid #ccc; /* Border around dropdown */
+  border-radius: 4px; /* Rounded corners */
+  z-index: 1000; /* Above other elements */
+  max-height: 200px; /* Limit height */
+  overflow-y: auto; /* Scroll if necessary */
+  margin: 0; /* Reset margin */
+  padding: 0; /* Reset padding */
+  list-style: none; /* No bullets */
+}
+

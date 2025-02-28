@@ -1,0 +1,40 @@
+.submit-details-section {
+  padding: 1rem; /* Adjust padding as necessary */
+  border: 1px solid #ccc; /* Optional: adds a border around the section */
+  border-radius: 0.5rem; /* Optional: rounds the corners */
+  margin-bottom: 1rem; /* Space between sections */
+  background-color: #f9f9f9; /* Light background for better visibility */
+  box-sizing: border-box; /* Ensure padding does not affect overall width */
+  height: 100vh;
+}
+
+.input-group {
+  margin-bottom: 1rem; /* Space between input groups */
+}
+
+.input-group label {
+  font-weight: bold; /* Make labels bold */
+  display: block; /* Ensures the label takes the full width */
+  margin-bottom: 0.5rem; /* Space below the label */
+  font-size: 1.2em; /* Adjust font size for better readability on mobile */
+}
+
+.submit-detail-text {
+  font-size: 2em; /* Adjust font size for larger screens */
+  color: #333; /* Dark text color for readability */
+}
+
+@media (max-width: 768px) {
+  /* Adjust styles for mobile devices */
+  .submit-detail-text {
+      font-size: 1.5em; /* Smaller font size on mobile */
+  }
+  
+  .input-group label {
+      font-size: 1.1em; /* Slightly smaller font size for labels */
+  }
+
+  .submit-details-section {
+      padding: 0.8rem; /* Slightly reduced padding on smaller screens */
+  }
+}

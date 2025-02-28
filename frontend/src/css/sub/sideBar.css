@@ -1,0 +1,55 @@
+.sidebar-content 
+{
+    color: #000000;
+    width: 250px; /* Width of the sidebar */
+    padding: 20px; /* Padding around the content */
+    height: 100vh; /* Full height of the viewport */
+    transition: all 0.3s ease; /* Smooth transition */
+}
+
+.sidebar-content ul {
+    list-style-type: none; /* Remove bullet points */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margin */
+}
+
+.sidebar-content li {
+    margin: 10px 0; /* Spacing between items */
+    cursor: pointer; /* Pointer on hover */
+    position: relative; /* For the pseudo-element */
+    transition: background-color 0.3s ease; /* Smooth background change */
+}
+
+
+.sidebar-content div {
+    padding: 10px; /* Padding for main keys */
+    border-radius: 4px; /* Rounded corners */   
+    gap: 4rem;
+}
+
+.sidebar-content ul ul {
+    padding-left: 30px; /* Indent sub-keys */
+    margin-top: 5px; /* Space above sub-keys */
+    font-size: 0.9rem;
+}
+
+
+.sidebar-content li:before 
+{
+    position: absolute;
+    left: -15px; /* Position the indicator */
+    top: 50%;
+    transform: translateY(-50%); /* Center it vertically */
+    width: 6px; /* Width of the indicator */
+    height: 6px; /* Height of the indicator */
+    border-radius: 50%; /* Circle shape */
+    background-color: #ecf0f1; /* Light color for indicator */
+    transition: background-color 0.3s ease; /* Smooth transition */
+}
+
+.error-message2
+{
+    color: #FF0000;
+    font-weight: bold;
+    font-size: 0.8rem;
+}

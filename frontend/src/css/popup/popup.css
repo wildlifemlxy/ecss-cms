@@ -1,0 +1,553 @@
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
+  display: flex;
+    align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.popup-content {
+  padding: 1.25rem; /* 20px */
+  border-radius: 0.625rem; /* 10px */
+  position: relative;
+  width: 25rem; /* 400px */
+  height: auto; /* Dynamic height */
+}
+
+.loading-popup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 12.5rem; /* 200px */
+  background-color: black; /* Solid black background */
+  border-radius: 0.625rem; /* 10px */
+}
+
+.loading-popup h2 {
+  color: white; /* White text for contrast on black background */
+  font-size: 1.125rem; /* 18px */
+  font-weight: bold; /* Make text bold */
+  margin-top: 1.25rem; /* 20px */
+  text-align: center; /* Center the message text */
+}
+
+.bouncing-circles {
+  display: flex;
+  justify-content: space-between;
+  width: 7.5rem; /* 120px */
+  margin-top: 1.25rem; /* 20px */
+}
+
+.circle {
+  width: 1.0625rem; /* 17px */
+  height: 1.0625rem; /* 17px */
+  border-radius: 50%;
+  display: inline-block;
+  animation: bounce 1s infinite, color-change 1s infinite;
+  margin-top: 0.75rem; /* 30% of the default height */
+}
+
+.circle:nth-child(1) {
+  background-color: #90EE90; /* Light green */
+  animation-delay: 0s;
+}
+
+.circle:nth-child(2) {
+  background-color: #76c7c0; /* Slightly darker green */
+  animation-delay: 0.25s;
+}
+
+.circle:nth-child(3) {
+  background-color: #4caf50; /* Medium green */
+  animation-delay: 0.5s;
+}
+
+.circle:nth-child(4) {
+  background-color: #388e3c; /* Dark green */
+  animation-delay: 0.75s;
+}
+
+/* Success message container */
+.success-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: black; /* Solid black background */
+  padding: 1.5rem; /* Padding around the content */
+  border-radius: 0.625rem; /* Rounded corners */
+  height: 12.5rem; /* Set the width of the popup */
+  text-align: center;
+}
+
+/* Styling for the image */
+.success-message img {
+  width: 4rem; /* Set a fixed width for the image */
+  height: auto; /* Maintain aspect ratio */
+  margin-bottom: 1rem; /* Space below the image */
+}
+
+/* Success message title */
+.success-title {
+  color: #4caf50; /* Green color for success */
+  font-size: 1.5rem; /* Title size */
+  font-weight: bold;
+  margin: 1rem 0; /* Space around the title */
+}
+
+/* Message text styling */
+.success-message p {
+  font-size: 0.78rem; /* 16px for the text */
+  color: #4caf50; /* Dark text */
+  text-align: left;
+  margin: -0.5rem 0;
+}
+
+/*Error message container */
+.error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: black; /* Solid black background */
+  padding: 1.5rem; /* Padding around the content */
+  border-radius: 0.625rem; /* Rounded corners */
+  height: 12.5rem; /* Set the width of the popup */
+  text-align: center;
+  height: auto;
+}
+
+/* Styling for the image */
+.error-message img {
+  width: 3.5rem; /* Set a fixed width for the image */
+  height: auto; /* Maintain aspect ratio */
+  margin-bottom: 1rem; /* Space below the image */
+}
+
+/* Success message title */
+.error-title {
+  color: #FF0000; /* Green color for success */
+  font-size: 1.5rem; /* Title size */
+  font-weight: bold;
+  margin: 1rem 0; /* Space around the title */
+}
+
+/* Message text styling */
+.error-message p {
+  font-size: 0.78rem; /* 16px for the text */
+  color: #FF0000; /* Dark text */
+  text-align: left;
+  margin: -0.5rem 0;
+}
+
+/*Error message container */
+.change-password-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #ffffff; /* Solid black background */
+  padding: 1.5rem; /* Padding around the content */
+  border-radius: 0.625rem; /* Rounded corners */
+  height: 12.5rem; /* Set the width of the popup */
+  text-align: center;
+  height: auto;
+}
+
+/* Success message title */
+.change-password-title {
+  color: #000000; /* Green color for success */
+  font-size: 1.5rem; /* Title size */
+  font-weight: bold;
+  margin: 1rem 0; /* Space around the title */
+}
+
+.change-password-message p
+{
+  text-align: left;
+  margin-left: -1rem;
+  font-size: 0.75rem;
+}
+
+.change-password-message label
+{
+  text-align: left;
+  margin-left: -1rem;
+  font-size: 0.75rem;
+}
+
+.change-password-message input
+{
+  margin-left: -1rem;
+  width: 20rem;
+}
+
+.change-password-message button
+{
+  width: 10rem;
+}
+
+.change-password-message .error-message1
+{
+  background-color: #ffffff;
+  font-size: 0.78rem; /* 16px for the text */
+  color: #FF0000; /* Dark text */
+  font-weight: bold;
+}
+
+.change-password-message .password-input-container {
+  position: relative;
+}
+
+.change-password-message .password-toggle-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+
+/*Error message container */
+.logout-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #ffffff; /* Solid black background */
+  padding: 1.5rem; /* Padding around the content */
+  border-radius: 0.625rem; /* Rounded corners */
+  height: 12.5rem; /* Set the width of the popup */
+  text-align: center;
+  height: auto;
+}
+
+.logout-title {
+  color: #000000; /* Green color for success */
+  font-size: 1.5rem; /* Title size */
+  font-weight: bold;
+  margin: 1rem 0; /* Space around the title */
+}
+
+.button-container1 {
+  display: flex;
+  justify-content: space-between; /* Spreads the buttons evenly */
+  margin-top: 1rem; /* Adds some spacing above the buttons */
+}
+
+.button-container1 button {
+  padding: 0.5rem 1rem; /* Adjust button padding */
+  flex-grow: 1; /* Makes both buttons equally wide */
+  margin-right: 12rem; /* Adds space between the buttons */
+  font-weight: bold;
+  width: 5rem;
+}
+
+.button-container1 button:last-child {
+  margin-right: 0; /* Removes the right margin for the last button */
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.875rem); /* 30px */
+  }
+}
+
+@keyframes color-change {
+  0% {
+    background-color: #90EE90; /* Light green */
+  }
+  50% {
+    background-color: #4caf50; /* Medium green */
+  }
+  100% {
+    background-color: #90EE90; /* Light green */
+  }
+}
+
+/* Close button styles */
+.close-btn {
+  position: absolute;
+  top: 0.625rem; /* 10px */
+  right: 0.625rem; /* 10px */
+  font-size: 1.5rem; /* 24px */
+  cursor: pointer;
+  color: #333;
+}
+
+#new-password1
+{
+  width: 22em;
+}
+
+.forgot-password-message {
+  width: auto;
+  margin: 0 auto; /* Center the form horizontally */
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.forgot-password-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.submit-button {
+  padding: 10px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+
+.error-message {
+  color: #ff4d4d; /* Red color for error messages */
+  margin-top: 10px;
+}
+
+.success-message {
+  color: #28a745; /* Green color for success messages */
+  margin-top: 10px;
+}
+
+
+.no-activity-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #ffffff; /* Solid black background */
+  padding: 1.5rem; /* Padding around the content */
+  border-radius: 0.625rem; /* Rounded corners */
+  height: 12.5rem; /* Set the width of the popup */
+  text-align: center;
+  height: auto;
+}
+
+.no-activity-title {
+  color: #000000; /* Green color for success */
+  font-size: 1.5rem; /* Title size */
+  font-weight: bold;
+  margin: 1rem 0; /* Space around the title */
+}
+
+.button-container1 {
+  display: flex;
+  justify-content: space-between; /* Spreads the buttons evenly */
+  margin-top: 1rem; /* Adds some spacing above the buttons */
+}
+
+.button-container1 button {
+  padding: 0.5rem 1rem; /* Adjust button padding */
+  flex-grow: 1; /* Makes both buttons equally wide */
+  margin-right: 12rem; /* Adds space between the buttons */
+  font-weight: bold;
+  width: 5rem;
+}
+
+.button-container1 button:last-child {
+  margin-right: 0; /* Removes the right margin for the last button */
+}
+
+.edit-account-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #ffffff; /* Solid black background */
+  padding: 1.5rem; /* Padding around the content */
+  border-radius: 0.625rem; /* Rounded corners */
+  height: fit-content; /* Set the width of the popup */
+  text-align: center;
+  width: fit-content;
+}
+
+.edit-account-title {
+  color: #000000; /* Green color for success */
+  font-size: 1.5rem; /* Title size */
+  font-weight: bold;
+  margin: 1rem 0; /* Space around the title */
+}
+
+.button-container2 {
+  display: flex;
+  justify-content: space-between; /* Spreads the buttons evenly */
+  margin-top: 1rem; /* Adds some spacing above the buttons */
+}
+
+.button-container2 button {
+  padding: 0.5rem 1rem; /* Adjust button padding */
+  flex-grow: 1; /* Makes both buttons equally wide */
+  margin-right: 12rem; /* Adds space between the buttons */
+  font-weight: bold;
+  width: fit-content;
+  height: fit-content;
+  white-space: nowrap;
+}
+
+.button-container2 button:last-child {
+  margin-right: 0; /* Removes the right margin for the last button */
+}
+
+.close-button12 {
+  background: none; /* No background */
+  border: none; /* No border */
+  font-size: 1.5rem; /* Size of the close button */
+  color: #000000; /* Initial color of the close button */
+  cursor: pointer; /* Cursor change on hover */
+  position: absolute; /* Position the button in the corner */
+  top: 1em; /* Distance from the top */
+  right: 10px; /* Distance from the right */
+  transition: color 0.2s ease; /* Smooth color transition */
+  margin-right: -12em;
+}
+
+.access-right-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #ffffff; /* Solid black background */
+  padding: 1.5rem; /* Padding around the content */
+  border-radius: 0.625rem; /* Rounded corners */
+  height: 20rem; /* Set the width of the popup */
+  text-align: center;
+  width: 40rem;
+  margin: 20px;
+  overflow-y: auto;
+}
+
+.main-key {
+  margin-bottom: 20px;
+}
+
+.sub-keys {
+  border: 1px solid #ccc; /* Box border */
+  padding: 10px;
+  border-radius: 5px; /* Rounded corners */
+}
+
+.checkbox-container {
+  display: flex; /* Use flex for layout */
+  flex-wrap: wrap; /* Allow items to wrap into the next line */
+  gap: 60px; /* Space between items */
+}
+
+.checkbox-box {
+  padding: 10px;
+  display: flex; /* Flexbox for label alignment */
+  align-items: center; /* Center items vertically */
+  justify-content: flex-start; /* Align items to the start */
+  height: 60px; /* Fixed height for uniform boxes */
+  width: calc(23.33% -0px); /* 3 boxes per row, minus the gap */
+}
+
+.checkbox-label {
+  display: flex; /* Use flex for label and checkbox alignment */
+  align-items: center; /* Center items vertically */
+  white-space: nowrap;
+}
+
+.checkbox-label input {
+  margin-right: 10px; /* Space between checkbox and label */
+}
+
+.access-right-title {
+  color: #000000; /* Green color for success */
+  font-size: 1.5rem; /* Title size */
+  font-weight: bold;
+  margin: 1rem 0; /* Space around the title */
+}
+
+.edit-message {
+  padding: 1.25rem; /* 20px */
+  border-radius: 0.625rem; /* 10px */
+  position: relative;
+  width: 25rem; /* 400px */
+  height: auto; /* Dynamic height */
+  color: #ffffff;
+  background-color: #000000;
+  font-weight: bold;
+  margin-left: auto;
+}
+
+/* Container for the confirmation message */
+.confirmation-message {
+  padding: 20px;
+  background-color: #000; /* Black background */
+  border-radius: 8px; /* Rounded corners */
+  text-align: center; /* Center the content */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5); /* Soft shadow for depth */
+  max-width: 400px; /* Limit the width */
+  margin: 0 auto; /* Center the message box */
+  font-family: Arial, sans-serif;
+  color: white; /* White text color for visibility */
+}
+
+/* Text inside the confirmation message */
+.confirmation-message p {
+  font-size: 1.2rem; /* Slightly larger font size */
+  color: #fff; /* White text color */
+  margin-bottom: 20px; /* Space between the message and buttons */
+  font-weight: bold;
+}
+
+/* Container for the buttons */
+.confirmation-buttons {
+  display: flex;
+  justify-content: center; /* Center the buttons horizontally */
+  gap: 10px; /* Space between the buttons */
+}
+
+/* Common styles for both buttons */
+.confirmation-buttons button {
+  padding: 10px 20px;
+  border-radius: 5px; /* Rounded corners for buttons */
+  font-size: 1rem;
+  cursor: pointer;
+  border: none; /* Remove default border */
+  transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transition */
+  font-weight: bold;
+}
+
+/* Confirm button (Green) */
+.confirm-btn {
+  background-color: #28a745; /* Green background */
+  color: white; /* White text */
+}
+
+.confirm-btn:hover {
+  background-color: #218838; /* Darker green on hover */
+  transform: scale(1.05); /* Slight zoom effect */
+}
+
+/* Cancel button (Red) */
+.cancel-btn {
+  background-color: #dc3545; /* Red background */
+  color: white; /* White text */
+}
+
+.cancel-btn:hover {
+  background-color: #c82333; /* Darker red on hover */
+  transform: scale(1.05); /* Slight zoom effect */
+}
+
+/* Optional: Fade-in animation for the popup */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.confirmation-message {
+  animation: fadeIn 0.3s ease-in-out; /* Add the fade-in effect */
+}

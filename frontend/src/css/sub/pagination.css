@@ -1,0 +1,42 @@
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 30rem;
+    width: 10rem;
+  }
+
+  .pagination .page-number {
+    margin: 0 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    background-color: transparent;
+    color: #000000;
+    cursor: pointer;
+    font-size: 1rem; /* Set the same font size for all buttons */
+    font-weight: normal; /* Ensure same font weight */
+    opacity: 0.6; /* Lighter opacity for non-selected buttons */
+    transition: opacity 0.3s ease; /* Smooth transition */
+  }
+  
+  .pagination .page-number.active { /* Corrected selector */
+    font-weight: bold;
+    opacity: 1; /* Full opacity for the active button */
+  }
+  
+
+  .pagination .page-number:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+  }
+
+
+  .pagination-button {
+    border: none;
+    background-color: transparent;
+    color: #000000;
+    cursor: pointer;
+    font-size: 1.25rem; /* Set the same font size for all buttons */
+    font-weight: bold;
+    opacity: 1; /* Full opacity for the active button */
+  }

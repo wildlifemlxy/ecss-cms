@@ -1,0 +1,161 @@
+/* Container styling for table */
+.accounts-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem; /* Padding using rem units */
+    z-index: 0;
+  }
+  
+  /* Center the heading container */
+  .accounts-heading {
+    text-align: center;
+    width: 100%; /* Ensure the container takes full width */
+  }
+  
+  /* Table wrapper to control scrolling */
+  .table-wrapper {
+    width: 80vw; /* Table wrapper occupies 80% of the width of its container */
+    max-width: 120rem; /* Maximum width for large screens */
+    height: fit-content;/*height: 50vh*/ /* Table wrapper occupies 70% of the viewport height */
+    overflow: auto; /* Enable both vertical and horizontal scrolling */
+    margin: 0 auto; /* Center the wrapper horizontally */
+    margin-left: 8rem;
+  }
+  
+  
+  /* Ensure table takes full width */
+  .table-wrapper table {
+    width: 100%;
+    border-collapse: collapse; /* Clean border appearance */
+    table-layout: auto; /* Adjust column widths based on content */
+  }
+  
+  /* Header sticky with background color */
+  .table-wrapper thead {
+    position: sticky;
+    top: 0;
+    background-color: #f4f4f4;
+    z-index: 1;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  /* Styling for headers and cells */
+  .table-wrapper th, .table-wrapper td {
+    padding: 0.75rem; /* Padding for better readability */
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    white-space: nowrap; /* Prevent text wrapping */
+  }
+  
+  /* Hide webkit scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  /* Responsive Styles */
+  
+  /* Styles for screens 1024px wide or narrower */
+  @media (max-width: 1024px) {
+    .accounts-container {
+      margin-left: 5rem;
+    }
+    
+    .table-wrapper {
+      font-size: 0.875rem; /* Font size for smaller screens */
+    }
+  }
+  
+  /* Styles for screens 768px wide or narrower */
+  @media (max-width: 768px) {
+    .accounts-container {
+      margin-left: 1rem;
+    }
+  
+    .table-wrapper {
+      font-size: 0.75rem;
+    }
+  
+    .table-wrapper th, .table-wrapper td {
+      padding: 0.625rem; /* Adjust padding for smaller screens */
+    }
+  }
+  
+  /* Styles for screens 480px wide or narrower */
+  @media (max-width: 480px) {
+    .table-wrapper {
+      font-size: 0.625rem;
+    }
+  
+    .table-wrapper th, .table-wrapper td {
+      padding: 0.5rem; /* Reduced padding for very small screens */
+    }
+  
+    /* Optional: stack table cells in a block for very small screens */
+    .table-wrapper table {
+      display: block;
+      width: 100%;
+      /* Ensure no overflow or scrollbars */
+    }
+    
+    .table-wrapper thead {
+      display: none; /* Hide the header in the stacked view */
+    }
+    
+    .table-wrapper tbody, .table-wrapper tr {
+      display: block;
+      width: 100%;
+    }
+    
+    .table-wrapper td {
+      display: block;
+      width: 100%;
+      box-sizing: border-box; /* Ensure padding does not affect width */
+    }
+  }
+
+  /* Basic Table Styling */
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-family: 'Arial', sans-serif;
+  background-color: #fff;
+}
+
+.dashboard-table th,
+.dashboard-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+  color: #000;
+}
+
+.dashboard-table th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+  color: #000000;
+}
+
+.dashboard-table .expanded-row {
+  background-color: #f9f9f9;
+}
+
+.dashboard-table .expanded-content p {
+  margin: 0.5rem 0;
+}
+
+.dashboard-table .expanded-content strong {
+  color: #333;
+}
+
+.dashboard-table .table-row:hover {
+  background-color: #87CEEB; /* Sky blue color */
+}
+
+.dashboard-table .expanded-row td {
+  padding: 0;
+  background-color: transparent;
+}
+

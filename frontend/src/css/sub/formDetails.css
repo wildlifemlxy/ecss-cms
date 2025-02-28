@@ -1,0 +1,68 @@
+/* Base styles */
+.form-details-section {
+  margin: 20px; /* Overall margin for the section */
+  overflow: hidden; /* Prevent content overflow */
+}
+
+.introduction {
+  margin-bottom: 20px; /* Space between the text and the image */
+  padding: 20px; /* Add some padding inside the box */
+  background-color: #fff; /* Background color for visibility */
+  border-radius: 5px; /* Rounded corners */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Box shadow for the text container */
+  font-size: 3em; /* Large font size for readability */
+}
+
+.image-container {
+  text-align: center; /* Center the image */
+  margin-top: 30px; /* Add space above the image */
+  padding: 20px; /* Add some padding inside the box */
+  background-color: #fff; /* Background color for visibility */
+  border-radius: 5px; /* Rounded corners */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Box shadow for the image container */
+}
+
+.registration-image {
+  max-width: 100%; /* Make it responsive */
+  height: auto; /* Maintain aspect ratio */
+}
+
+/* Tablet styles (up to 768px wide) */
+@media (max-width: 768px) {
+  .form-details-section {
+    margin: 10px; /* Reduce margin to fit smaller screens */
+  }
+
+  .introduction {
+    padding: 15px; /* Decrease padding for better fit */
+    font-size: 2em; /* Reduce font size slightly for readability */
+    word-wrap: break-word; /* Ensure long words break into the next line */
+  }
+
+  .image-container {
+    margin-top: 20px; /* Reduce top margin */
+    padding: 15px; /* Adjust padding */
+  }
+
+  .registration-image {
+    max-width: 100%; /* Ensure full visibility */
+    height: auto; /* Maintain aspect ratio */
+  }
+
+  body {
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+  }
+}
+
+/* Non-mobile button layout (larger screens) */
+@media (min-width: 769px) {
+  .button-container {
+    display: flex; /* Use Flexbox for layout */
+    justify-content: space-between; /* Space out the buttons */
+    align-items: center; /* Vertically center the buttons */
+  }
+
+  .button-container .button {
+    width: 30%; /* Each button will take up 30% of the container width */
+  }
+}

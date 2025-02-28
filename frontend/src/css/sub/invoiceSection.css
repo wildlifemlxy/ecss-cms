@@ -1,0 +1,52 @@
+.invoice-section {
+    display: block; /* or use display: flex; for more control over layout */
+    margin: 20px 0; /* Optional margin */
+    max-height: fit-content;  /* Set a maximum height to trigger vertical scrolling */
+    max-width: 90%;  /* Ensure it doesn’t overflow horizontally */
+    overflow: auto;   /* Enable both vertical and horizontal scrolling */
+    margin-left: 3%;
+}
+
+#invoiceSelectBox {
+    display: flex;
+    align-items: center; /* Align the label and select box vertically in the same row */
+    gap: 10px; /* Space between the label and the select box */
+}
+
+#monthDropdown {
+    width: 20vw; /* Adjust the width to avoid it being too wide */
+}
+
+  
+::-webkit-scrollbar {
+    width: 8px; /* Hides vertical scrollbar */
+    height: 8px; /* Keeps horizontal scrollbar */
+  }
+  
+  /* Customize horizontal scrollbar */
+  ::-webkit-scrollbar-horizontal {
+    height: 8px; /* Set height for horizontal scrollbar */
+  }
+  
+  /* Optional: Customize the appearance of the horizontal scrollbar */
+  ::-webkit-scrollbar-thumb {
+    background-color: #888; /* Color of the scrollbar thumb */
+    border-radius: 10px; /* Rounded corners for the scrollbar thumb */
+  }
+  
+  /* Optional: Customize the scrollbar track */
+  ::-webkit-scrollbar-track {
+    background-color: #f1f1f1; /* Color of the scrollbar track */
+  }
+
+  
+  .table-wrapper 
+  {
+    width: 80vw;
+    max-width: 120rem;
+    height: 35vh;
+    /* height: 50vh; */
+    overflow: auto;
+    margin: 0 auto;
+    margin-top: 2%;
+  }

@@ -1,0 +1,134 @@
+/* Container styling for table */
+.nsa-course-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem; /* Padding using rem units */
+  z-index: 0;
+}
+
+/* Center the heading container */
+.nsa-course-heading {
+  text-align: center;
+  width: 100%; /* Ensure the container takes full width */
+}
+
+/* Table wrapper to control scrolling */
+.table-wrapper {
+  width: 80vw; /* Table wrapper occupies 80% of the width of its container */
+  max-width: 120rem; /* Maximum width for large screens */
+  height: auto;/*height: 50vh*/ /* Table wrapper occupies 70% of the viewport height */
+  overflow: auto; /* Enable both vertical and horizontal scrolling */
+  margin: 0 auto; /* Center the wrapper horizontally */
+  margin-left: 8rem;
+}
+
+/* Ensure table takes full width */
+.table-wrapper table {
+  width: 100%;
+  border-collapse: collapse; /* Clean border appearance */
+  table-layout: auto; /* Adjust column widths based on content */
+}
+
+/* Header sticky with background color */
+.table-wrapper thead {
+  position: sticky;
+  top: 0;
+  background-color: #f4f4f4;
+  z-index: 1;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Styling for headers and cells */
+.table-wrapper th, .table-wrapper td {
+  padding: 0.75rem; /* Padding for better readability */
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+/* Hide webkit scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+/* Responsive Styles */
+
+/* Styles for screens 1024px wide or narrower */
+@media (max-width: 1024px) {
+  .nsa-course-container {
+    margin-left: 5rem;
+  }
+  
+  .table-wrapper {
+    font-size: 0.875rem; /* Font size for smaller screens */
+  }
+}
+
+/* Styles for screens 768px wide or narrower */
+@media (max-width: 768px) {
+  .nsa-course-container {
+    margin-left: 1rem;
+  }
+
+  .table-wrapper {
+    font-size: 0.75rem;
+  }
+
+  .table-wrapper th, .table-wrapper td {
+    padding: 0.625rem; /* Adjust padding for smaller screens */
+  }
+}
+
+/* Styles for screens 480px wide or narrower */
+@media (max-width: 480px) {
+  .table-wrapper {
+    font-size: 0.625rem;
+  }
+
+  .table-wrapper th, .table-wrapper td {
+    padding: 0.5rem; /* Reduced padding for very small screens */
+  }
+
+  /* Optional: stack table cells in a block for very small screens */
+  .table-wrapper table {
+    display: block;
+    width: 100%;
+    /* Ensure no overflow or scrollbars */
+  }
+  
+  .table-wrapper thead {
+    display: none; /* Hide the header in the stacked view */
+  }
+  
+  .table-wrapper tbody, .table-wrapper tr {
+    display: block;
+    width: 100%;
+  }
+  
+  .table-wrapper td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box; /* Ensure padding does not affect width */
+  }
+}
+
+.expanded-row {
+  position: relative; /* Ensure it can have a z-index */
+  z-index: 1; /* Place it above other rows */
+  background-color: #ffffff; /* Optional: Background color for better visibility */
+}
+
+/* Style for the expanded content inside the expanded row */
+.expanded-row .expanded-content {
+  padding: 1rem; /* Add padding for better readability */
+  background-color: #f9f9f9; /* Optional: Light background for contrast */
+  z-index: 1; /* Ensure the content inherits the z-index of the parent row */
+  height : 100%;
+}
+
+.course-table tbody tr:hover {
+  cursor: pointer;
+  background-color: #e6f7ff;
+}

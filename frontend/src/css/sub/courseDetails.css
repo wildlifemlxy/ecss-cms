@@ -1,0 +1,132 @@
+/* Course Details Section Styling */
+.course-details-section {
+  padding: 1rem; /* Padding around the section */
+  border: 1px solid #ccc; /* Light gray border */
+  border-radius: 4px; /* Rounded corners */
+  background-color: #f9f9f9; /* Light background color */
+}
+
+/* Input Group */
+.input-group {
+  margin-bottom: 1.5rem; /* Space between input groups */
+}
+
+/* Label Styling */
+.label {
+  display: block; /* Make label take up a full line */
+  font-weight: bold; /* Bold text for labels */
+  margin-bottom: 0.5rem; /* Space between label and input */
+}
+
+/* Course Detail Input */
+.course-detail-input {
+  width: 100%; /* Full width input */
+  padding: 0.5rem; /* Padding inside input */
+  border: 1px solid #ccc; /* Light gray border */
+  border-radius: 4px; /* Slightly rounded corners */
+  font-size: 2em; /* Font size */
+}
+
+/* Focused Input Styling */
+.course-detail-input:focus {
+  border-color: #007bff; /* Change border color on focus */
+  outline: none; /* Remove default outline */
+}
+
+/* Course Detail Text */
+.course-detail-text {
+  font-size: 2em;
+}
+
+/* Error Message Styling */
+.error-message {
+  color: red; /* Red color for error messages */
+  font-size: 0.875rem; /* Slightly smaller font for errors */
+  margin-top: 0.25rem; /* Space above error message */
+}
+
+/* Payment Options Styling */
+.payment-options {
+  display: flex; /* Use Flexbox to arrange the labels in a row */
+  gap: 1rem; /* Space between radio options */
+  margin-top: 0.5rem; /* Space between the label and options */
+}
+
+.payment-options label {
+  display: flex; /* Keep label as flex for alignment */
+  align-items: center; /* Center radio buttons vertically */
+}
+
+.payment-options input {
+  width: fit-content;
+}
+
+/* Mobile Responsiveness */
+
+/* For screens up to 768px (tablets and small screens) */
+@media (max-width: 768px) {
+  /* Input Group Adjustments */
+  .input-group {
+    margin-bottom: 1rem; /* Reduced spacing for smaller screens */
+  }
+
+  /* Label font size adjustment */
+  .label {
+    font-size: 1.5em; /* Smaller font size for better readability */
+  }
+
+  /* Course Detail Input Adjustments */
+  .course-detail-input {
+    font-size: 1.3em; /* Slightly smaller font size */
+    padding: 0.8rem; /* Increased padding for better touch targets */
+  }
+
+  /* Course Detail Text Adjustments */
+  .course-detail-text {
+    font-size: 1.5em; /* Adjust font size for readability */
+  }
+
+  /* Payment Options Styling */
+  .payment-options {
+    flex-direction: column; /* Stack the payment options vertically */
+    gap: 1rem; /* Increased gap for better spacing */
+  }
+
+  .payment-options label {
+    font-size: 1.2em; /* Adjust font size */
+  }
+}
+
+/* For smaller screens up to 480px (mobile phones) */
+@media (max-width: 480px) {
+  /* Input Group Adjustments */
+  .input-group {
+    margin-bottom: 0.8rem; /* Further reduced spacing */
+  }
+
+  /* Label font size adjustment */
+  .label {
+    font-size: 1.3em; /* Smaller font size for mobile */
+  }
+
+  /* Course Detail Input Adjustments */
+  .course-detail-input {
+    font-size: 1.2em; /* Adjust font size for small screens */
+    padding: 0.7rem; /* Slightly reduced padding */
+  }
+
+  /* Course Detail Text Adjustments */
+  .course-detail-text {
+    font-size: 1.3em; /* Smaller text for mobile screens */
+  }
+
+  /* Payment Options Styling */
+  .payment-options {
+    flex-direction: column; /* Stack the payment options vertically */
+    gap: 0.8rem; /* Reduced gap between options */
+  }
+
+  .payment-options label {
+    font-size: 1.1em; /* Adjust font size */
+  }
+}
