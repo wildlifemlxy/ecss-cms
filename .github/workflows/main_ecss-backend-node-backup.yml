@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies and build app
         run: |
           cd backend
-          npm ci
+          npm install
           npm run build --if-present
 
       - name: Create deployment ZIP (Full Deployment)
