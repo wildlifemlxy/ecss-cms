@@ -73,13 +73,13 @@ jobs:
         run: 'echo "Changes detected: ${{ steps.check_changes.outputs.changes_detected }}"'
 
       - name: Set up Node.js version
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
+        if: ${{ steps.check_changes.odeployment_in_progress == 'false' && steps.check_changes.outputs.changes_detected == 'true' }}  
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
 
       - name: npm install, build, and test
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
+        if: ${{steps.check_changes.odeployment_in_progress == 'false' && steps.check_changes.outputs.changes_detected == 'true' }} 
         run: |
           cd backend
           npm install
@@ -87,13 +87,13 @@ jobs:
           # npm run test --if-present
 
       - name: Zip artifact for deployment (only backend folder)
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
+        if: ${{steps.check_changes.odeployment_in_progress == 'false' && steps.check_changes.outputs.changes_detected == 'true' }}  
         run: |
           cd backend
           zip -r ../release.zip .  # Create zip file
 
       - name: Upload artifact for deployment
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
+        if: ${{ steps.check_changes.odeployment_in_progress == 'false' && steps.check_changes.outputs.changes_detected == 'true' }} 
         uses: actions/upload-artifact@v4
         with:
           name: node-app
@@ -101,7 +101,7 @@ jobs:
 
       - name: Deploy to Azure Web App (Linux)
         id: deploy-to-webapp
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
+        if: ${{ steps.check_changes.odeployment_in_progress == 'false' && steps.check_changes.outputs.changes_detected == 'true' }} 
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'ecss-backend-node'
