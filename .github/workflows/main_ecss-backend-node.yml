@@ -12,12 +12,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check if there are any changes in backend directory
+      - name: Fetch latest changes from origin
+        run: |
+          # Fetch the latest changes from the main branch
+          git fetch origin main
+
+      - name: Check if there are any changes in the backend directory
         id: check-changes
         run: |
-          # Fetch the last commit from the main branch
-          git fetch origin main
-          # Check for changes between the current commit and the main branch
+          # Check for changes in the backend directory between current branch and main branch
           git diff --exit-code origin/main -- backend
           if [ $? -eq 0 ]; then
             echo "No changes detected in backend. Skipping build and deployment."
