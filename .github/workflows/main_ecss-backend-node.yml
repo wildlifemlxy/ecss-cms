@@ -11,18 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check if there are any changes in backend directory
-        id: check-changes
-        run: |
-          git diff --exit-code backend
-          if [ $? -eq 0 ]; then
-            echo "No changes detected in backend. Skipping build and deployment."
-            exit 0  # Exit successfully if no changes are detected
-          else
-            echo "Changes detected in backend. Proceeding with build and deployment."
-          fi
-
+  
       - name: Check for ongoing deployment (if any)
         id: check-ongoing-deployment
         run: |
@@ -38,6 +27,17 @@ jobs:
             exit 0  # Skip the build and deployment jobs
           else
             echo "No ongoing deployment. Proceeding with build and deployment."
+          fi
+
+      - name: Check if there are any changes in backend directory
+        id: check-changes
+        run: |
+          git diff --exit-code backend
+          if [ $? -eq 0 ]; then
+            echo "No changes detected in backend. Skipping build and deployment."
+            exit 0  # Exit successfully if no changes are detected
+          else
+            echo "Changes detected in backend. Proceeding with build and deployment."
           fi
 
   build:
