@@ -8,12 +8,11 @@ on:
     branches:
       - main
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read # This is required for actions/checkout
+      contents: read  # This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +29,7 @@ jobs:
           npm run build --if-present
           # npm run test --if-present
 
-      - name: Zip artifact for deployment (only backend2 folder)
+      - name: Zip only backend2 folder for deployment
         run: |
           cd backend2
           zip -r ../release.zip .
@@ -48,8 +47,8 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write # This is required for requesting the JWT
-      contents: read  # This is required for actions/checkout
+      id-token: write  # This is required for requesting the JWT
+      contents: read   # This is required for actions/checkout
 
     steps:
       - name: Download artifact from build job
@@ -59,7 +58,7 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
-      
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -67,11 +66,11 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
 
-      # Clean up all files from the previous deployment
-      - name: Clean up previous deployment files
+      # Clean up previous deployment files (faster approach)
+      - name: Clean up previous deployment files (faster approach)
         run: |
-          echo "Cleaning up previous files from Azure Web App"
-         # ssh azureuser@yecss-backend-node.azurewebsites.net "rm -rf /home/site/wwwroot/*"
+          echo "Removing previous deployment files from Azure Web App"
+          az webapp ssh --name ecss-backend-node --slot Production --command "rm -rf /home/site/wwwroot/*"
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
@@ -79,4 +78,4 @@ jobs:
         with:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
-          package: .
+          package: ./backend2  # Deploying only backend2 folder
