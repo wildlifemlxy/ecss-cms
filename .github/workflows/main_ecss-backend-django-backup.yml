@@ -34,8 +34,8 @@ jobs:
 
       - name: Collect static files (for Django app)
         run: |
-          source venv/bin/activate
-          python djangoPython/manage.py collectstatic --noinput --settings=djangoPython.settings
+          #source venv/bin/activate
+          #python djangoPython/manage.py collectstatic --noinput --settings=djangoPython.settings
 
       - name: Zip artifact for deployment
         run: zip -r release.zip ./* -x "venv/*" -x ".git/*"  # Exclude venv and .git directories
