@@ -109,5 +109,6 @@ jobs:
           package: ./release.zip  # Use the zip file created from the backend folder
           
       - name: Ensure deployment continues in background
+        if: ${{ steps.check_changes.odeployment_in_progress == 'false' && steps.check_changes.outputs.changes_detected == 'true' }} 
         run: |
           echo "Deployment started. This will continue in the background."
