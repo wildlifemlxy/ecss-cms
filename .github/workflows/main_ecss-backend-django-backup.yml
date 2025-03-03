@@ -54,7 +54,8 @@ jobs:
         run: |
           source venv/bin/activate  # Activate virtual environment before running collectstatic
           pip install --upgrade pip
-          pip install corsheaders
+          
+          pip install django-cors-headers && pip install plotly && pip install pandas && pip install inflect && pip install pymongo 
           python djangoPython/manage.py collectstatic --noinput --settings=djangoPython.settings  # Collect static files
 
       - name: Zip artifact for deployment (excluding static files, .git, and other unneeded directories)
