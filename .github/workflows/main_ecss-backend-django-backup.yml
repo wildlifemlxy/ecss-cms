@@ -54,7 +54,7 @@ jobs:
         run: |
           source venv/bin/activate  # Activate virtual environment before running collectstatic
           pip install --upgrade pip
-          # pip install corsheader 
+          pip install corsheaders
           python djangoPython/manage.py collectstatic --noinput --settings=djangoPython.settings  # Collect static files
 
       - name: Zip artifact for deployment (excluding static files, .git, and other unneeded directories)
