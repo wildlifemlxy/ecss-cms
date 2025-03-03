@@ -27,18 +27,18 @@ jobs:
           echo "Before push commit:"
           git log --oneline -n 2  # Show the last 2 commits
 
-      - name: Check for changes in djangoPython and venv directories between before and after push
+      - name: Check for changes in djangoPython directories between before and after push
         id: check_changes
         run: |
-          echo "Checking for changes in the djangoPython and venv directories between before and after push..."
+          echo "Checking for changes in the djangoPython directories between before and after push..."
           git fetch origin main --depth=2  # Fetch the last 2 commits
-          CHANGES=$(git diff --name-only HEAD~1 HEAD -- djangoPython/ venv/)
+          CHANGES=$(git diff --name-only HEAD~1 HEAD -- djangoPython/)
 
           if [ -z "$CHANGES" ]; then
-            echo "No changes detected in djangoPython or venv directories. Skipping build and deploy."
+            echo "No changes detected in djangoPython directories. Skipping build and deploy."
             echo "::set-output name=changes_detected::false"
           else
-            echo "Changes detected in djangoPython or venv directories. Proceeding with build and deploy."
+            echo "Changes detected in djangoPython directories. Proceeding with build and deploy."
             echo "::set-output name=changes_detected::true"
           fi
 
@@ -52,23 +52,15 @@ jobs:
       - name: Collect static files from djangoPython/djangoPython
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         run: |
-          source venv/bin/activate  # Activate virtual environment before running collectstatic
-          pip install --upgrade pip
-          pip install django-cors-headers && pip install plotly && pip install pandas && pip install inflect && pip install pymongo 
-          python djangoPython/manage.py collectstatic --noinput --settings=djangoPython.settings  # Collect static files
+          # source venv/bin/activate  # Activate virtual environment before running collectstatic
+          # pip install --upgrade pip
+          # pip install django-cors-headers && pip install plotly && pip install pandas && pip install inflect && pip install pymongo 
+          # python djangoPython/manage.py collectstatic --noinput --settings=djangoPython.settings  # Collect static files
 
       - name: Zip artifact for deployment (excluding static files, .git, and other unneeded directories)
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         run: |
           zip -r release.zip ./djangoPython requirements.txt -x "static/*" -x ".git/*"  # Include only necessary directories/files
-
-      - name: Upload artifact for deployment jobs
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            release.zip
 
       - name: Login to Azure
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
