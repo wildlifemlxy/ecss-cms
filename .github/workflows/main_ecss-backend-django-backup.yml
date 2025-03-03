@@ -10,12 +10,11 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # This is required for actions/checkout
-      id-token: write  # This is required for Azure login
+      contents: read #This is required for actions/checkout
+      id-token: write #This is required for requesting the JWT
 
     steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python version
         uses: actions/setup-python@v5
@@ -26,19 +25,30 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-
+      
       - name: Install dependencies
         run: pip install -r requirements.txt
-
+        
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
-      - name: Collect static files (for Django app)
-        run: |
-          #source venv/bin/activate
-          #python djangoPython/manage.py collectstatic --noinput --settings=djangoPython.settings
-
       - name: Zip artifact for deployment
-        run: zip -r release.zip ./* -x "venv/*" -x ".git/*"  # Exclude venv and .git directories
+        run: zip release.zip ./* -r
+
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: |
+            release.zip
+            !venv/
+
+      - name: Download artifact for deployment
+        uses: actions/download-artifact@v4
+        with:
+          name: python-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -47,14 +57,9 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AF53037E7A2840779D7BBBA99B205BD1 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F754611B88D7432FA2F0EBA31E894E04 }}
 
-      - name: Deploy to Azure Web App
+      - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
         with:
           app-name: 'ecss-backend-django-backup'
           slot-name: 'Production'
-          package: release.zip  # Deploy the created zip package
-
-      - name: Cleanup (optional)
-        run: |
-          echo "Cleaning up..."
-          rm -rf venv  # Clean up virtual environment
