@@ -1,4 +1,4 @@
-name: ECSS Backend Side - Node
+name: Build and deploy Node.js app to Azure Web App - ecss-backend-node
 
 on:
   push:
@@ -16,32 +16,38 @@ jobs:
       name: 'Production'
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_41A26900721847DFB378D91324F04C5C }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
+
+      - name: Set the correct Azure subscription
+        run: |
+          az account set --subscription ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
 
       - name: Check if any deployment is in progress
-        id: check_deployment_status
         run: |
           echo "Checking if a deployment is already in progress..."
           
-          # Log in to Azure if necessary
-          az account set --subscription ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
-          
-          # Get the deployment status
+          # Fetch deployment status
           DEPLOYMENT_STATUS=$(az webapp deployment list \
             --name 'ecss-backend-node' \
-            --resource-group 'ECSS-Course-Management-System' \
+            --resource-group 'your-resource-group' \
             --query "[?status=='InProgress'].status" -o tsv)
-          
+
           if [ "$DEPLOYMENT_STATUS" == "InProgress" ]; then
             echo "A deployment is already in progress. Exiting early."
             exit 0  # Exit early if a deployment is in progress
           else
             echo "No deployment is in progress. Proceeding with the build and deploy."
           fi
-    
-      # Fetch previous commit (before push) only if no deployment is in progress
+
       - name: Fetch previous commit (before push)
-        if: ${{ steps.check_deployment_status.outcome != 'failure' }}  # Proceed only if no deployment is in progress
         run: |
           git fetch origin main --depth=2
           echo "Before push commit:"
@@ -99,15 +105,6 @@ jobs:
           name: node-app
           path: release.zip
 
-      - name: Login to Azure
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_41A26900721847DFB378D91324F04C5C }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
-
-      # Only proceed with deployment if changes are detected in the backend folder
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
