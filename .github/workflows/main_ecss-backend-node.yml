@@ -30,12 +30,12 @@ jobs:
         run: |
           az account set --subscription ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
 
-      - name: Check if a deployment is in progress for ecss-backend-node on Azure Linux
+      - #name: Check if a deployment is in progress for ecss-backend-node on Azure Linux
         run: |
           echo "Checking for active deployment process for ecss-backend-node..."
           
           # Specify the resource group for your app (replace <resource-group-name> with the actual resource group name)
-          RESOURCE_GROUP="<resource-group-name>"
+          RESOURCE_GROUP="ECSS-Course-Management-System"
 
           # Check for any active Azure Linux deployment process (replace 'ecss-backend-node' with the exact name of your app)
           DEPLOYMENT_STATUS=$(az webapp show --name ecss-backend-node --resource-group $RESOURCE_GROUP --query "state" -o tsv)
