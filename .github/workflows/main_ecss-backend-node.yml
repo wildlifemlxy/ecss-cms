@@ -33,10 +33,10 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    needs: check  # Ensure that the check job runs before the build job
+    needs: check  # Ensure that the build job only runs after the check job is complete
     permissions:
       contents: read  # This is required for actions/checkout
-    if: ${{ needs.check.outputs.changes_detected == 'true' }}  # Run build only if changes are detected
+    if: ${{ success() }}  # Run build only if changes are detected
     
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
     permissions:
       id-token: write  # This is required for requesting the JWT
       contents: read  # This is required for actions/checkout
-    if: ${{ needs.check.outputs.changes_detected == 'true' && success() }}  # Ensure deploy only runs if changes are detected and build is successful
+    if: ${{ needs.check.outputs.changes_detected == 'true' }}  # Ensure deploy only runs if changes are detected and build is successful
 
     steps:
       - name: Download artifact from build job
