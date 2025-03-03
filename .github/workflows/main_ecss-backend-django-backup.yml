@@ -51,8 +51,7 @@ jobs:
 
       - name: Collect static files
         run: |
-          ls
-         # python manage.py collectstatic --noinput  # Collect static files for deployment
+          python djangoPython/manage.py collectstatic --noinput  # Collect static files for deployment
 
       - name: Zip artifact for deployment (excluding venv)
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
