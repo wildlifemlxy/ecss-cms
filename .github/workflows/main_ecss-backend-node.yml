@@ -69,7 +69,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build  # Ensure that deploy only runs after build is completed
+    needs: check  # Ensure that deploy only runs after build is completed
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
