@@ -38,38 +38,9 @@ jobs:
           name: node-app
           path: release.zip
 
-  check:
-    runs-on: ubuntu-latest
-    needs: build # Ensure that the build job only runs after the check job is complete
-    permissions:
-      contents: read  # This is required for actions/checkout
-    if: ${{ success() }}  # Run build only if changes are detected
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Fetch latest changes from origin
-        run: |
-          # Fetch the latest changes from the main branch
-          git fetch origin main
-
-      - name: Check if there are any changes in the backend directory
-        id: check-changes
-        run: |
-          # Check for changes in the backend directory between current branch and main branch
-          git diff --exit-code origin/main -- backend
-          if [ $? -eq 0 ]; then
-            echo "No changes detected in backend. Skipping build and deployment."
-            echo "::set-output name=changes_detected::false"
-            exit 0  # Exit successfully if no changes are detected
-          else
-            echo "Changes detected in backend. Proceeding with build and deployment."
-            echo "::set-output name=changes_detected::true"
-          fi      
-
   deploy:
     runs-on: ubuntu-latest
-    needs: check  # Ensure that deploy only runs after build is completed
+    needs: build  # Ensure that deploy only runs after build is completed
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
