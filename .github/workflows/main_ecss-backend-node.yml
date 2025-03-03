@@ -30,16 +30,16 @@ jobs:
           CHANGES=$(git diff --name-only HEAD^ HEAD)
           if [ -z "$CHANGES" ]; then
             echo "No changes detected. Skipping build."
-            echo "::set-output name=changes_detected::false"
+            echo "changes_detected=false" >> $GITHUB_ENV
           else
             echo "Changes detected:"
             echo "$CHANGES"
-            echo "::set-output name=changes_detected::true"
+            echo "changes_detected=true" >> $GITHUB_ENV
           
   build:
     runs-on: ubuntu-latest
     needs: check  # Ensure that build only runs after the check job
-    if: ${{ needs.check.outputs.changes_detected == 'true' }}  # Only run build if changes are detected
+    if: ${{ env.changes_detected == 'true' }}  # Only run build if changes are detected
     permissions:
       contents: read  # This is required for actions/checkout
     
