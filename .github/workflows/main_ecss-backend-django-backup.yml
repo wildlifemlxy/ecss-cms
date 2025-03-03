@@ -62,6 +62,14 @@ jobs:
         run: |
           zip -r release.zip ./djangoPython requirements.txt -x "static/*" -x ".git/*"  # Include only necessary directories/files
 
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: python-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
+
       - name: Login to Azure
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         uses: azure/login@v2
