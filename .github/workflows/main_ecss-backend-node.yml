@@ -71,7 +71,7 @@ jobs:
       - name: Clean up previous deployment files
         run: |
           echo "Cleaning up previous files from Azure Web App"
-          ssh azureuser@your-web-app-name.scm.azurewebsites.net "rm -rf /home/site/wwwroot/*"
+         # ssh azureuser@yecss-backend-node.azurewebsites.net "rm -rf /home/site/wwwroot/*"
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
