@@ -47,7 +47,7 @@ jobs:
     permissions:
       id-token: write  # This is required for requesting the JWT
       contents: read  # This is required for actions/checkout
-    if: ${{ needs.check.outputs.changes_detected == 'true' }}  # Ensure deploy only runs if changes are detected and build is successful
+    if: ${{ success() }}  # Ensure deploy only runs if changes are detected and build is successful
 
     steps:
       - name: Download artifact from build job
