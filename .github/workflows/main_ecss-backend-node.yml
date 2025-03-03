@@ -15,6 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check if there are any changes in backend2 directory
+        id: check-changes
+        run: |
+          git diff --exit-code backend2 || echo "Changes detected in backend2"
+
+      - name: Exit if no changes detected
+        if: steps.check-changes.outputs.exit-code == 0
+        run: |
+          echo "No changes detected in backend2. Skipping build and deployment."
+          exit 0  # Skip the remaining steps if no changes
+
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
@@ -77,4 +88,3 @@ jobs:
       - name: Ensure deployment continues in background
         run: |
           echo "Deployment started. This will continue in the background."
-
