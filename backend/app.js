@@ -22,7 +22,7 @@ app.use(express.json()); // For parsing JSON
 app.use(express.urlencoded({ extended: false })); // For parsing URL-encoded data
 app.use(cookieParser()); // For parsing cookies
 
-// Set up views (if you're using templates)
+// Set up views (if you're using templates)okok
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade'); // You can change to 'ejs' or others if needed
 
