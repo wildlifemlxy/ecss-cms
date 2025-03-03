@@ -61,6 +61,7 @@ jobs:
           zip -r release.zip ./djangoPython ./venv/* requirements.txt -x "static/*" -x ".git/*"  # Include only necessary directories/files
 
       - name: Login to Azure
+        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_01E6C8A212504569A3E418BCCCBB0947 }}
@@ -68,6 +69,7 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F754611B88D7432FA2F0EBA31E894E04 }}
 
       - name: Deploy to Azure Web App
+        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
