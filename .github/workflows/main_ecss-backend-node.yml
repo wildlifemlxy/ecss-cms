@@ -24,24 +24,25 @@ jobs:
           echo "Before push commit:"
           git log --oneline -n 2  # Show the last 2 commits
 
-      - name: Check for changes between before and after push
+      - name: Check for changes in the backend folder between before and after push
         id: check_changes
         run: |
-          echo "Checking for changes between before and after push..."
+          echo "Checking for changes in the backend folder between before and after push..."
   
           # Ensure we fetch the previous commit to compare against
           git fetch origin main --depth=2  # Fetch the last 2 commits
 
-          # Use git diff to directly compare the previous commit (HEAD^) and the current commit (HEAD)
-          CHANGES=$(git diff --name-only HEAD~1 HEAD)
-  
-          # Check if changes are detected
+          # Use git diff to directly compare the previous commit (HEAD^) and the current commit (HEAD), 
+          # limiting the diff to the backend folder
+          CHANGES=$(git diff --name-only HEAD~1 HEAD -- backend/)
+
+          # Check if changes are detected in the backend folder
           if [ -z "$CHANGES" ]; then
-            echo "No changes detected. Skipping build and deploy."
+            echo "No changes detected in the backend folder. Skipping build and deploy."
             echo "::set-output name=changes_detected::false"
             exit 0  # Exit early if no changes are detected
           else
-            echo "Changes detected. Proceeding with build and deploy."
+            echo "Changes detected in the backend folder. Proceeding with build and deploy."
             echo "::set-output name=changes_detected::true"
           fi
 
@@ -79,7 +80,7 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
 
-      # Only proceed with deployment if changes are detected
+      # Only proceed with deployment if changes are detected in the backend folder
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
