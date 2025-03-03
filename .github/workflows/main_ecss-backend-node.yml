@@ -7,8 +7,29 @@ on:
   workflow_dispatch:
 
 jobs:
+  compare_changes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch previous commit
+        run: |
+          git fetch origin main --depth=2
+
+      - name: Check for changes between previous and current commit
+        id: check_changes
+        run: |
+          CHANGES=$(git diff --name-only HEAD^ HEAD)
+          if [ -z "$CHANGES" ]; then
+            echo "No changes detected. Skipping build and deploy."
+            echo "::set-output name=changes_detected::false"
+          else
+            echo "Changes detected:"
+            echo "$CHANGES"
+            echo "::set-output name=changes_detected::true"
+            
   build:
     runs-on: ubuntu-latest
+    needs: compare_changes  # Only run if changes are detected
+    if: ${{ needs.compare_changes.outputs.changes_detected == 'true' }}
     permissions:
       contents: read  # This is required for actions/checkout
     
@@ -41,15 +62,25 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build  # Ensure that deploy only runs after build is completed
+    if: ${{ needs.build.result == 'success' }}  # Ensure deploy only runs if the build is successful
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
       id-token: write  # This is required for requesting the JWT
       contents: read  # This is required for actions/checkout
-    if: ${{ success() }}  # Ensure deploy only runs if changes are detected and build is successful
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_41A26900721847DFB378D91324F04C5C }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
+
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
@@ -59,13 +90,6 @@ jobs:
         run: |
           unzip release.zip
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_41A26900721847DFB378D91324F04C5C }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
-
       - name: Deploy to Azure Web App (without incremental checks)
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -74,7 +98,6 @@ jobs:
           slot-name: 'Production'
           package: .
 
-      # Optional: You can keep this step for logging purposes if needed
       - name: Ensure deployment continues in background
         run: |
           echo "Deployment started. This will continue in the background."
