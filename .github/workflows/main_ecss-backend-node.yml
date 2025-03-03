@@ -87,7 +87,7 @@ jobs:
         with:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
-          package: .
+          package: ./release.zip  # Use the zip file created from the backend folder
 
       - name: Ensure deployment continues in background
         run: |
