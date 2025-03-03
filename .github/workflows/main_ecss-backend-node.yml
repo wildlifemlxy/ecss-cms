@@ -9,39 +9,28 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read  # This is required for actions/checkout
-    
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Fetch previous commit (before push)
-        run: |
-          git fetch origin main --depth=2
-          echo "Before push commit:"
-          git show --stat HEAD^  # Show the previous commit (before push)
-
-      - name: Check for changes between before and after push
-        id: check_changes
-        run: |
-          echo "Checking for changes between before and after push..."
-
-          # Get the list of files that changed in the latest commit
-          CHANGES=$(git diff --name-only HEAD^ HEAD)
-          if [ -z "$CHANGES" ]; then
-            echo "No changes detected. Skipping build and deploy."
-            echo "::set-output name=changes_detected::false"
-          else
-            echo "Changes detected:"
-            echo "$CHANGES"
-            echo "::set-output name=changes_detected::true"
-          fi
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
 
+      - name: Check for changes between previous and current commit
+        id: check_changes
+        run: |
+          git fetch origin main --depth=2
+          CHANGES=$(git diff --name-only HEAD^ HEAD)
+          if [ -z "$CHANGES" ]; then
+            echo "No changes detected. Skipping build."
+            echo "::set-output name=changes_detected::false"
+          else
+            echo "Changes detected:"
+            echo "$CHANGES"
+            echo "::set-output name=changes_detected::true"
+        
       - name: npm install, build, and test
         run: |
           cd backend
@@ -52,7 +41,7 @@ jobs:
       - name: Zip artifact for deployment (only backend folder)
         run: |
           cd backend
-          zip -r ../release.zip .  # Create zip file
+          zip -r ../release.zip .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
