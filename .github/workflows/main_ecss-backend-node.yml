@@ -18,12 +18,12 @@ jobs:
       - name: Check if there are any changes in backend2 directory
         id: check-changes
         run: |
-          git diff --exit-code backend2 || echo "Changes detected in backend2"
+          git diff --exit-code backend || echo "Changes detected in backend"
 
       - name: Exit if no changes detected
         if: steps.check-changes.outputs.exit-code == 0
         run: |
-          echo "No changes detected in backend2. Skipping build and deployment."
+          echo "No changes detected in backend. Skipping build and deployment."
           exit 0  # Skip the remaining steps if no changes
 
       - name: Set up Node.js version
@@ -33,14 +33,14 @@ jobs:
 
       - name: npm install, build, and test
         run: |
-          cd backend2
+          cd backend
           npm install
           npm run build --if-present
           # npm run test --if-present
 
-      - name: Zip artifact for deployment (only backend2 folder)
+      - name: Zip artifact for deployment (only backend folder)
         run: |
-          cd backend2
+          cd backend
           zip -r ../release.zip .
 
       - name: Upload artifact for deployment job
@@ -83,7 +83,7 @@ jobs:
         with:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
-          package: ./backend2
+          package: ./backend
 
       - name: Ensure deployment continues in background
         run: |

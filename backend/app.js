@@ -6,7 +6,6 @@ var logger = require('morgan');
 var cors = require("cors");
 var app = express(); // Initialize the Express app
 
-var cors = require("cors");
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var loginRouter = require("./routes/login");
@@ -17,7 +16,6 @@ var receiptRouter = require("./routes/receipt");
 var invoiceRouter = require("./routes/invoice");
 var singpassRouter = require("./routes/singpass");
 
-// Use middleware
 app.use(cors()); // Enable CORS
 app.use(logger('dev')); // HTTP request logger
 app.use(express.json()); // For parsing JSON
