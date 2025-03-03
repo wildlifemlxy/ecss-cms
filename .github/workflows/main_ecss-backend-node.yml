@@ -30,21 +30,18 @@ jobs:
         run: |
           az account set --subscription ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
 
-      - name: Check if a deployment is in progress on Azure
+      - name: Check if a deployment is in progress for ecss-backend-node on Azure Linux
         run: |
-          echo "Checking if a deployment is in progress on Azure..."
+          echo "Checking for active deployment process for ecss-backend-node..."
+          
+          # Check for any active Azure Linux deployment process (replace 'ecss-backend-node' with the exact name of your app)
+          DEPLOYMENT_STATUS=$(az webapp show --name ecss-backend-node --query "state" -o tsv)
 
-          # Use Azure CLI to check if there's any ongoing deployment operation
-          DEPLOYMENT_STATUS=$(az webapp deployment operation list \
-            --resource-group 'your-resource-group' \
-            --name 'ecss-backend-node' \
-            --query "[?properties.status=='InProgress']" -o tsv)
-
-          if [ -n "$DEPLOYMENT_STATUS" ]; then
-            echo "A deployment is in progress. Exiting early."
-            exit 0  # Exit if a deployment is in progress
+          if [ "$DEPLOYMENT_STATUS" == "Running" ]; then
+            echo "Deployment is already in progress for ecss-backend-node. Exiting early."
+            exit 0  # Exit if a deployment process is detected
           else
-            echo "No deployment in progress. Proceeding with build."
+            echo "No deployment in progress for ecss-backend-node. Proceeding with build."
           fi
 
       - name: Fetch previous commit (before push)
@@ -57,15 +54,9 @@ jobs:
         id: check_changes
         run: |
           echo "Checking for changes in the backend folder between before and after push..."
-  
-          # Ensure we fetch the previous commit to compare against
           git fetch origin main --depth=2  # Fetch the last 2 commits
-
-          # Use git diff to directly compare the previous commit (HEAD^) and the current commit (HEAD), 
-          # limiting the diff to the backend folder
           CHANGES=$(git diff --name-only HEAD~1 HEAD -- backend/)
 
-          # Check if changes are detected in the backend folder
           if [ -z "$CHANGES" ]; then
             echo "No changes detected in the backend folder. Skipping build and deploy."
             echo "::set-output name=changes_detected::false"
@@ -105,7 +96,7 @@ jobs:
           name: node-app
           path: release.zip
 
-      - name: Deploy to Azure Web App
+      - name: Deploy to Azure Web App (Linux)
         id: deploy-to-webapp
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
         uses: azure/webapps-deploy@v3
@@ -113,7 +104,8 @@ jobs:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
           package: ./release.zip  # Use the zip file created from the backend folder
-
+          scm-do-build-during-deployment: true  # Ensure the app is built during deployment (required for Node.js apps)
+          
       - name: Ensure deployment continues in background
         run: |
           echo "Deployment started. This will continue in the background."
