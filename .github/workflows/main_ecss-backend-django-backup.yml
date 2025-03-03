@@ -54,14 +54,20 @@ jobs:
         run: |
           source venv/bin/activate  # Activate virtual environment before running collectstatic
           pip install --upgrade pip
-          
           pip install django-cors-headers && pip install plotly && pip install pandas && pip install inflect && pip install pymongo 
           python djangoPython/manage.py collectstatic --noinput --settings=djangoPython.settings  # Collect static files
 
       - name: Zip artifact for deployment (excluding static files, .git, and other unneeded directories)
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         run: |
-          zip -r release.zip ./djangoPython ./venv/* requirements.txt -x "static/*" -x ".git/*"  # Include only necessary directories/files
+          zip -r release.zip ./djangoPython requirements.txt -x "static/*" -x ".git/*"  # Include only necessary directories/files
+
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: |
+            release.zip
 
       - name: Login to Azure
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
