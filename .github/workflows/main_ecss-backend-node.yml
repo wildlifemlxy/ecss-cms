@@ -67,8 +67,7 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: |
-          mkdir ./backend2  # Create the target folder to unzip into
-          unzip release.zip -d ./backend2
+          unzip release.zip
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -83,7 +82,7 @@ jobs:
         with:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
-          package: ./backend
+          package: .
 
       - name: Ensure deployment continues in background
         run: |
