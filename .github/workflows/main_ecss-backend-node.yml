@@ -15,16 +15,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check if there are any changes in backend2 directory
+      - name: Check if there are any changes in backend directory
         id: check-changes
         run: |
-          git diff --exit-code backend || echo "Changes detected in backend"
-
-      - name: Exit if no changes detected
-        if: steps.check-changes.outputs.exit-code == 0
-        run: |
-          echo "No changes detected in backend. Skipping build and deployment."
-          exit 0  # Skip the remaining steps if no changes
+          git diff --exit-code backend
+          if [ $? -eq 0 ]; then
+            echo "No changes detected in backend. Skipping build and deployment."
+            exit 0  # Exit successfully if no changes are detected
+          else
+            echo "Changes detected in backend. Proceeding with build and deployment."
+          fi
 
       - name: Set up Node.js version
         uses: actions/setup-node@v3
@@ -84,6 +84,7 @@ jobs:
           slot-name: 'Production'
           package: .
 
+      # Optional: You can keep this step for logging purposes if needed
       - name: Ensure deployment continues in background
         run: |
           echo "Deployment started. This will continue in the background."
