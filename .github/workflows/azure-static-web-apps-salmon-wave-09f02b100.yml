@@ -1,4 +1,4 @@
-name: Azure Static Web Apps CI/CD Reacr Frontend
+name: Azure Static Web Apps CI/CD React Frontend
 
 on:
   push:
