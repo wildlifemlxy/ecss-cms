@@ -84,16 +84,16 @@ class InvoiceSection extends Component {
             try 
             {
                 //var response = await axios.post('http://localhost:3001/invoice', {purpose: 'findInvoiceNumber', selectedMonth: selectedMonth});
-                var response = await axios.post('https://ecss-backend-node-backup.azurewebsites.net/invoice', {purpose: 'findInvoiceNumber', selectedMonth: selectedMonth});
+                var response = await axios.post('https://ecss-backend-node.azurewebsites.net/invoice', {purpose: 'findInvoiceNumber', selectedMonth: selectedMonth});
                 var invoiceNumber = response.data.invoiceNumber;
                 console.log(invoiceNumber);
                 if(invoiceNumber === "")
                 {
                     //var response1 = await axios.post('http://localhost:3001/invoice', {purpose: 'getInvoiceNumber'});
-                    var response1 = await axios.post('https://ecss-backend-node-backup.azurewebsites.net/invoice', {purpose: 'getInvoiceNumber'});
+                    var response1 = await axios.post('https://ecss-backend-node.azurewebsites.net/invoice', {purpose: 'getInvoiceNumber'});
                     var newInvoiceNumber = response1.data.invoiceNumber;
                     //var response2 = await axios.post('http://localhost:3001/invoice', { purpose: 'generateInvoice', details: courses, totalPrice: totalPrice, totalPriceInWords: totalPriceInWords, invoiceNumber: newInvoiceNumber, selectedMonth: selectedMonth, userName: this.props.userName}, { responseType: 'blob' });
-                    var response2 = await axios.post('https://ecss-backend-node-backup.azurewebsites.net/invoice', { purpose: 'generateInvoice', details: courses, totalPrice: totalPrice, totalPriceInWords: totalPriceInWords, invoiceNumber: newInvoiceNumber, selectedMonth: selectedMonth, userName: this.props.userName}, { responseType: 'blob' });
+                    var response2 = await axios.post('https://ecss-backend-node.azurewebsites.net/invoice', { purpose: 'generateInvoice', details: courses, totalPrice: totalPrice, totalPriceInWords: totalPriceInWords, invoiceNumber: newInvoiceNumber, selectedMonth: selectedMonth, userName: this.props.userName}, { responseType: 'blob' });
                     // Extract filename from Content-Disposition header
                     const contentDisposition = response2.headers['content-disposition'];
                     const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
@@ -112,7 +112,7 @@ class InvoiceSection extends Component {
                 else
                 {
                     //var response1 = await axios.post('http://localhost:3001/invoice', { purpose: 'generateInvoice', details: courses, totalPrice: totalPrice, totalPriceInWords: totalPriceInWords, invoiceNumber: invoiceNumber, selectedMonth: selectedMonth, userName: this.props.userName}, { responseType: 'blob' });
-                    var response1 = await axios.post('https://ecss-backend-node-backup.azurewebsites.net/invoice', { purpose: 'generateInvoice', details: courses, totalPrice: totalPrice, totalPriceInWords: totalPriceInWords, invoiceNumber: invoiceNumber, selectedMonth: selectedMonth, userName: this.props.userName}, { responseType: 'blob' })
+                    var response1 = await axios.post('https://ecss-backend-node.azurewebsites.net/invoice', { purpose: 'generateInvoice', details: courses, totalPrice: totalPrice, totalPriceInWords: totalPriceInWords, invoiceNumber: invoiceNumber, selectedMonth: selectedMonth, userName: this.props.userName}, { responseType: 'blob' })
                     // Extract filename from Content-Disposition header
                     const contentDisposition = response1.headers['content-disposition'];
                     const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
