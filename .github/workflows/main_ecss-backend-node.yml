@@ -1,4 +1,4 @@
-name: Build and deploy Node.js app to Azure Web App - ecss-backend-node
+name: ECSS Backend Node
 
 on:
   push:
