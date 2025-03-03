@@ -31,7 +31,7 @@ jobs:
           npm run build --if-present
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: zip -r release.zip . -x "node_modules/*" ".git/*" ".github/*" "*.log"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -56,14 +56,12 @@ jobs:
           name: node-app
 
       - name: Unzip artifact for deployment
-        run: unzip release.zip
+        run:    tar -xzf release.zip
       
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4901EDA5559D46D6AD0BC2538D306048 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_E8377962942948B6AF9E603DC6FC34F9 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6698A0A466C84E63BC6261DA7FAD5B8D }}
+         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
@@ -71,6 +69,6 @@ jobs:
         with:
           app-name: 'ecss-backend-node-backup'
           slot-name: 'Production'
-          package: .
+          package: ./release.zip
           clean: true
           
