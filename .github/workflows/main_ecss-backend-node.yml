@@ -5,23 +5,15 @@ on:
     branches:
       - main
   workflow_dispatch:
-
+  
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Cache node modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('backend2/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
 
       - name: Set up Node.js version
         uses: actions/setup-node@v3
@@ -30,16 +22,21 @@ jobs:
 
       - name: npm install, build, and test
         run: |
-           cd backend2
-           npm install
-           npm run build --if-present
-           # npm run test --if-present
+          cd backend2
+          npm install
+          npm run build --if-present
+          # npm run test --if-present
+
+      - name: Zip artifact for deployment (only backend2 folder)
+        run: |
+          cd backend2
+          zip -r ../release.zip .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: backend2/
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -48,14 +45,17 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write
-      contents: read
+      id-token: write # This is required for requesting the JWT
+      contents: read  # This is required for actions/checkout
 
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: node-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -64,12 +64,18 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
 
+      - name: Wait for app to start
+        run: |
+          echo "Waiting for app to be ready..."
+          sleep 30  # Wait for the app to fully start up
+
       - name: Clean up previous deployment files
         run: |
-          az webapp ssh --name ecss-backend-node --resource-group ECSS-Course-Management-System
+          echo "Cleaning up previous deployment files..."
+          az webapp ssh --name ecss-backend-node --resource-group ECSS-Course-Management-System --timeout 600
           rm -rf /home/site/wwwroot/*
 
-      - name: Deploy to Azure Web App
+      - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
