@@ -34,8 +34,11 @@ jobs:
         run: |
           echo "Checking for active deployment process for ecss-backend-node..."
           
+          # Specify the resource group for your app (replace <resource-group-name> with the actual resource group name)
+          RESOURCE_GROUP="<resource-group-name>"
+
           # Check for any active Azure Linux deployment process (replace 'ecss-backend-node' with the exact name of your app)
-          DEPLOYMENT_STATUS=$(az webapp show --name ecss-backend-node --query "state" -o tsv)
+          DEPLOYMENT_STATUS=$(az webapp show --name ecss-backend-node --resource-group $RESOURCE_GROUP --query "state" -o tsv)
 
           if [ "$DEPLOYMENT_STATUS" == "Running" ]; then
             echo "Deployment is already in progress for ecss-backend-node. Exiting early."
