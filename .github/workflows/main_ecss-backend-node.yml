@@ -30,22 +30,20 @@ jobs:
         run: |
           az account set --subscription ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
 
-      - name: Check if any deployment is in progress
+      - name: Check if a deployment is in progress on Azure Linux
         run: |
-          echo "Checking if a deployment is already in progress..."
-          
-          # Fetch deployment status
-          DEPLOYMENT_STATUS=$(az webapp deployment show \
-            --name 'ecss-backend-node' \
-            --resource-group 'ECSS-Course-Management-System' \
-            --query "[?status=='InProgress'].status" -o tsv)
+          echo "Checking for active deployment process..."
 
-          if [ "$DEPLOYMENT_STATUS" == "InProgress" ]; then
-            echo "A deployment is already in progress. Exiting early."
-            exit 0  # Exit early if a deployment is in progress
+          # Check if any process related to Azure Web App deployment is running
+          DEPLOYMENT_STATUS=$(ps aux | grep -E "azure|webapp|deploy" | grep -v 'grep')
+
+          if [ -n "$DEPLOYMENT_STATUS" ]; then
+            echo "A deployment is in progress. Exiting early."
+            exit 0  # Exit if a deployment process is detected
           else
-            echo "No deployment is in progress. Proceeding with the build and deploy."
+            echo "No deployment is in progress. Proceeding with build."
           fi
+
 
       - name: Fetch previous commit (before push)
         run: |
