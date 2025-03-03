@@ -30,30 +30,32 @@ jobs:
         run: |
           az account set --subscription ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
 
-      - #name: Check if a deployment is in progress for ecss-backend-node on Azure Linux
+      - name: Check if a deployment is in progress for ecss-backend-node on Azure Linux
         run: |
-          echo "Checking for active deployment process for ecss-backend-node..."
-          
-          # Specify the resource group for your app (replace <resource-group-name> with the actual resource group name)
-          RESOURCE_GROUP="ECSS-Course-Management-System"
-
-          # Check for any active Azure Linux deployment process (replace 'ecss-backend-node' with the exact name of your app)
-          DEPLOYMENT_STATUS=$(az webapp show --name ecss-backend-node --resource-group $RESOURCE_GROUP --query "state" -o tsv)
-
-          if [ "$DEPLOYMENT_STATUS" == "Running" ]; then
-            echo "Deployment is already in progress for ecss-backend-node. Exiting early."
-            exit 0  # Exit if a deployment process is detected
-          else
-            echo "No deployment in progress for ecss-backend-node. Proceeding with build."
-          fi
-
+            echo "Checking for active deployment process for ecss-backend-node..."
+            RESOURCE_GROUP="ECSS-Course-Management-System"
+            DEPLOYMENT_STATUS=$(az webapp show --name ecss-backend-node --resource-group $RESOURCE_GROUP --query "state" -o tsv)
+        
+            echo "Current deployment status: $DEPLOYMENT_STATUS"  # Show the deployment status
+        
+            if [ "$DEPLOYMENT_STATUS" == "Running" ]; then
+              echo "Deployment is already in progress for ecss-backend-node. Exiting early."
+              echo "::set-output name=deployment_in_progress::true"  # Set the output variable to indicate deployment is in progress
+              exit 0  # Exit if a deployment process is detected
+            else
+              echo "No deployment in progress for ecss-backend-node. Proceeding with build."
+              echo "::set-output name=deployment_in_progress::false"  # Set the output variable to indicate no deployment in progress
+            fi
+        
       - name: Fetch previous commit (before push)
+        if: ${{ steps.check_changes.deployment_in_progress == 'false' }}
         run: |
           git fetch origin main --depth=2
           echo "Before push commit:"
           git log --oneline -n 2  # Show the last 2 commits
 
       - name: Check for changes in the backend folder between before and after push
+        if: ${{ steps.check_changes.odeployment_in_progress == 'false' }}
         id: check_changes
         run: |
           echo "Checking for changes in the backend folder between before and after push..."
@@ -107,7 +109,6 @@ jobs:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
           package: ./release.zip  # Use the zip file created from the backend folder
-          scm-do-build-during-deployment: true  # Ensure the app is built during deployment (required for Node.js apps)
           
       - name: Ensure deployment continues in background
         run: |
