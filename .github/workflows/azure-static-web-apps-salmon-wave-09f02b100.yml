@@ -1,4 +1,4 @@
-name: Azure Static Web Apps CI/CD React Frontend
+name: ECSS Frontend React
 
 on:
   push:
