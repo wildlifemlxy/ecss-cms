@@ -49,14 +49,16 @@ jobs:
           source venv/bin/activate  # Activate virtual environment
           pip install -r requirements.txt  # Install dependencies
 
-      - name: Collect static files
-        run: |
-          python djangoPython/manage.py collectstatic --noinput  # Collect static files for deployment
-
-      - name: Zip artifact for deployment (excluding venv)
+      - name: Collect static files from djangoPython/djangoPython
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         run: |
-          zip -r release.zip ./djangoPython ./venv/* -x "venv/*/.git/*"
+          source venv/bin/activate  # Activate virtual environment before running collectstatic
+          python djangoPython/manage.py collectstatic --noinput --settings=djangoPython.settings  # Collect static files
+
+      - name: Zip artifact for deployment (excluding static files, .git, and other unneeded directories)
+        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
+        run: |
+          zip -r release.zip ./djangoPython ./venv/* requirements.txt -x "static/*" -x ".git/*"  # Include only necessary directories/files
 
       - name: Login to Azure
         uses: azure/login@v2
