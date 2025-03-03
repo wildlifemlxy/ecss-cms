@@ -1,8 +1,4 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-# More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
-
-name: Build and deploy Python app to Azure Web App - ecss-backend-django-backup
+name: ECSS Backend Django
 
 on:
   push:
@@ -11,10 +7,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_and_deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read  # This is required for actions/checkout
+      id-token: write  # This is required for Azure login
 
     steps:
       - uses: actions/checkout@v4
@@ -24,47 +21,43 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Create and start virtual environment
+      - name: Fetch previous commit (before push)
         run: |
-          python -m venv venv
-          source venv/bin/activate
-      
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-        
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
+          git fetch origin main --depth=2
+          echo "Before push commit:"
+          git log --oneline -n 2  # Show the last 2 commits
 
-      - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+      - name: Check for changes in djangoPython and venv directories between before and after push
+        id: check_changes
+        run: |
+          echo "Checking for changes in the djangoPython and venv directories between before and after push..."
+          git fetch origin main --depth=2  # Fetch the last 2 commits
+          CHANGES=$(git diff --name-only HEAD~1 HEAD -- djangoPython/ venv/)
 
-      - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            release.zip
-            !venv/
+          if [ -z "$CHANGES" ]; then
+            echo "No changes detected in djangoPython or venv directories. Skipping build and deploy."
+            echo "::set-output name=changes_detected::false"
+          else
+            echo "Changes detected in djangoPython or venv directories. Proceeding with build and deploy."
+            echo "::set-output name=changes_detected::true"
+          fi
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      - name: Install dependencies (if changes detected)
+        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
+        run: |
+          python -m venv venv  # Create a virtual environment in the current directory
+          source venv/bin/activate  # Activate virtual environment
+          pip install -r requirements.txt  # Install dependencies
 
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
+      - name: Collect static files
+        run: |
+          python manage.py collectstatic --noinput  # Collect static files for deployment
 
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
+      - name: Zip artifact for deployment (excluding venv)
+        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
+        run: |
+          zip -r release.zip ./djangoPython ./venv/* -x "venv/*/.git/*"
 
-      
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -72,10 +65,15 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AF53037E7A2840779D7BBBA99B205BD1 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F754611B88D7432FA2F0EBA31E894E04 }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'ecss-backend-django-backup'
           slot-name: 'Production'
-          
+          package: release.zip
+
+      - name: Cleanup (optional)
+        run: |
+          echo "Cleaning up"
+          rm -rf venv  # Remove virtual environment after deployment
