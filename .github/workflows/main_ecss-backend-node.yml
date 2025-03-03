@@ -11,14 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Check if there are any changes in backend directory
         id: check-changes
         run: |
+          # Check if there are any changes in the backend directory
           git diff --exit-code backend
           if [ $? -eq 0 ]; then
             echo "No changes detected in backend. Skipping build and deployment."
-            exit 0  # Exit successfully if no changes are detected
+            exit 0  # Exit successfully if no changes are detected, so no further steps are run
           else
             echo "Changes detected in backend. Proceeding with build and deployment."
           fi
@@ -28,7 +29,8 @@ jobs:
     needs: check  # Ensure that the check job runs before the build job
     permissions:
       contents: read  # This is required for actions/checkout
-
+    if: success()  # Ensure the build job only runs if the check job passed (or didn't exit early)
+    
     steps:
       - uses: actions/checkout@v4
 
@@ -64,6 +66,7 @@ jobs:
     permissions:
       id-token: write  # This is required for requesting the JWT
       contents: read  # This is required for actions/checkout
+    if: success()  # Ensure the deploy job only runs if the build job was successful
 
     steps:
       - name: Download artifact from build job
