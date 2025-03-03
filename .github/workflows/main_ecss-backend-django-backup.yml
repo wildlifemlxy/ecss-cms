@@ -1,4 +1,4 @@
-name: ECSS Backend React
+name: ECSS Backend Django
 
 on:
   push:
@@ -10,8 +10,9 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     permissions:  
-      contents: read  # This is required for actions/checkout
-      id-token: write  # This is required for requesting the JWT
+      contents: read  # Required for actions/checkout
+      id-token: write  # Required for Azure login
+
     environment:
       name: 'Production'
 
@@ -35,39 +36,21 @@ jobs:
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
-
-      - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            release.zip
-            !venv/
-
-     # url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
+        run: zip -r release.zip djangoPython -x "djangoPython/venv/*"
 
       - name: Unzip artifact for deployment
-        run: |
-          unzip release.zip
+        run: unzip -o release.zip
 
-      
       - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_01E6C8A212504569A3E418BCCCBB0947 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AF53037E7A2840779D7BBBA99B205BD1 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F754611B88D7432FA2F0EBA31E894E04 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F754611B88D74 }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'ecss-backend-django-backup'
           slot-name: 'Production'
-          
