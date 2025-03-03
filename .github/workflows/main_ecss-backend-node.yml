@@ -41,7 +41,6 @@ jobs:
             if [ "$DEPLOYMENT_STATUS" == "Running" ]; then
               echo "Deployment is already in progress for ecss-backend-node. Exiting early."
               echo "::set-output name=deployment_in_progress::true"  # Set the output variable to indicate deployment is in progress
-              exit 0  # Exit if a deployment process is detected
             else
               echo "No deployment in progress for ecss-backend-node. Proceeding with build."
               echo "::set-output name=deployment_in_progress::false"  # Set the output variable to indicate no deployment in progress
@@ -65,7 +64,6 @@ jobs:
           if [ -z "$CHANGES" ]; then
             echo "No changes detected in the backend folder. Skipping build and deploy."
             echo "::set-output name=changes_detected::false"
-            exit 0  # Exit early if no changes are detected
           else
             echo "Changes detected in the backend folder. Proceeding with build and deploy."
             echo "::set-output name=changes_detected::true"
@@ -113,4 +111,3 @@ jobs:
       - name: Ensure deployment continues in background
         run: |
           echo "Deployment started. This will continue in the background."
-          exit 0  # Ensures job ends successfully after deployment
