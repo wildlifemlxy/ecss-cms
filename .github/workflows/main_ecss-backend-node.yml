@@ -15,13 +15,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch previous commit (before push)
+        run: |
+          git fetch origin main --depth=2
+          echo "Before push commit:"
+          git log --oneline -n 2  # Show the last 2 commits
+
       - name: Check for changes between before and after push
         id: check_changes
         run: |
           echo "Checking for changes between before and after push..."
   
+          # Ensure we fetch the previous commit to compare against
+          git fetch origin main --depth=2  # Fetch the last 2 commits
+
           # Use git diff to directly compare the previous commit (HEAD^) and the current commit (HEAD)
-          CHANGES=$(git diff --name-only HEAD^ HEAD)
+          CHANGES=$(git diff --name-only HEAD~1 HEAD)
   
           # Check if changes are detected
           if [ -z "$CHANGES" ]; then
