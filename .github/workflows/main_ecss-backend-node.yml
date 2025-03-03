@@ -7,11 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read  # This is required for actions/checkout
-
     steps:
       - uses: actions/checkout@v4
 
@@ -25,6 +22,34 @@ jobs:
           else
             echo "Changes detected in backend. Proceeding with build and deployment."
           fi
+
+      - name: Check for ongoing deployment (if any)
+        id: check-ongoing-deployment
+        run: |
+          # Install Azure CLI
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          
+          # Login to Azure using service principal
+          az login --service-principal -u ${{ secrets.AZUREAPPSERVICE_CLIENTID_41A26900721847DFB378D91324F04C5C }} -p ${{ secrets.AZUREAPPSERVICE_CLIENTSECRET }} --tenant ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
+
+          # Check for ongoing deployment
+          ongoing_deployment=$(az webapp deployment list --name ecss-backend-node --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --query "[?status=='InProgress']" -o tsv)
+
+          if [ -n "$ongoing_deployment" ]; then
+            echo "There is an ongoing deployment. Skipping current deployment."
+            exit 0  # Skip the deployment job if there's an ongoing deployment
+          else
+            echo "No ongoing deployment detected. Proceeding with build and deployment."
+          fi
+
+  build:
+    runs-on: ubuntu-latest
+    needs: check  # Ensure that the check job runs before the build job
+    permissions:
+      contents: read  # This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Set up Node.js version
         uses: actions/setup-node@v3
@@ -51,7 +76,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build  # This ensures that deploy only runs after build is completed
+    needs: build  # Ensure that deploy only runs after build is completed
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
