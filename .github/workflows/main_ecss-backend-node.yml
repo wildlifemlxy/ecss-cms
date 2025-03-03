@@ -15,6 +15,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch previous commit (before push)
+        run: |
+          git fetch origin main --depth=2
+          echo "Before push commit:"
+          git show --stat HEAD^  # Show the previous commit (before push)
+
+      - name: Check for changes between before and after push
+        id: check_changes
+        run: |
+          echo "Checking for changes between before and after push..."
+
+          # Get the list of files that changed in the latest commit
+          CHANGES=$(git diff --name-only HEAD^ HEAD)
+          if [ -z "$CHANGES" ]; then
+            echo "No changes detected. Skipping build and deploy."
+            echo "::set-output name=changes_detected::false"
+          else
+            echo "Changes detected:"
+            echo "$CHANGES"
+            echo "::set-output name=changes_detected::true"
+          fi
+
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
@@ -41,7 +63,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build  # Ensure that deploy only runs after build is completed
-    if: ${{ needs.build.result == 'success' }}  # Ensure deploy only runs if the build is successful
+    if: ${{ needs.build.outputs.changes_detected == 'true' }}  # Ensure deploy only runs if changes are detected
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
@@ -58,22 +80,9 @@ jobs:
         with:
           name: node-app
 
-      - name: Check for differences between current files and zip artifact
+      - name: Unzip artifact for deployment
         run: |
-          # Unzip the release.zip to a temporary directory to compare with the current files
-          mkdir temp-release
-          unzip -q release.zip -d temp-release
-          
-          # Compare the contents of the 'backend' directory with the temp-release folder
-          diff -r backend temp-release || true
-
-          # If no differences, skip the deploy step
-          if [ $? -eq 0 ]; then
-            echo "No changes detected in files. Skipping deployment."
-            exit 0  # Skip the deployment
-          else
-            echo "Changes detected. Proceeding with deployment."
-          fi
+          unzip release.zip
 
       - name: Login to Azure
         uses: azure/login@v2
