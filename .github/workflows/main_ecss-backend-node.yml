@@ -66,7 +66,7 @@ jobs:
 
       - name: Clean up previous deployment files
         run: |
-          az webapp ssh --name ecss-backend-node --resource-group MECSS-Course-Management-System
+          az webapp ssh --name ecss-backend-node --resource-group ECSS-Course-Management-System
           rm -rf /home/site/wwwroot/*
 
       - name: Deploy to Azure Web App
