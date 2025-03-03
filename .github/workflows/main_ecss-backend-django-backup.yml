@@ -61,6 +61,14 @@ jobs:
         if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         run: |
           zip -r release.zip ./djangoPython requirements.txt -x "static/*" -x ".git/*"  # Include only necessary directories/files
+      
+      - name: Upload artifact for deployment jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: |
+            release.zip
+            !venv/
 
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
