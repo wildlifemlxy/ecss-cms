@@ -20,7 +20,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
-          cache: 'npm'  # Enable caching for faster builds
+         # cache: 'npm'  # Enable caching for faster builds
 
       - name: Install dependencies and build
         run: |
@@ -29,7 +29,7 @@ jobs:
           npm run build --if-present
 
       - name: Zip artifact for deployment
-        run:  zip -r -9 -q release.zip .
+        run: zip -r -9 -q release.zip backend -x "backend/node_modules/*" "backend/.git/*" "backend/.github/*" "backend/*.log" "backend/.env"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
