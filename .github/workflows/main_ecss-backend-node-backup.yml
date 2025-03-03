@@ -10,11 +10,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
 
+      # Ensure you're in the backend directory, where the package-lock.json exists
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
@@ -23,8 +24,8 @@ jobs:
 
       - name: Install dependencies and build
         run: |
-          cd backend
-          npm install
+          cd backend  # Change to the backend folder where package-lock.json is
+          npm install  # This will now work if the lock file exists
           npm run build --if-present
 
       - name: Zip artifact for deployment
