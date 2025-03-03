@@ -15,29 +15,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch previous commit (before push)
+      - name: Check for changes between before and after push
+        id: check_changes
         run: |
-          git fetch origin main --depth=2
-          echo "Before push commit:"
-          git show --stat HEAD^  # Show the previous commit (before push)
-
-          - name: Check for changes between before and after push
-          id: check_changes
-          run: |
-            echo "Checking for changes between before and after push..."
+          echo "Checking for changes between before and after push..."
   
-            # Get the list of files that changed in the latest commit
-            CHANGES=$(git diff --name-only HEAD^ HEAD)
+          # Use git diff to directly compare the previous commit (HEAD^) and the current commit (HEAD)
+          CHANGES=$(git diff --name-only HEAD^ HEAD)
   
-            # Check if changes are detected
-            if [ -z "$CHANGES" ]; then
-              echo "No changes detected. Skipping build."
-              echo "::set-output name=changes_detected::false"
-            else
-              echo "Changes detected:"
-              echo "$CHANGES"
-              echo "::set-output name=changes_detected::true"
-            fi
+          # Check if changes are detected
+          if [ -z "$CHANGES" ]; then
+            echo "No changes detected. Skipping build."
+            echo "::set-output name=changes_detected::false"
+          else
+            echo "Changes detected. Proceeding with build."
+            echo "::set-output name=changes_detected::true"
+          fi
 
   build:
     runs-on: ubuntu-latest
@@ -103,7 +96,7 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
 
-      - name: Deploy to Azure Web App (without incremental checks)
+      - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
