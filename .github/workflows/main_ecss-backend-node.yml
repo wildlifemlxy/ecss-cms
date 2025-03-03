@@ -25,10 +25,10 @@ jobs:
           id: check_changes
           run: |
             echo "Checking for changes between before and after push..."
-        
+  
             # Get the list of files that changed in the latest commit
             CHANGES=$(git diff --name-only HEAD^ HEAD)
-        
+  
             # Check if changes are detected
             if [ -z "$CHANGES" ]; then
               echo "No changes detected. Skipping build."
@@ -38,7 +38,7 @@ jobs:
               echo "$CHANGES"
               echo "::set-output name=changes_detected::true"
             fi
-    
+
   build:
     runs-on: ubuntu-latest
     needs: check  # Ensure that build only runs after the check job
