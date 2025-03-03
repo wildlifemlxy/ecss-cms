@@ -71,10 +71,18 @@ jobs:
           name: node-app
           path: release.zip
 
+      - name: Login to Azure
+        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_41A26900721847DFB378D91324F04C5C }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
+
       # Only proceed with deployment if changes are detected
       - name: Deploy to Azure Web App
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
         id: deploy-to-webapp
+        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  # Deploy only if changes were detected
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'ecss-backend-node'
