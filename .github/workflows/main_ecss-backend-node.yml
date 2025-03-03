@@ -35,7 +35,7 @@ jobs:
           echo "Checking if a deployment is already in progress..."
           
           # Fetch deployment status
-          DEPLOYMENT_STATUS=$(az webapp deployment list \
+          DEPLOYMENT_STATUS=$(az webapp deployment show \
             --name 'ecss-backend-node' \
             --resource-group 'ECSS-Course-Management-System' \
             --query "[?status=='InProgress'].status" -o tsv)
