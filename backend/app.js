@@ -20,7 +20,7 @@ app.use(cors()); // Enable CORS
 app.use(logger('dev')); // HTTP request logger
 app.use(express.json()); // For parsing JSON
 app.use(express.urlencoded({ extended: false })); // For parsing URL-encoded data
-app.use(cookieParser()); // For parsing cookies
+app.use(cookieParser()); // For parsing cookies ok
 
 // Set up views (if you're using templates)
 app.set('views', path.join(__dirname, 'views'));
