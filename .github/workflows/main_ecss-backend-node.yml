@@ -24,23 +24,23 @@ jobs:
           fi
 
       - name: Check for ongoing deployment (if any)
-        id: check-ongoing-deployment
-        run: |
-          # Install Azure CLI
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          
-          # Login to Azure using service principal
-          az login --service-principal -u ${{ secrets.AZUREAPPSERVICE_CLIENTID_41A26900721847DFB378D91324F04C5C }} -p ${{ secrets.AZUREAPPSERVICE_CLIENTSECRET }} --tenant ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
+      id: check-ongoing-deployment
+      run: |
+        # Login to Azure using Azure Login action's credentials
+        az login --service-principal -u ${{ secrets.AZUREAPPSERVICE_CLIENTID_41A26900721847DFB378D91324F04C5C }} -p ${{ secrets.AZUREAPPSERVICE_CLIENTSECRET }} --tenant ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
+        
+        # Check for ongoing deployment
+        ongoing_deployment=$(az webapp deployment list --name ecss-backend-node --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --query "[?status=='InProgress']" -o tsv)
+        
+        # Skip deployment if there's an ongoing deployment
+        if [ -n "$ongoing_deployment" ]; then
+          echo "Ongoing deployment detected. Skipping current deployment."
+          exit 0  # Skip the build and deployment jobs
+        else
+          echo "No ongoing deployment. Proceeding with build and deployment."
+        fi
+        
 
-          # Check for ongoing deployment
-          ongoing_deployment=$(az webapp deployment list --name ecss-backend-node --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --query "[?status=='InProgress']" -o tsv)
-
-          if [ -n "$ongoing_deployment" ]; then
-            echo "There is an ongoing deployment. Skipping current deployment."
-            exit 0  # Skip the deployment job if there's an ongoing deployment
-          else
-            echo "No ongoing deployment detected. Proceeding with build and deployment."
-          fi
 
   build:
     runs-on: ubuntu-latest
