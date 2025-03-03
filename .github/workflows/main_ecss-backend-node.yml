@@ -1,4 +1,4 @@
-name: Build and deploy Node.js app to Azure Web App - ecss-backend-node
+name: ECSS Backend Side - Node
 
 on:
   push:
@@ -18,7 +18,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Check if any deployment is in progress at the start
+      - name: Check if any deployment is in progress
+        id: check_deployment_status
+        run: |
+          echo "Checking if a deployment is already in progress..."
+          # Use Azure CLI to check if a deployment is ongoing
+          # Make sure you have logged in before running this
+          DEPLOYMENT_STATUS=$(az webapp deployment list --name 'ecss-backend-node' --resource-group 'your-resource-group' --query "[?status=='InProgress'].status" -o tsv)
+          
+          if [ "$DEPLOYMENT_STATUS" == "InProgress" ]; then
+            echo "A deployment is already in progress. Exiting early."
+            exit 0  # Exit early if a deployment is in progress
+          else
+            echo "No deployment is in progress. Proceeding with the build and deploy."
+          fi
+
+      # Fetch previous commit (before push) only if no deployment is in progress
       - name: Fetch previous commit (before push)
+        if: ${{ steps.check_deployment_status.outcome != 'failure' }}  # Proceed only if no deployment is in progress
         run: |
           git fetch origin main --depth=2
           echo "Before push commit:"
