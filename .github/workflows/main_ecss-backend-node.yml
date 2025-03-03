@@ -37,7 +37,7 @@ jobs:
           # Fetch deployment status
           DEPLOYMENT_STATUS=$(az webapp deployment list \
             --name 'ecss-backend-node' \
-            --resource-group 'your-resource-group' \
+            --resource-group 'ECSS-Course-Management-System' \
             --query "[?status=='InProgress'].status" -o tsv)
 
           if [ "$DEPLOYMENT_STATUS" == "InProgress" ]; then
