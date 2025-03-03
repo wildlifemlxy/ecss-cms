@@ -9,7 +9,7 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
-    permissions:
+    permissions:  
       contents: read  # This is required for actions/checkout
       id-token: write  # This is required for requesting the JWT
     environment:
@@ -30,20 +30,22 @@ jobs:
         run: |
           az account set --subscription ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
 
-      - name: Check if a deployment is in progress on Azure Linux
+      - name: Check if a deployment is in progress on Azure
         run: |
-          echo "Checking for active deployment process..."
+          echo "Checking if a deployment is in progress on Azure..."
 
-          # Check if any process related to Azure Web App deployment is running
-          DEPLOYMENT_STATUS=$(ps aux | grep -E "azure|webapp|deploy" | grep -v 'grep')
+          # Use Azure CLI to check if there's any ongoing deployment operation
+          DEPLOYMENT_STATUS=$(az webapp deployment operation list \
+            --resource-group 'your-resource-group' \
+            --name 'ecss-backend-node' \
+            --query "[?properties.status=='InProgress']" -o tsv)
 
           if [ -n "$DEPLOYMENT_STATUS" ]; then
             echo "A deployment is in progress. Exiting early."
-            exit 0  # Exit if a deployment process is detected
+            exit 0  # Exit if a deployment is in progress
           else
-            echo "No deployment is in progress. Proceeding with build."
+            echo "No deployment in progress. Proceeding with build."
           fi
-
 
       - name: Fetch previous commit (before push)
         run: |
