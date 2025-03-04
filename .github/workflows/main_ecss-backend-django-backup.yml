@@ -25,15 +25,20 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: pip install -r requirements.txt
 
       # ✅ Only zip djangoPython folder (excluding venv/)
       - name: Zip artifact for deployment
         run: zip -r release.zip djangoPython -x "djangoPython/venv/*"
-
-      - name: Unzip artifact for deployment
-        run: unzip -o release.zip
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -47,4 +52,8 @@ jobs:
         id: deploy-to-webapp
         with:
           app-name: 'ecss-backend-django-backup'
-          slot-name: 'Production'
+          package: release.zip
+
+      # ✅ (Optional) Restart the web app to ensure a fresh deployment
+      - name: Restart Azure Web App
+        run: az webapp restart --name ecss-backend-django-backup --resource-group ECSS-Course-Management-System
