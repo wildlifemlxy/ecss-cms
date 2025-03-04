@@ -10,8 +10,8 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     permissions:  
-      contents: read  
-      id-token: write  
+      contents: read  # Required for actions/checkout
+      id-token: write  # Required for Azure login
 
     environment:
       name: 'Production'
@@ -25,23 +25,15 @@ jobs:
         with:
           python-version: '3.12'
 
-      # ✅ Debugging: Ensure requirements.txt exists
-      - name: Debug - Check requirements.txt
-        run: ls -l requirements.txt || echo "requirements.txt not found!"
-
-      - name: Cache Python dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # ✅ Only zip djangoPython folder (excluding venv/)
       - name: Zip artifact for deployment
         run: zip -r release.zip djangoPython -x "djangoPython/venv/*"
+
+      - name: Unzip artifact for deployment
+        run: unzip -o release.zip
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -52,9 +44,7 @@ jobs:
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
         with:
           app-name: 'ecss-backend-django-backup'
-          package: release.zip
-
-      - name: Restart Azure Web App
-        run: az webapp restart --name ecss-backend-django-backup --resource-group ECSS-Course-Management-System
+          slot-name: 'Production'
