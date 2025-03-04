@@ -19,41 +19,97 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Fetch the last 2 commits to compare
 
-      - name: Compare the current and previous commit for specific folders and files
-        id: compare_commits
+      - name: Fetch previous commit (before push)
         run: |
+          # Fetch the last 2 commits to ensure we have the previous commit available
+          git fetch origin main --depth=2
+          echo "Before push commit:"
+          git log --oneline -n 2  # Show the last 2 commits
+
+      - name: Check for changes in djangoPython folder
+        id: check_changes_djangoPython
+        run: |
+          echo "Checking for changes in the djangoPython folder between before and after push..."
           # Get the previous commit ID
           previous_commit=$(git rev-parse HEAD~1)
-
-          # Define the paths to monitor for changes
-          paths="djangoPython requirements.txt venv"
-
-          # Compare the repository between the current and previous commit for specific paths
-          echo "Comparing the repository for changes in djangoPython, requirements.txt, and venv folders"
-          changes=$(git diff --name-only $previous_commit HEAD -- $paths)
+          
+          # Check for changes in djangoPython
+          changes=$(git diff --name-only $previous_commit HEAD -- djangoPython)
 
           if [ -z "$changes" ]; then
-            echo "No changes detected in specified paths, skipping deployment."
-            echo "::set-output name=deploy::false"
+            echo "No changes detected in djangoPython folder."
+            echo "::set-output name=djangoPython_changed::false"
           else
-            echo "Changes detected in specified paths, proceeding with deployment."
+            echo "Changes detected in djangoPython folder."
+            echo "::set-output name=djangoPython_changed::true"
+          fi
+
+      - name: Check for changes in requirements.txt
+        id: check_changes_requirements
+        run: |
+          echo "Checking for changes in requirements.txt between before and after push..."
+          # Get the previous commit ID
+          previous_commit=$(git rev-parse HEAD~1)
+          
+          # Check for changes in requirements.txt
+          changes=$(git diff --name-only $previous_commit HEAD -- requirements.txt)
+
+          if [ -z "$changes" ]; then
+            echo "No changes detected in requirements.txt."
+            echo "::set-output name=requirements_changed::false"
+          else
+            echo "Changes detected in requirements.txt."
+            echo "::set-output name=requirements_changed::true"
+          fi
+
+      - name: Check for changes in venv folder
+        id: check_changes_venv
+        run: |
+          echo "Checking for changes in the venv folder between before and after push..."
+          # Get the previous commit ID
+          previous_commit=$(git rev-parse HEAD~1)
+          
+          # Check for changes in venv
+          changes=$(git diff --name-only $previous_commit HEAD -- venv)
+
+          if [ -z "$changes" ]; then
+            echo "No changes detected in venv folder."
+            echo "::set-output name=venv_changed::false"
+          else
+            echo "Changes detected in venv folder."
+            echo "::set-output name=venv_changed::true"
+          fi
+
+      - name: Determine if deployment is needed
+        id: determine_deployment
+        run: |
+          # If any of the changes were detected, proceed with deployment
+          if [[ "${{ steps.check_changes_djangoPython.outputs.djangoPython_changed }}" == "true" || \
+                "${{ steps.check_changes_requirements.outputs.requirements_changed }}" == "true" || \
+                "${{ steps.check_changes_venv.outputs.venv_changed }}" == "true" ]]; then
+            echo "Changes detected in one or more specified folders, proceeding with deployment."
             echo "::set-output name=deploy::true"
+          else
+            echo "No changes detected, skipping deployment."
+            echo "::set-output name=deploy::false"
           fi
 
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-        if: steps.compare_commits.outputs.deploy == 'true'
+        if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Install dependencies
         run: pip install -r requirements.txt
-        if: steps.compare_commits.outputs.deploy == 'true'
+        if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Zip artifact for deployment
         run: zip -r release.zip djangoPython -x "djangoPython/venv/*"
-        if: steps.compare_commits.outputs.deploy == 'true'
+        if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -61,7 +117,7 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_01E6C8A212504569A3E418BCCCBB0947 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AF53037E7A2840779D7BBBA99B205BD1 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F754611B88D7432FA2F0EBA31E894E04 }}
-        if: steps.compare_commits.outputs.deploy == 'true'
+        if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -70,4 +126,4 @@ jobs:
           app-name: 'ecss-backend-django-backup'
           slot-name: 'Production'
           package: release.zip
-        if: steps.compare_commits.outputs.deploy == 'true'
+        if: steps.determine_deployment.outputs.deploy == 'true'
