@@ -20,21 +20,24 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Compare the current and previous commit for the entire repository
+      - name: Compare the current and previous commit for specific folders and files
         id: compare_commits
         run: |
           # Get the previous commit ID
           previous_commit=$(git rev-parse HEAD~1)
 
-          # Compare the repository between the current and previous commit
-          echo "Comparing the repository between the current and previous commit"
-          changes=$(git diff --name-only $previous_commit HEAD)
+          # Define the paths to monitor for changes
+          paths="djangoPython requirements.txt venv"
+
+          # Compare the repository between the current and previous commit for specific paths
+          echo "Comparing the repository for changes in djangoPython, requirements.txt, and venv folders"
+          changes=$(git diff --name-only $previous_commit HEAD -- $paths)
 
           if [ -z "$changes" ]; then
-            echo "No changes detected, skipping deployment."
+            echo "No changes detected in specified paths, skipping deployment."
             echo "::set-output name=deploy::false"
           else
-            echo "Changes detected, proceeding with deployment."
+            echo "Changes detected in specified paths, proceeding with deployment."
             echo "::set-output name=deploy::true"
           fi
 
