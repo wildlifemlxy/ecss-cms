@@ -30,13 +30,13 @@ jobs:
 
       - name: Collect static files
         run: |
-            python djangoPython/manage.py collectstatic --noinput
             pip install --upgrade pip 
             pip install django-cors-headers
             pip install plotly
             pip install pandas
             pip install inflect 
             pip install pymongo
+            python djangoPython/manage.py collectstatic --noinput
 
       - name: Zip artifact for deployment
         run: zip -r release.zip djangoPython -x "djangoPython/venv/*"
