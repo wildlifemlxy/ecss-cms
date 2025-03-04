@@ -9,7 +9,7 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
-    permissions:  
+    permissions:
       contents: read  # Required for actions/checkout
       id-token: write  # Required for Azure login
 
@@ -17,19 +17,41 @@ jobs:
       name: 'Production'
 
     steps:
+      - name: Compare the current and previous commit for the entire repository
+        id: compare_commits
+        run: |
+          # Get the previous commit ID
+          previous_commit=$(git rev-parse HEAD~1)
+
+          # Compare the repository between the current and previous commit
+          echo "Comparing the repository between the current and previous commit"
+          changes=$(git diff --name-only $previous_commit HEAD)
+
+          if [ -z "$changes" ]; then
+            echo "No changes detected, skipping deployment."
+            echo "::set-output name=deploy::false"
+          else
+            echo "Changes detected, proceeding with deployment."
+            echo "::set-output name=deploy::true"
+          fi
+
       - name: Check out repository
         uses: actions/checkout@v4
+        if: steps.compare_commits.outputs.deploy == 'true'
 
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+        if: steps.compare_commits.outputs.deploy == 'true'
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+        if: steps.compare_commits.outputs.deploy == 'true'
 
       - name: Zip artifact for deployment
         run: zip -r release.zip djangoPython -x "djangoPython/venv/*"
+        if: steps.compare_commits.outputs.deploy == 'true'
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -37,6 +59,7 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_01E6C8A212504569A3E418BCCCBB0947 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AF53037E7A2840779D7BBBA99B205BD1 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F754611B88D7432FA2F0EBA31E894E04 }}
+        if: steps.compare_commits.outputs.deploy == 'true'
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -45,3 +68,4 @@ jobs:
           app-name: 'ecss-backend-django-backup'
           slot-name: 'Production'
           package: release.zip
+        if: steps.compare_commits.outputs.deploy == 'true'
