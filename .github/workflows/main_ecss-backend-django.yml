@@ -32,13 +32,8 @@ jobs:
       - name: Check for changes in djangoPython folder
         id: check_changes_djangoPython
         run: |
-          echo "Checking for changes in the djangoPython folder between before and after push..."
-          # Get the previous commit ID
           previous_commit=$(git rev-parse HEAD~1)
-          
-          # Check for changes in djangoPython
           changes=$(git diff --name-only $previous_commit HEAD -- djangoPython)
-
           if [ -z "$changes" ]; then
             echo "No changes detected in djangoPython folder."
             echo "::set-output name=djangoPython_changed::false"
@@ -50,13 +45,8 @@ jobs:
       - name: Check for changes in requirements.txt
         id: check_changes_requirements
         run: |
-          echo "Checking for changes in requirements.txt between before and after push..."
-          # Get the previous commit ID
           previous_commit=$(git rev-parse HEAD~1)
-          
-          # Check for changes in requirements.txt
           changes=$(git diff --name-only $previous_commit HEAD -- requirements.txt)
-
           if [ -z "$changes" ]; then
             echo "No changes detected in requirements.txt."
             echo "::set-output name=requirements_changed::false"
@@ -68,13 +58,8 @@ jobs:
       - name: Check for changes in venv folder
         id: check_changes_venv
         run: |
-          echo "Checking for changes in the venv folder between before and after push..."
-          # Get the previous commit ID
           previous_commit=$(git rev-parse HEAD~1)
-          
-          # Check for changes in venv
           changes=$(git diff --name-only $previous_commit HEAD -- venv)
-
           if [ -z "$changes" ]; then
             echo "No changes detected in venv folder."
             echo "::set-output name=venv_changed::false"
@@ -86,14 +71,13 @@ jobs:
       - name: Determine if deployment is needed
         id: determine_deployment
         run: |
-          # If any of the changes were detected, proceed with deployment
           if [[ "${{ steps.check_changes_djangoPython.outputs.djangoPython_changed }}" == "true" || \
                 "${{ steps.check_changes_requirements.outputs.requirements_changed }}" == "true" || \
                 "${{ steps.check_changes_venv.outputs.venv_changed }}" == "true" ]]; then
-            echo "Changes detected in one or more specified folders, proceeding with deployment."
+            echo "Changes detected, proceeding with deployment."
             echo "::set-output name=deploy::true"
           else
-            echo "No changes detected, skipping deployment."
+            echo "No relevant changes detected, skipping deployment."
             echo "::set-output name=deploy::false"
           fi
 
@@ -104,26 +88,29 @@ jobs:
         if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
         if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Zip artifact for deployment
-        run: zip -r release.zip djangoPython -x "djangoPython/venv/*"
+        run: |
+          zip -r release.zip djangoPython -x "djangoPython/venv/*"
         if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_01E6C8A212504569A3E418BCCCBB0947 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AF53037E7A2840779D7BBBA99B205BD1 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F754611B88D7432FA2F0EBA31E894E04 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DB1EDA88A3DA4E8D846F3C3D5AB12A22 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_22BDF8F60B124137A56F942213EAB1D3 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1F917677349441DF9FFD4FFAA1773557 }}
         if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
         with:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
           package: release.zip
         if: steps.determine_deployment.outputs.deploy == 'true'
+
