@@ -46,41 +46,41 @@ jobs:
           #    echo "::set-output name=deployment_in_progress::false"  # Set the output variable to indicate no deployment in progress
           #  fi
         
-      - name: Fetch previous commit (before push)
+      #- name: Fetch previous commit (before push)
        # if: ${{ steps.check_changes.deployment_in_progress == 'false' }}
-        run: |
-          git fetch origin main --depth=2
-          echo "Before push commit:"
-          git log --oneline -n 2  # Show the last 2 commits
+       # run: |
+        #  git fetch origin main --depth=2
+        #  echo "Before push commit:"
+        #  git log --oneline -n 2  # Show the last 2 commits
 
-      - name: Check for changes in the backend folder between before and after push
+      #- name: Check for changes in the backend folder between before and after push
        # if: ${{ steps.check_changes.odeployment_in_progress == 'false' }}
-        id: check_changes
-        run: |
-          echo "Checking for changes in the backend folder between before and after push..."
-          git fetch origin main --depth=2  # Fetch the last 2 commits
-          CHANGES=$(git diff --name-only HEAD~1 HEAD -- backend/)
+       # id: check_changes
+       # run: |
+       #   echo "Checking for changes in the backend folder between before and after push..."
+       #   git fetch origin main --depth=2  # Fetch the last 2 commits
+       #   CHANGES=$(git diff --name-only HEAD~1 HEAD -- backend/)
 
-          if [ -z "$CHANGES" ]; then
-            echo "No changes detected in the backend folder. Skipping build and deploy."
-            echo "::set-output name=changes_detected::false"
-          else
-            echo "Changes detected in the backend folder. Proceeding with build and deploy."
-            echo "::set-output name=changes_detected::true"
-          fi
+       #   if [ -z "$CHANGES" ]; then
+       #     echo "No changes detected in the backend folder. Skipping build and deploy."
+       #     echo "::set-output name=changes_detected::false"
+       #   else
+       #     echo "Changes detected in the backend folder. Proceeding with build and deploy."
+       #     echo "::set-output name=changes_detected::true"
+       #   fi
 
-      - name: Debug changes detected
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  
-        run: 'echo "Changes detected: ${{ steps.check_changes.outputs.changes_detected }}"'
+      #- name: Debug changes detected
+      #  if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}  
+      #  run: 'echo "Changes detected: ${{ steps.check_changes.outputs.changes_detected }}"'
 
       - name: Set up Node.js version
-        if: ${{steps.check_changes.outputs.changes_detected == 'true' }}  
+       # if: ${{steps.check_changes.outputs.changes_detected == 'true' }}  
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
 
       - name: npm install, build, and test
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }} 
+       # if: ${{ steps.check_changes.outputs.changes_detected == 'true' }} 
         run: |
           cd backend
           npm install
@@ -88,13 +88,13 @@ jobs:
           # npm run test --if-present
 
       - name: Zip artifact for deployment (only backend folder)
-        if: ${{steps.check_changes.outputs.changes_detected == 'true' }}  
+        #if: ${{steps.check_changes.outputs.changes_detected == 'true' }}  
         run: |
           cd backend
           zip -r ../release.zip .  # Create zip file
 
       - name: Upload artifact for deployment
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }} 
+        #if: ${{ steps.check_changes.outputs.changes_detected == 'true' }} 
         uses: actions/upload-artifact@v4
         with:
           name: node-app
@@ -102,7 +102,7 @@ jobs:
 
       - name: Deploy to Azure Web App (Linux)
         id: deploy-to-webapp
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }} 
+        #if: ${{ steps.check_changes.outputs.changes_detected == 'true' }} 
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'ecss-backend-node'
@@ -110,6 +110,6 @@ jobs:
           package: ./release.zip  # Use the zip file created from the backend folder
           
       - name: Ensure deployment continues in background
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }} 
+        #if: ${{ steps.check_changes.outputs.changes_detected == 'true' }} 
         run: |
           echo "Deployment started. This will continue in the background."
