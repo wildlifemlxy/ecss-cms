@@ -26,7 +26,7 @@ class InvoiceSection extends Component {
     fetchInvoiceDetails = async () => {
         try {
             //const response = await axios.post('http://localhost:3002/invoice_report/');
-            const response = await axios.post('https://ecss-backend-django-backup.azurewebsites.net/invoice_report/');
+            const response = await axios.post('https://ecss-backend-django.azurewebsites.net/invoice_report/');
             const invoice = response.data.invoice; // Assuming invoice is the main key here
             console.log("Invoice Details:", invoice);
 

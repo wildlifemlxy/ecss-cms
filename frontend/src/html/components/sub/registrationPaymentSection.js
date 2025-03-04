@@ -182,7 +182,7 @@ class RegistrationPaymentSection extends Component {
         if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled") {
           // Proceed to update WooCommerce stock
           //const stockResponse = await axios.post('http://localhost:3002/update_stock/', { 
-          const stockResponse = await axios.post('https://ecss-backend-django-backup.azurewebsites.net/update_stock/', { 
+          const stockResponse = await axios.post('https://ecss-backend-django.azurewebsites.net/update_stock/', { 
             type: 'update', 
             page: {"courseChiName":chi, "courseEngName":eng, "courseLocation":location}, // Assuming `chi` refers to the course or page
             status: updatedStatus, // Using updatedStatus directly here
