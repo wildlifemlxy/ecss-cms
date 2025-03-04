@@ -17,6 +17,9 @@ jobs:
       name: 'Production'
 
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
       - name: Compare the current and previous commit for the entire repository
         id: compare_commits
         run: |
@@ -34,10 +37,6 @@ jobs:
             echo "Changes detected, proceeding with deployment."
             echo "::set-output name=deploy::true"
           fi
-
-      - name: Check out repository
-        uses: actions/checkout@v4
-        if: steps.compare_commits.outputs.deploy == 'true'
 
       - name: Set up Python version
         uses: actions/setup-python@v5
