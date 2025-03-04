@@ -10,8 +10,8 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     permissions:  
-      contents: read  # Required for actions/checkout
-      id-token: write  # Required for Azure login
+      contents: read  
+      id-token: write  
 
     environment:
       name: 'Production'
@@ -25,35 +25,36 @@ jobs:
         with:
           python-version: '3.12'
 
+      # ✅ Debugging: Ensure requirements.txt exists
+      - name: Debug - Check requirements.txt
+        run: ls -l requirements.txt || echo "requirements.txt not found!"
+
       - name: Cache Python dependencies
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # ✅ Only zip djangoPython folder (excluding venv/)
       - name: Zip artifact for deployment
         run: zip -r release.zip djangoPython -x "djangoPython/venv/*"
 
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_01E6C8A212504569A3E418BCCCBB0947 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AF53037E7A2840779D7BBBA99B205BD1 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F754611B88D7432FA2F0EBA31E894E04 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
         with:
           app-name: 'ecss-backend-django-backup'
           package: release.zip
 
-      # ✅ (Optional) Restart the web app to ensure a fresh deployment
       - name: Restart Azure Web App
         run: az webapp restart --name ecss-backend-django-backup --resource-group ECSS-Course-Management-System
