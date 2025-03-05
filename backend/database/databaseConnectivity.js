@@ -649,7 +649,7 @@ class DatabaseConnectivity {
             // Custom logic for Tampines 253 Centre
             nextNumber =  maxReceiptNumber + 1;
         } 
-        else if (centreLocation === "Pasir Ris West Centre") {
+        else if (centreLocation === "Pasir Ris West Wellness Centre") {
             // Custom logic for Pasir Ris West Centre
             nextNumber =  maxReceiptNumber + 1;
         } 

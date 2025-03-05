@@ -544,8 +544,8 @@ class RegistrationPaymentSection extends Component {
               //const registration_id = id;
               const receiptNo = await this.generateReceiptNumber(course, newMethod);
               console.log("Receipt N11o:", receiptNo);
-              //await this.generatePDFReceipt(id, participant, course, receiptNo, value);
-              //await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");    
+              await this.generatePDFReceipt(id, participant, course, receiptNo, value);
+              await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");    
             } 
             catch (error) 
             {
