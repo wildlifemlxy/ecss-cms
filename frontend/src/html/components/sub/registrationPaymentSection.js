@@ -964,6 +964,8 @@ class RegistrationPaymentSection extends Component {
         cellEditor: "agSelectCellEditor",
         cellEditorParams: (params) => {
           const paymentMethod = params.data.paymentMethod;
+          const courseType = params.data.courseInfo.courseType;
+          
           const skillsFutureOptions = [
             "Pending",
             "Generating SkillsFuture Invoice",
@@ -971,8 +973,11 @@ class RegistrationPaymentSection extends Component {
             "Cancelled",
           ];
           const otherOptions = ["Pending", "Paid", "Cancelled"];
-          const options = paymentMethod === "SkillsFuture" ? skillsFutureOptions : otherOptions;
-    
+          const iLPoptions = ["Pending", "Confirmed", "Cancelled"];
+          const options = courseType === "NSA"
+              ? (paymentMethod === "SkillsFuture" ? skillsFutureOptions : otherOptions)
+              : iLPoptions;
+
           return { values: options };
         },
         cellRenderer: (params) => {
