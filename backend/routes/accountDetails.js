@@ -56,7 +56,7 @@ router.post('/', async function(req, res, next) {
                     <br/>
                     <br/>
                     <br/>
-                    To get started, you can <a href="https://thankful-water-08ce4bd10.5.azurestaticapps.net/" style="text-decoration: none; font-weight: bold; color:#000000">log in</a> to your account.
+                    To get started, you can <a href="n-wave-09f02b100.6.azurestaticapps.net" style="text-decoration: none; font-weight: bold; color:#000000">log in</a> to your account.
                     <br/><br/>
                     If you have any questions or need assistance, feel free to reach out to <a href="mailto:moses_lee@ecss.org.sg" style="text-decoration: none; font-weight: bold; color:#000000">our support team</a>.
                     <br/><br/>
