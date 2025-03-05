@@ -116,7 +116,7 @@ class FormPage extends Component {
         this.courseDetailsRef.setState({ paymentTouched: true });
       } 
       else if (this.props.type === "ILP") {
-        // If type is ILP, just go on without validation
+        // If type is ILP, just go on without 
         console.log("Go Next");
       }
     }
@@ -385,7 +385,7 @@ class FormPage extends Component {
       <div className="formwholepage" style={{ backgroundColor: bgColor }}>
         <div className="form-page">
           <div className="form-container">
-            {currentSection === 0 && <FormDetails />}
+            {currentSection === 0 && <FormDetails  courseType={formData.type}/>}
             {currentSection === 1 && (
               <PersonalInfo data={formData} onChange={this.handleDataChange} errors={validationErrors} />
             )}
