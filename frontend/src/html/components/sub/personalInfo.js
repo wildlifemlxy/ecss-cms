@@ -249,7 +249,7 @@ class PersonalInfo extends Component {
                   onBlur={this.closeCalendar}
                   autoComplete='off'
                 />
-                <i class="fa fa-calendar custom-icon" aria-hidden="true" onClick={(e) => { e.stopPropagation(); this.toggleCalendar(e); }}/>
+                {/*<i class="fa fa-calendar custom-icon" aria-hidden="true" onClick={(e) => { e.stopPropagation(); this.toggleCalendar(e); }}/>
                  {this.state.showCalendar && (
                     <div className="calendar-popup">
                        <div className="month-year-selection">
@@ -284,7 +284,7 @@ class PersonalInfo extends Component {
                         />
                         <button type="button" onClick={this.closeCalendar}>Close</button>
                     </div>
-                  )}
+                  )}*/}
                   <br />
               </>
             ) : (  
