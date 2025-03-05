@@ -770,7 +770,7 @@ class RegistrationPaymentSection extends Component {
     
             let courseName = detail.courseInfo.courseEngName;
             let languages = courseName.split("–").pop().trim();
-            if ((languages === "English") || (languages === "Mandarin")) {
+            if (!((languages === "English") || (languages === "Mandarin"))) {
               // If "English" or "Mandarin" is not in the course name, don't split
               sourceSheet.getCell(`O${rowIndex}`).value = courseName.trim();
             } else {
