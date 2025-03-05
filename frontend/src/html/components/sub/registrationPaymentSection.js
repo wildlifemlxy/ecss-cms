@@ -768,8 +768,15 @@ class RegistrationPaymentSection extends Component {
             const workParts = detail.participantInfo.workStatus.split(" ");
             sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
     
-            sourceSheet.getCell(`O${rowIndex}`).value = detail.courseInfo.courseEngName.split("–")[0].trim();
-            courseName = detail.courseInfo.courseEngName;
+            let courseName = detail.courseInfo.courseEngName;
+            if ((!courseName.includes("English")) || (!courseName.includes("Mandarin"))) {
+              // If "English" or "Mandarin" is not in the course name, don't split
+              sourceSheet.getCell(`O${rowIndex}`).value = courseName.trim();
+            } else {
+              // Otherwise, split by "–" and assign the first part
+              sourceSheet.getCell(`O${rowIndex}`).value = courseName.split("–")[0].trim();
+            }
+            
     
             const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
             sourceSheet.getCell(`P${rowIndex}`).value = this.convertDateFormat1(startDate);
