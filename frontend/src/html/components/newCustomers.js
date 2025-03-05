@@ -206,8 +206,8 @@ class NewCustomersPage extends Component {
       // If valid, reset errors and proceed with submission logic
       this.setState({ nameError: '', emailError: '', passwordError: '', roleError: '' });
       var accountDetails = {"name": name, "email": email, "password": password, "role": role};
-      axios.post('https://ecss-backend-node.azurewebsites.net/accountDetails', {"accountDetails": accountDetails, "purpose": "create"})
-      //axios.post('http://localhost:3001/accountDetails', {"accountDetails": accountDetails, "purpose": "create"})
+      //axios.post('https://ecss-backend-node.azurewebsites.net/accountDetails', {"accountDetails": accountDetails, "purpose": "create"})
+      axios.post('http://localhost:3001/accountDetails', {"accountDetails": accountDetails, "purpose": "create"})
       .then((response) => {
         if(response.data.message === 'New account with respectively access rights created successfully')
         {

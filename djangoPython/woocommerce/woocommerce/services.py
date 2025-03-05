@@ -96,6 +96,7 @@ class WooCommerceAPI:
     def getProductId(self, chinese, english, location):
         """Fetches the product ID by matching Chinese, English, and Location names from WooCommerce."""
         try:
+            print("Get Product Id")
             page = 1
             all_products = []  # List to store product id and name pairs
             per_page = 100  # Number of products to fetch per page
@@ -113,6 +114,8 @@ class WooCommerceAPI:
                 response.raise_for_status()  # Ensure we raise an error for bad requests
 
                 products = response.json()  # Get products from the response
+                print("Products:", products)
+                
 
                 # If no products are returned, break the loop
                 if not products:
@@ -122,15 +125,17 @@ class WooCommerceAPI:
                 for product in products:
                     product_name = product['name']
                     split_name = re.split(r'<br\s*/?>', product_name)
+                    x
 
                     if len(split_name) == 3:
                         chinese_name = split_name[0]
                         english_name = split_name[1]
                         location_name = split_name[2]
-
+                        
                         # If the product matches the input chinese, english, and location, return the product ID
                         if chinese_name == chinese and english_name == english and location_name == location:
-                            matched_product_id = product['id']
+                            print(product)
+                            #matched_product_id = product['id']
                             break  # Exit the loop if the product is found
 
                 # If we found the matched product ID, stop fetching more pages

@@ -61,8 +61,8 @@ class RegistrationPaymentSection extends Component {
         var {siteIC, role} = this.props;  
         console.log("Role", role, "SiteIC", siteIC);
         const response = await axios.post(
-          //'http://localhost:3001/courseregistration', 
-          'https://ecss-backend-node.azurewebsites.net/courseregistration', 
+          'http://localhost:3001/courseregistration', 
+          //'https://ecss-backend-node.azurewebsites.net/courseregistration', 
           { purpose: 'retrieve', role, siteIC}
         );
 
@@ -181,12 +181,12 @@ class RegistrationPaymentSection extends Component {
         // Check if the value is "Paid" or "Generate SkillsFuture Invoice"
         if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled") {
           // Proceed to update WooCommerce stock
-          //const stockResponse = await axios.post('http://localhost:3002/update_stock/', { 
-          const stockResponse = await axios.post('https://ecss-backend-django.azurewebsites.net/update_stock/', { 
+          const stockResponse = await axios.post('http://localhost:3002/update_stock/', { 
+          //const stockResponse = await axios.post('https://ecss-backend-django.azurewebsites.net/update_stock/', { 
             type: 'update', 
             page: {"courseChiName":chi, "courseEngName":eng, "courseLocation":location}, // Assuming `chi` refers to the course or page
             status: updatedStatus, // Using updatedStatus directly here
-            location: location, // Added location if needed
+            location: location // Added location if needed
           });
     
           console.log("WooCommerce stock update response:", stockResponse.data);
@@ -230,8 +230,8 @@ class RegistrationPaymentSection extends Component {
         try {
           //console.log("Fetching receipt number for location:", courseLocation);
           const response = await axios.post(
-            //"http://localhost:3001/receipt", {
-            'https://ecss-backend-node.azurewebsites.net/receipt',{
+            "http://localhost:3001/receipt", {
+            //'https://ecss-backend-node.azurewebsites.net/receipt',{
             purpose: "getReceiptNo",
             courseLocation,
             centreLocation
@@ -253,8 +253,8 @@ class RegistrationPaymentSection extends Component {
       generatePDFReceipt = async (id, participant, course, receiptNo, status) => {
         try {
           const pdfResponse = await axios.post(
-           //"http://localhost:3001/courseregistration",
-           'https://ecss-backend-node.azurewebsites.net/courseregistration',
+           "http://localhost:3001/courseregistration",
+           //'https://ecss-backend-node.azurewebsites.net/courseregistration',
             {
               purpose: "addReceiptNumber",
               id,
@@ -280,8 +280,8 @@ class RegistrationPaymentSection extends Component {
           if(course.payment === "Cash" || course.payment === "PayNow")
           {
             const pdfResponse = await axios.post(
-              //"http://localhost:3001/courseregistration",
-              'https://ecss-backend-node.azurewebsites.net/courseregistration',
+              "http://localhost:3001/courseregistration",
+              //'https://ecss-backend-node.azurewebsites.net/courseregistration',
               {
                 purpose: "receipt",
                 participant,
@@ -312,8 +312,8 @@ class RegistrationPaymentSection extends Component {
           else
           {
             const pdfResponse = await axios.post(
-            //"http://localhost:3001/courseregistration",
-            "https://ecss-backend-node.azurewebsites.net/courseregistration",
+            "http://localhost:3001/courseregistration",
+            //"https://ecss-backend-node.azurewebsites.net/courseregistration",
             {
               purpose: "invoice",
               participant,
@@ -445,8 +445,8 @@ class RegistrationPaymentSection extends Component {
     generatePDFInvoice = async (id, participant, course, receiptNo, status) => {
       try {
         const pdfResponse = await axios.post(
-          //"http://localhost:3001/courseregistration",
-          "https://ecss-backend-node.azurewebsites.net/courseregistration",
+          "http://localhost:3001/courseregistration",
+          //"https://ecss-backend-node.azurewebsites.net/courseregistration",
           {
             purpose: "addInvoiceNumber",
             id,
@@ -473,8 +473,8 @@ class RegistrationPaymentSection extends Component {
         });
   
         const receiptCreationResponse = await axios.post(
-          //"http://localhost:3001/receipt",
-          "https://ecss-backend-node.azurewebsites.net/receipt",
+          "http://localhost:3001/receipt",
+          //"https://ecss-backend-node.azurewebsites.net/receipt",
           {
             purpose: "createReceipt",
             receiptNo,
@@ -539,13 +539,13 @@ class RegistrationPaymentSection extends Component {
           {
             try 
             {
-              console.log(" ", course);
+              console.log(`${value} For This Course:`, course);
       
-              const registration_id = id;
+              //const registration_id = id;
               const receiptNo = await this.generateReceiptNumber(course, newMethod);
               console.log("Receipt N11o:", receiptNo);
-              await this.generatePDFReceipt(id, participant, course, receiptNo, value);
-              await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");    
+              //await this.generatePDFReceipt(id, participant, course, receiptNo, value);
+              //await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");    
             } 
             catch (error) 
             {
@@ -845,18 +845,32 @@ class RegistrationPaymentSection extends Component {
   };
 
   // Custom cell renderer for Payment Method with Buttons
-  paymentMethodRenderer = (params, courseName) => {
+  paymentMethodRenderer = (params, courseName, location) => {
     const currentPaymentMethod = params.value; // Get the current payment method value
 
     let paymentMethods  ;
     // List of payment methods
-    if(courseName !== "Community Ukulele – Mandarin")
+    if(location === "Pasir Ris West Wellness Centre")
     {
-      paymentMethods = ['Cash', 'PayNow', 'SkillsFuture'];
+      if(courseName !== "Community Ukulele – Mandarin")
+      {
+        paymentMethods = ['PayNow', 'SkillsFuture'];
+      }
+      else
+      {
+        paymentMethods = ['PayNow'];
+      }
     }
     else
     {
-      paymentMethods = ['Cash', 'PayNow'];
+      if(courseName !== "Community Ukulele – Mandarin")
+      {
+        paymentMethods = ['Cash', 'PayNow', 'SkillsFuture'];
+      }
+      else
+      {
+        paymentMethods = ['Cash', 'PayNow'];
+      }
     }
 
     // Handle button click to update the payment method in the row
@@ -911,7 +925,8 @@ class RegistrationPaymentSection extends Component {
         field: "paymentMethod",
         cellRenderer: (params) => {
           const courseName = params.data.course;
-          return this.paymentMethodRenderer(params, courseName);
+          const courseLocation = params.data.courseInfo.courseLocation;
+          return this.paymentMethodRenderer(params, courseName, courseLocation);
         },
         editable: false,
         width: 500,
@@ -1147,8 +1162,8 @@ class RegistrationPaymentSection extends Component {
         {
           this.props.showUpdatePopup("Updating in progress... Please wait ...");
           await axios.post(
-            //'http://localhost:3001/courseregistration', 
-            'https://ecss-backend-node.azurewebsites.net/courseregistration',
+            'http://localhost:3001/courseregistration', 
+            //'https://ecss-backend-node.azurewebsites.net/courseregistration',
             { 
               purpose: 'updatePaymentMethod', 
               id: id, 
@@ -1161,8 +1176,8 @@ class RegistrationPaymentSection extends Component {
           if(newValue === "Cash" || newValue === "PayNow")
           {
               const response = await axios.post(
-               //'http://localhost:3001/courseregistration', 
-                'https://ecss-backend-node.azurewebsites.net/courseregistration',
+               'http://localhost:3001/courseregistration', 
+                //'https://ecss-backend-node.azurewebsites.net/courseregistration',
                 { 
                   purpose: 'updatePaymentStatus', 
                   id: id, 
@@ -1194,8 +1209,8 @@ class RegistrationPaymentSection extends Component {
           this.props.showUpdatePopup("Updating in progress... Please wait ...")
           console.log('Cell clicked', event);
           const response = await axios.post(
-              //'http://localhost:3001/courseregistration', 
-              'https://ecss-backend-node.azurewebsites.net/courseregistration',
+              'http://localhost:3001/courseregistration', 
+              //'https://ecss-backend-node.azurewebsites.net/courseregistration',
               { 
                 purpose: 'updateConfirmationStatus', 
                 id: id, 
@@ -1211,8 +1226,8 @@ class RegistrationPaymentSection extends Component {
                 console.log("Auto Generate SkillsFuture Invoice");
                 // Define the parallel tasks function
                 const response = await axios.post(
-                  //'http://localhost:3001/courseregistration', 
-                  'https://ecss-backend-node.azurewebsites.net/courseregistration',
+                  'http://localhost:3001/courseregistration', 
+                  //'https://ecss-backend-node.azurewebsites.net/courseregistration',
                   { 
                     purpose: 'updatePaymentStatus', 
                     id: id, 
@@ -1246,8 +1261,8 @@ class RegistrationPaymentSection extends Component {
           this.props.showUpdatePopup("Updating in progress... Please wait ...")
           console.log('Cell clicked', event);
             const response = await axios.post(
-              //'http://localhost:3001/courseregistration', 
-              'https://ecss-backend-node.azurewebsites.net/courseregistration', 
+              'http://localhost:3001/courseregistration', 
+              //'https://ecss-backend-node.azurewebsites.net/courseregistration', 
               { 
                 purpose: 'updatePaymentStatus', 
                 id: id, 
@@ -1342,8 +1357,8 @@ class RegistrationPaymentSection extends Component {
         {
           console.log("Updated Particulars:", event.colDef.field, newValue);
           const response = await axios.post(
-            //'http://localhost:3001/courseregistration', 
-            'https://ecss-backend-node.azurewebsites.net/courseregistration',
+            'http://localhost:3001/courseregistration', 
+            //'https://ecss-backend-node.azurewebsites.net/courseregistration',
             { 
               purpose: 'edit', 
               id: id, 

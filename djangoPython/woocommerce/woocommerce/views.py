@@ -775,7 +775,7 @@ def sendToWooCommerce(request):
     return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
     
 @csrf_exempt
-def update_stock_react(request):
+def update_stock(request):
     """Fetches and returns a list of products from WooCommerce based on the courseType."""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
@@ -795,22 +795,6 @@ def update_stock_react(request):
             eng_name = courseName.get('courseEngName', '')
             location = courseName.get('courseLocation', '')
             print(chi_name+"<br />"+eng_name+"<br />"+location)
-
-            # Initialize WooCommerce API and fetch the product ID
-            woo_api = WooCommerceAPI()
-            result = woo_api.getProductId(chi_name, eng_name, f"({location})")  # Use the formatted string
-            print("Result:", result)
-
-            if result['exist'] == True:
-                print("Update Product Stocks")
-                status = data.get('status') 
-                productId = result['id']
-                print('Product Id:', result)
-                result2 = woo_api.updateCourseQuantity(productId, status)
-
-                print(status)
-
-                return JsonResponse({'success': result2})
 
         else:
             print("No course data found in the 'page' field.")
