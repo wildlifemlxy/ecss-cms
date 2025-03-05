@@ -28,7 +28,8 @@ class FormPage extends Component {
         wORKING: '',
         courseName: '',
         courseDate: '',
-        agreement: ''  // Corrected key from 'argeement' to 'agreement'
+        agreement: '',  // Corrected key from 'argeement' to 'agreement'
+        bgColor: '',
       },
       validationErrors: {}
     };
@@ -51,6 +52,13 @@ class FormPage extends Component {
     const location = queryParams.get('location')?.trim() || '';
     const price = queryParams.get('price')?.trim() || '';
     const type = queryParams.get('type')?.trim() || '';
+    if (type === 'ILP') {
+      this.setState({ bgColor: 'green' }); // ILP -> green background
+    } else if (type === 'NSA') {
+      this.setState({ bgColor: 'blue' });  // NSA -> blue background
+    } else {
+      this.setState({ bgColor: '' });      // default or no type
+    }
     const duration = queryParams.get('courseDuration')?.trim() || '';
 
     console.log(englishName, chineseName, "Location:", location, price, duration);
@@ -367,10 +375,10 @@ class FormPage extends Component {
   };
 
   render() {
-    const { currentSection, formData, validationErrors } = this.state;
+    const { currentSection, formData, validationErrors, bgColor } = this.state;
 
     return (
-      <div className="formwholepage">
+      <div className="formwholepage" style={{ backgroundColor: bgColor }}>
         <div className="form-page">
           <div className="form-container">
             {currentSection === 0 && <FormDetails />}
