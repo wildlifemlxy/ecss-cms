@@ -33,10 +33,9 @@ class CourseDetailsSection extends Component {
   };
 
 
-  render() 
-  {
+  render() {
     const { selectedPayment, paymentTouched } = this.state;
-    
+  
     return (
       <div className="course-details-section">
         <div className="input-group1">
@@ -73,59 +72,61 @@ class CourseDetailsSection extends Component {
             {this.props.courseDuration}
           </span>
         </div>
-
-        
-        {/* Payment Options Section */}
-        <div className="input-group1">
-          <label>I wish to pay by:</label>
-          <label>我希望通过以下方式付款：</label>
-          <div className="payment-options">
-          {
-            this.props.courseLocation !== 'Pasir Ris West Wellness Centre' && (
+  
+        {this.props.courseType === 'NSA' && (  
+          // Payment Options Section
+          <div className="input-group1">
+            <label>I wish to pay by:</label>
+            <label>我希望通过以下方式付款：</label>
+            <div className="payment-options">
+              {
+                this.props.courseLocation !== 'Pasir Ris West Wellness Centre' && (
+                  <label>
+                    <input
+                      type="radio"
+                      value="Cash"
+                      checked={this.state.selectedPayment === 'Cash'}
+                      onChange={this.handlePaymentChange}
+                    />
+                    Cash
+                  </label>
+                )
+              }
               <label>
                 <input
                   type="radio"
-                  value="Cash"
-                  checked={this.state.selectedPayment === 'Cash'}
+                  value="PayNow"
+                  checked={this.state.selectedPayment === 'PayNow'}
                   onChange={this.handlePaymentChange}
                 />
-                Cash
+                PayNow
               </label>
-            )
-          }
-            <label>
-              <input
-                type="radio"
-                value="PayNow"
-                checked={this.state.selectedPayment === 'PayNow'}
-                onChange={this.handlePaymentChange}
-              />
-              PayNow
-            </label>
-            {/* Conditionally render SkillsFuture based on the course names */}
-            {this.props.courseEnglishName !== 'Community Ukulele – Mandarin' && 
-              this.props.courseChineseName !== '音乐祝福社区四弦琴班 – 中文' && (
-                <label>
-                  <input
-                    type="radio"
-                    value="SkillsFuture"
-                    checked={this.state.selectedPayment === 'SkillsFuture'}
-                    onChange={this.handlePaymentChange}
-                  />
-                  SkillsFuture
-                </label>
+              {/* Conditionally render SkillsFuture based on the course names */}
+              {this.props.courseEnglishName !== 'Community Ukulele – Mandarin' && 
+                this.props.courseChineseName !== '音乐祝福社区四弦琴班 – 中文' && (
+                  <label>
+                    <input
+                      type="radio"
+                      value="SkillsFuture"
+                      checked={this.state.selectedPayment === 'SkillsFuture'}
+                      onChange={this.handlePaymentChange}
+                    />
+                    SkillsFuture
+                  </label>
+              )}
+            </div>
+            {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is 'NSA' */}
+            {this.props.courseType === 'NSA' && !selectedPayment && paymentTouched && (
+              <>
+                <span className="error-message3">Please select a payment option.</span>
+                <span className="error-message3">请选择付款方式。</span>
+              </>
             )}
           </div>
-          {!selectedPayment && paymentTouched && (
-            <>
-              <span className="error-message3">Please select a payment option.</span>
-              <span className="error-message3">请选择付款方式。</span>
-            </>
-          )}
-        </div>
+        )}
       </div>
     );
-  }
+  }  
 }
 
 export default CourseDetailsSection;
