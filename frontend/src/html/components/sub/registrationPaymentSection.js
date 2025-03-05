@@ -769,7 +769,8 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
     
             let courseName = detail.courseInfo.courseEngName;
-            if ((!courseName.includes("English")) || (!courseName.includes("Mandarin"))) {
+            let languages = courseName.split("–")[-1].trim();
+            if ((languages === "English") || (languages === "Mandarin")) {
               // If "English" or "Mandarin" is not in the course name, don't split
               sourceSheet.getCell(`O${rowIndex}`).value = courseName.trim();
             } else {
@@ -987,6 +988,7 @@ class RegistrationPaymentSection extends Component {
             "SkillsFuture Done": "#008000",
             Cancelled: "#FF0000",
             Paid: "#008000",
+            Confirmed: "#008000",
           };
           
           const backgroundColor = statusStyles[params.value] || "#D3D3D3"; // Default light gray for unknown values
