@@ -181,8 +181,8 @@ class RegistrationPaymentSection extends Component {
         // Check if the value is "Paid" or "Generate SkillsFuture Invoice"
         if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled" || updatedStatus === "Confirmed") {
           // Proceed to update WooCommerce stock
-          //const stockResponse = await axios.post('http://localhost:3002/update_stock/', { 
-          const stockResponse = await axios.post('https://ecss-backend-django.azurewebsites.net/update_stock/', { 
+          const stockResponse = await axios.post('http://localhost:3002/update_stock/', { 
+          //const stockResponse = await axios.post('https://ecss-backend-django.azurewebsites.net/update_stock/', { 
             type: 'update', 
             page: {"courseChiName":chi, "courseEngName":eng, "courseLocation":location}, // Assuming `chi` refers to the course or page
             status: updatedStatus, // Using updatedStatus directly here
@@ -1374,19 +1374,38 @@ class RegistrationPaymentSection extends Component {
                 }
               } 
             }
-            else if(newValue === "Confirmed")
+            else if(courseInfo.courseType === "ILP")
             {
-              const performParallelTasks = async () => {
-                try {
-                  // Run the two functions in parallel using Promise.all
-                  await Promise.all([
-                    this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
-                  ]);
-                  console.log("Both tasks completed successfully.");
-                } catch (error) {
-                  console.error("Error occurred during parallel task execution:", error);
-                }};
-                await performParallelTasks();
+              if(newValue === "Confirmed")
+              { 
+                console.log("Confirm ILP Course")
+                const performParallelTasks = async () => {
+                  try {
+                    // Run the two functions in parallel using Promise.all
+                    await Promise.all([
+                      this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
+                    ]);
+                    console.log("Both tasks completed successfully.");
+                  } catch (error) {
+                    console.error("Error occurred during parallel task execution:", error);
+                  }};
+                  await performParallelTasks();
+              }
+              else if(newValue === "Cancelled")
+              { 
+                console.log("Confirm ILP Course")
+                const performParallelTasks = async () => {
+                  try {
+                    // Run the two functions in parallel using Promise.all
+                    await Promise.all([
+                      this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
+                    ]);
+                    console.log("Both tasks completed successfully.");
+                  } catch (error) {
+                    console.error("Error occurred during parallel task execution:", error);
+                  }};
+                  await performParallelTasks();
+              }
             }
           }
         }

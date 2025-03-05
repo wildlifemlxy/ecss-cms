@@ -137,6 +137,17 @@ class WooCommerceAPI:
                         if chinese_name == chinese and english_name == english and location_name == location:
                             matched_product_id = product['id']
                             break  # Exit the loop if the product is found
+                    
+                    if len(split_name) == 2:
+                        english_name = split_name[0].strip()
+                        location_name = split_name[1].strip()
+                        print(english_name, location_name)
+                                            
+                        # If the product matches the input chinese, english, and location, return the product ID
+                        if english_name == english and location_name == location:
+                            matched_product_id = product['id']
+                            break  # Exit the loop if the product is found
+
 
                 # If we found the matched product ID, stop fetching more pages
                 if matched_product_id:
