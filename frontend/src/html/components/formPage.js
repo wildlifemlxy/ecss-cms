@@ -110,7 +110,7 @@ class FormPage extends Component {
     console.log(currentSection);
   
     // Payment validation when in CourseDetails section (currentSection === 2)
-    if (currentSection === 2 && !this.courseDetailsRef.state.selectedPayment) {
+    if (currentSection === 2 && !this.courseDetailsRef.state.selectedPayment && this.props.type === "NSA") {
       errors.selectedPayment = 'Please select a payment option.';
       this.courseDetailsRef.setState({ paymentTouched: true });
     }
