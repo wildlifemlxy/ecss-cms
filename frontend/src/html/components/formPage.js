@@ -53,12 +53,10 @@ class FormPage extends Component {
     const price = queryParams.get('price')?.trim() || '';
     const type = queryParams.get('type')?.trim() || '';
     if (type === 'ILP') {
-      this.setState({ bgColor: 'green' }); // ILP -> green background
+      this.setState({ bgColor: '#006400' }); // Dark green for ILP
     } else if (type === 'NSA') {
-      this.setState({ bgColor: 'blue' });  // NSA -> blue background
-    } else {
-      this.setState({ bgColor: '' });      // default or no type
-    }
+      this.setState({ bgColor: '#003366' }); // Dark blue for NSA
+    } 
     const duration = queryParams.get('courseDuration')?.trim() || '';
 
     console.log(englishName, chineseName, "Location:", location, price, duration);
