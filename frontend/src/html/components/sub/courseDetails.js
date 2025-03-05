@@ -31,7 +31,13 @@ class CourseDetailsSection extends Component {
       payment: selectedPayment,
     });
   };
-
+  
+  decodeHtmlEntities(text) 
+  {
+    const parser = new DOMParser();
+    const decodedString = parser.parseFromString(`<!doctype html><body>${text}`, "text/html").body.textContent;
+    return decodedString;
+  }
 
   render() {
     const { selectedPayment, paymentTouched } = this.state;
@@ -47,11 +53,11 @@ class CourseDetailsSection extends Component {
         <div className="input-group1">
           <label htmlFor="courseName">Course Name 课程名称</label>
           <span className="course-detail-text" id="courseName">
-            English Name: {this.props.courseEnglishName}
+            English Name: {this.decodeHtmlEntities(this.props.courseEnglishName)}
           </span>
           <br />
           <span className="course-detail-text" id="courseName">
-            中文名: {this.props.courseChineseName}
+            中文名: {this.decodeHtmlEntities(this.props.courseChineseName)}
           </span>
         </div>
         <div className="input-group1">
