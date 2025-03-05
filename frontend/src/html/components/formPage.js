@@ -142,6 +142,14 @@ class FormPage extends Component {
     }
   };
 
+  decodeHtmlEntities(text) 
+  {
+    const parser = new DOMParser();
+    const decodedString = parser.parseFromString(`<!doctype html><body>${text}`, "text/html").body.textContent;
+    return decodedString;
+  }
+  
+
   handleSubmit = () => {
     const { formData } = this.state;
 
@@ -161,8 +169,8 @@ class FormPage extends Component {
 
     // Course 
     var courseType = formData.type;
-    var courseEngName = formData.englishName;
-    var courseChiName = formData.chineseName;
+    var courseEngName = this.decodeHtmlEntities(formData.englishName);
+    var courseChiName = this.decodeHtmlEntities(formData.chineseName);
     var courseLocation = formData.location;
     var coursePrice = formData.price; 
     var courseDuration = formData.duration;

@@ -1084,8 +1084,10 @@ class RegistrationPaymentSection extends Component {
         sn: index + 1,  // Serial number (S/N)
         name: item.participant.name,  // Replace with the actual field for name
         contactNo: item.participant.contactNumber,  // Replace with the actual field for contact number
-        course: this.decodeHtmlEntities(item.course.courseEngName),  // Replace with the actual field for payment status
-        courseChi: this.decodeHtmlEntities(item.course.courseChiName),  // Replace with the actual field for payment status
+        //course: this.decodeHtmlEntities(item.course.courseEngName),  // Replace with the actual field for payment status
+        //courseChi: this.decodeHtmlEntities(item.course.courseChiName),  // Replace with the actual field for payment status
+        course: item.course.courseEngName,  // Replace with the actual field for payment status
+        courseChi: item.course.courseChiName,  // Replace with the actual field for payment status
         location: item.course.courseLocation,  // Replace with the actual field for payment status
         paymentMethod: item.course.payment,  // Replace with the actual field for payment method
         confirmed: item.official.confirmed,  // Replace with the actual field for receipt/invoice number
@@ -1484,8 +1486,10 @@ class RegistrationPaymentSection extends Component {
           sn: index + 1,  // Serial number (S/N)
           name: item.participant.name,  // Participant's name
           contactNo: item.participant.contactNumber,  // Contact number
-          course: this.decodeHtmlEntities(item.course.courseEngName),  // Course English name
-          courseChi: this.decodeHtmlEntities(item.course.courseChiName),  // Course Chinese name
+          //course: this.decodeHtmlEntities(item.course.courseEngName),  // Course English name
+          //courseChi: this.decodeHtmlEntities(item.course.courseChiName),  // Course Chinese name
+          course: item.course.courseEngName,  // Course English name
+          courseChi: item.course.courseChiName,  // Course Chinese name
           location: item.course.courseLocation,  // Course location
           paymentMethod: item.course.payment,  // Payment method
           confirmed: item.official.confirmed,  // Confirmation status
@@ -1547,8 +1551,10 @@ class RegistrationPaymentSection extends Component {
         sn: index + 1,  // Serial number (S/N)
         name: item.participant.name,  // Participant's name
         contactNo: item.participant.contactNumber,  // Contact number
-        course: this.decodeHtmlEntities(item.course.courseEngName),  // Course English name
-        courseChi: this.decodeHtmlEntities(item.course.courseChiName),  // Course Chinese name
+        //course: this.decodeHtmlEntities(item.course.courseEngName),  // Course English name
+        //courseChi: this.decodeHtmlEntities(item.course.courseChiName),  // Course Chinese name
+        course: item.course.courseEngName,  // Course English name
+        courseChi: item.course.courseChiName,  // Course Chinese name
         location: item.course.courseLocation,  // Course location
         paymentMethod: item.course.payment,  // Payment method
         confirmed: item.official.confirmed,  // Confirmation status
