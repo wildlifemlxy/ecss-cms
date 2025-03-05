@@ -845,33 +845,41 @@ class RegistrationPaymentSection extends Component {
   };
 
   // Custom cell renderer for Payment Method with Buttons
-  paymentMethodRenderer = (params, courseName, location) => {
+  paymentMethodRenderer = (params, courseName, location, type) => {
     const currentPaymentMethod = params.value; // Get the current payment method value
 
     let paymentMethods  ;
-    // List of payment methods
-    if(location === "Pasir Ris West Wellness Centre")
+    if(type === "NSA")
     {
-      if(courseName !== "Community Ukulele – Mandarin")
+      // List of payment methods
+      if(location === "Pasir Ris West Wellness Centre")
       {
-        paymentMethods = ['PayNow', 'SkillsFuture'];
+        if(courseName !== "Community Ukulele – Mandarin")
+        {
+          paymentMethods = ['PayNow', 'SkillsFuture'];
+        }
+        else
+        {
+          paymentMethods = ['PayNow'];
+        }
       }
       else
       {
-        paymentMethods = ['PayNow'];
+        if(courseName !== "Community Ukulele – Mandarin")
+        {
+          paymentMethods = ['Cash', 'PayNow', 'SkillsFuture'];
+        }
+        else
+        {
+          paymentMethods = ['Cash', 'PayNow'];
+        }
       }
     }
     else
     {
-      if(courseName !== "Community Ukulele – Mandarin")
-      {
-        paymentMethods = ['Cash', 'PayNow', 'SkillsFuture'];
-      }
-      else
-      {
-        paymentMethods = ['Cash', 'PayNow'];
-      }
+      paymentMethods = [];
     }
+
 
     // Handle button click to update the payment method in the row
     const handleButtonClick = (method) => {
@@ -926,7 +934,8 @@ class RegistrationPaymentSection extends Component {
         cellRenderer: (params) => {
           const courseName = params.data.course;
           const courseLocation = params.data.courseInfo.courseLocation;
-          return this.paymentMethodRenderer(params, courseName, courseLocation);
+          const courseType = params.data.courseInfo.courseType;
+          return this.paymentMethodRenderer(params, courseName, courseLocation, courseType);
         },
         editable: false,
         width: 500,
