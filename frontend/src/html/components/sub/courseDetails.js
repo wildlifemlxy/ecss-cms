@@ -80,17 +80,19 @@ class CourseDetailsSection extends Component {
           <label>I wish to pay by:</label>
           <label>我希望通过以下方式付款：</label>
           <div className="payment-options">
-            {this.props.courseLocation !== 'Pasir Ris West Wellness Centre'  (
-                <label>
-                  <input
-                    type="radio"
-                    value="Cash"
-                    checked={this.state.selectedPayment === 'Cash'}
-                    onChange={this.handlePaymentChange}
-                  />
-                  Cash
-                </label>
-            )}
+          {
+            this.props.courseLocation !== 'Pasir Ris West Wellness Centre' && (
+              <label>
+                <input
+                  type="radio"
+                  value="Cash"
+                  checked={this.state.selectedPayment === 'Cash'}
+                  onChange={this.handlePaymentChange}
+                />
+                Cash
+              </label>
+            )
+          }
             <label>
               <input
                 type="radio"
