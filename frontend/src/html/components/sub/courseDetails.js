@@ -114,6 +114,7 @@ class CourseDetailsSection extends Component {
                     SkillsFuture
                   </label>
               )}
+              
             </div>
             {/* Display error message if no payment option is selected, paymentTouched is true, and courseType is 'NSA' */}
             {this.props.courseType === 'NSA' && !selectedPayment && paymentTouched && (

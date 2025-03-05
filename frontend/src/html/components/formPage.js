@@ -109,10 +109,16 @@ class FormPage extends Component {
     const { currentSection } = this.state;
     console.log(currentSection);
   
-    // Payment validation when in CourseDetails section (currentSection === 2)
-    if (currentSection === 2 && !this.courseDetailsRef.state.selectedPayment && this.props.type === "NSA") {
-      errors.selectedPayment = 'Please select a payment option.';
-      this.courseDetailsRef.setState({ paymentTouched: true });
+    if (currentSection === 2) {
+      if (this.props.type === "NSA" && !this.courseDetailsRef.state.selectedPayment) {
+        // If type is NSA and no payment option is selected, set an error
+        errors.selectedPayment = 'Please select a payment option.';
+        this.courseDetailsRef.setState({ paymentTouched: true });
+      } 
+      else if (this.props.type === "ILP") {
+        // If type is ILP, just go on without validation
+        console.log("Go Next");
+      }
     }
 
     if (currentSection === 3 && !this.agreementDetailsRef.state.selectedChoice) {
