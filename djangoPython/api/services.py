@@ -209,7 +209,7 @@ class WooCommerceAPI:
                 else:
                     print("Stock is full, no increase.")  # Prevent increase beyond vacancies
 
-            elif status in ["Paid", "SkillsFuture Done"]:
+            elif status in ["Paid", "SkillsFuture Done", "Confirmed"]:
                 if new_stock_quantity > 0:  # Only decrease if stock is greater than 0
                     print("Decrease stock by 1")
                     new_stock_quantity -= 1  
