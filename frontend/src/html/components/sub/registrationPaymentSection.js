@@ -174,6 +174,13 @@ class RegistrationPaymentSection extends Component {
       //console.log("Row Datawe:", rowData);
       this.setState({registerationDetails: paginatedDetails});
     }
+
+    decodeHtmlEntities(text) 
+    {
+      const parser = new DOMParser();
+      const decodedString = parser.parseFromString(`<!doctype html><body>${text}`, "text/html").body.textContent;
+      return decodedString;
+    }
     
           
     updateWooCommerceForRegistrationPayment = async (chi, eng, location, updatedStatus) => {
@@ -1540,8 +1547,8 @@ class RegistrationPaymentSection extends Component {
         sn: index + 1,  // Serial number (S/N)
         name: item.participant.name,  // Participant's name
         contactNo: item.participant.contactNumber,  // Contact number
-        course: item.course.courseEngName,  // Course English name
-        courseChi: item.course.courseChiName,  // Course Chinese name
+        course: this.decodeHtmlEntities(item.course.courseEngName),  // Course English name
+        courseChi: this.decodeHtmlEntities(item.course.courseChiName),  // Course Chinese name
         location: item.course.courseLocation,  // Course location
         paymentMethod: item.course.payment,  // Payment method
         confirmed: item.official.confirmed,  // Confirmation status
