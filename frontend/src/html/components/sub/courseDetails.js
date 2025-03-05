@@ -60,12 +60,13 @@ class CourseDetailsSection extends Component {
             {this.props.courseLocation}
           </span>
         </div>
+        {this.props.courseType === 'NSA' && (  
         <div className="input-group1">
           <label htmlFor="coursePrice">Course Price 价格</label>
           <span className="course-detail-text" id="coursePrice">
             {this.props.coursePrice}
           </span>
-        </div>
+        </div>)}
         <div className="input-group1">
           <label htmlFor="courseDuration">Course Duration 课程时长</label>
           <span className="course-detail-text" id="courseDuration">
