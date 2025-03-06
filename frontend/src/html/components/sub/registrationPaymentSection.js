@@ -1056,8 +1056,6 @@ class RegistrationPaymentSection extends Component {
         sn: index + 1,  // Serial number (S/N)
         name: item.participant.name,  // Replace with the actual field for name
         contactNo: item.participant.contactNumber,  // Replace with the actual field for contact number
-        //course: this.decodeHtmlEntities(item.course.courseEngName),  // Replace with the actual field for payment status
-        //courseChi: this.decodeHtmlEntities(item.course.courseChiName),  // Replace with the actual field for payment status
         course: item.course.courseEngName,  // Replace with the actual field for payment status
         courseChi: item.course.courseChiName,  // Replace with the actual field for payment status
         location: item.course.courseLocation,  // Replace with the actual field for payment status
@@ -1069,7 +1067,8 @@ class RegistrationPaymentSection extends Component {
         courseInfo: item.course,
         officialInfo: item.official,
         agreement: item.agreement,
-        status: item.status
+        status: item.status,
+        registrationDate: item.registrationDate
       };
     });
     console.log("All Rows Data:", rowData);
@@ -1681,6 +1680,9 @@ class RegistrationPaymentSection extends Component {
                   </p>
                   <p style={{textAlign:"left"}}>
                     <strong>Received Time: </strong>{this.state.rowData[this.state.expandedRowIndex].officialInfo.time}
+                  </p>
+                  <p style={{textAlign:"left"}}>
+                    <strong>Registration Date: </strong>{this.state.rowData[this.state.expandedRowIndex].registrationDate}
                   </p>
                 </div>
               )}
