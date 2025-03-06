@@ -23,7 +23,8 @@ class RegistrationPaymentSection extends Component {
         paginatedDetails: [],
         columnDefs: this.getColumnDefs(),
         rowData: [],
-        expandedRowIndex: null
+        expandedRowIndex: null,
+        editedRowIndex: 0
       };
       this.tableRef = React.createRef();
     }
@@ -1158,6 +1159,7 @@ class RegistrationPaymentSection extends Component {
     const oldPaymentStatus = event.data.status;
 
     console.log("Column Name:", columnName);
+    this.setState({editedRowIndex: id});
 
     try 
     {
@@ -1406,18 +1408,48 @@ class RegistrationPaymentSection extends Component {
     }
   };
   
-   refreshChild = async () =>
-   {
+  refreshChild = async () => {
     const { language } = this.props;
+    
+    // Fetch new data
     const data = await this.fetchCourseRegistrations(language);
-    this.setState({
-      originalData: data,
-      registerationDetails: data, // Update with fetched da
-      //rowData: data
-    });
-    this.getRowData(data);
-    this.props.closePopup();
-   }
+  
+    // Get the current scroll position of the grid's container element
+    const gridContainer = document.querySelector('.ag-body-viewport'); // Select the grid's scrollable container
+    
+    // Get the index of the currently edited row (replace this with your actual logic to get the row index)
+    const currentRowIndex = this.state.editedRowIndex; // Assuming you store the index of the edited row in state
+    
+    // Save the current scroll position
+    const currentScrollTop = gridContainer ? gridContainer.scrollTop : 0;
+  
+    // Update the state with new data
+    this.setState(
+      {
+        originalData: data,
+        registerationDetails: data, // Update with fetched data
+        //rowData: data,  // Update the row data for the grid
+      },
+      () => {
+        // After state update, restore the scroll position to the edited row
+        if (gridContainer && currentRowIndex !== undefined) {
+          // Calculate the position of the row based on the index
+          const rowHeight = 40; // Assuming each row has a height of 40px (adjust as necessary)
+          const rowPosition = currentRowIndex * rowHeight;  // Get the scroll position for the row
+          
+          // Set the scroll position back to the edited row
+          gridContainer.scrollTop = rowPosition;
+        }
+  
+        // Optionally call getRowData to process the updated data
+        this.getRowData(data);
+  
+        // Close the popup
+        this.props.closePopup();
+      }
+    );
+  };
+  
 
  // componentDidUpdate is called after the component has updated (re-rendered)
   componentDidUpdate(prevProps, prevState) {
@@ -1568,23 +1600,33 @@ class RegistrationPaymentSection extends Component {
                   defaultColDef={{
                     resizable: true, // Make columns resizable
                   }}
-                  onCellValueChanged={this.onCellValueChanged} // Handle cell click event
-                  onCellClicked={this.handleValueClick} // Handle cell click even
-              />
+                  onCellValueChanged={this.onCellValueChanged} // Handle cell value change
+                  onCellClicked={this.handleValueClick} // Handle cell click event
+                  getRowStyle={(params) => {
+                    // Condition to change row style based on a specific value
+                    if (params.data.courseInfo.courseType === 'ILP') {
+                      return { backgroundColor: '#A8D5BA' }; // Olive green soft pastel color for ILP
+                    } else if (params.data.courseInfo.courseType === 'OtherType') {
+                      return { backgroundColor: '#FFB6C1' }; // Soft pink for other type
+                    }
+                    return {}; // Default style
+                  }}
+                />
+
               </div>
                {/* Render custom <div> below the expanded row */}
                {this.state.expandedRowIndex !== null && (
-               <div
-               style={{
-                 padding: '10px',
-                 backgroundColor: '#F9E29B',
-                 marginLeft: '5%',
-                 width: '88vw',
-                 height: 'fit-content',
-                 borderRadius: '15px', // Make the border more rounded
-                 boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', // Optional: Add a subtle shadow for a floating effect
-               }}
-                >
+                <div
+                style={{
+                  padding: '10px',
+                  backgroundColor: '#F9E29B',
+                  marginLeft: '5%',
+                  width: '88vw',
+                  height: 'fit-content',
+                  borderRadius: '15px', // Make the border more rounded
+                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', // Optional: Add a subtle shadow for a floating effect
+                }}
+                  >
                   {/* Custom content you want to display */}
                   <p  style={{textAlign:"left"}}><h2 style={{color:'#000000'}}>More Information</h2></p>
                   <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Participant Details</h3></p>
@@ -1619,7 +1661,7 @@ class RegistrationPaymentSection extends Component {
                   </p>
                   <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Course Details</h3></p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Type: </strong>{this.state.rowData[this.state.expandedRowIndex].courseInfo.courseType}
+                    <strong>Type: </strong>{ }
                   </p>
                   <p style={{textAlign:"left"}}>
                     <strong>Location: </strong>{this.state.rowData[this.state.expandedRowIndex].courseInfo.courseLocation}

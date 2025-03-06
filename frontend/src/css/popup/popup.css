@@ -406,7 +406,7 @@
   top: 1em; /* Distance from the top */
   right: 10px; /* Distance from the right */
   transition: color 0.2s ease; /* Smooth color transition */
-  margin-right: -12em;
+  margin-right: -1em;
 }
 
 .access-right-message {

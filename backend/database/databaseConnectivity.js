@@ -854,17 +854,33 @@ class DatabaseConnectivity {
         }
     }
 
-    async updateAccessRight(databaseName, collectionName, id, updateAccessRight) {
+    async updateAccessRight(databaseName, collectionName, id1, updateAccessRight) {
         const db = this.client.db(databaseName);
         const table = db.collection(collectionName);
     
         try {
             // Define your filter to find the correct document
-            const filter = { _id: new ObjectId(id) };
+            const filter = { _id: new ObjectId(id1) };
             console.log("Filter:", filter);
+
+            console.log(updateAccessRight);
+
+            const keyMapping = {
+                accounts: "Account",
+                regPay: "Registration And Payment",
+                qRCode: "QR Code",
+                courses: "Courses",
+              };
     
-            // Exclude _id from the updateAccessRight if it exists
-            const { _id, "Account Details": accountDetails, ...updateData } = updateAccessRight; 
+           // Exclude _id from the updateAccessRight if it exists
+            const { id, accType, name, sn, ...filteredUpdateAccessRight } = updateAccessRight;
+            var updateAccessRight = Object.fromEntries(
+                Object.entries(filteredUpdateAccessRight).map(([key, value]) => [
+                  keyMapping[key] || key, // Replace key if found in keyMapping, otherwise keep the original
+                  value
+                ])
+              );
+            console.log(updateAccessRight);
     
             // Prepare the update object
             const update = {
@@ -873,8 +889,8 @@ class DatabaseConnectivity {
 
     
             // Add any other fields from updateData
-            for (const key in updateData) {
-                update.$set[key] = updateData[key];
+            for (const key in updateAccessRight) {
+                update.$set[key] = updateAccessRight[key];
             }
     
             console.log("Update object:", update);

@@ -13,7 +13,7 @@ class CoursesSection extends Component {
         loading: false,
         columnDefs: this.getColumnDefs(),
         rowData: [],
-        expandedRowIndex: null
+        expandedRowIndex: null,
       };
       this.tableWrapperRef = React.createRef();
     }
@@ -25,96 +25,105 @@ class CoursesSection extends Component {
       });
     }
 
-    getColumnDefs = () => [
-      {
-        headerName: "Course ID",
-        field: "courseId",
-        width: 100,
-      },
-      {
-        headerName: "Course Name",
-        field: "courseName",
-        width: 350,
-      },
-      {
-        headerName: "Centre Location",
-        field: "centreLocation",
-        width: 150,
-      },
-      {
-        headerName: "Current",
-        field: "current",
-        width: 100,
-      },
-      {
-        headerName: "Projected",
-        field: "projected",
-        width: 100,
-      },
-      {
-        headerName: "Maximum",
-        field: "maximum",
-        width: 100,
-      },
-      {
-        headerName: "Status",
-        field: "status",
-        width: 200,
-        cellRenderer: (params) => {
-          const statusStyles = {
-            Ongoing: "#FF6347",  // Red (Tomato)
-            Available: "#32CD32",  // Green (LimeGreen)
-            Ended: "#A9A9A9",  // Gray (DarkGray)
-            Full: "#4682B4",  // Blue (SteelBlue)
-          };
-    
-          const backgroundColor = statusStyles[params.value] || "#D3D3D3"; // Default light gray for unknown values
-    
-          return (
-            <span
-              style={{
-                fontWeight: "bold",
-                color: "white",
-                textAlign: "center",
-                display: "inline-block",
-                borderRadius: "20px",
-                paddingLeft: "30px",
-                paddingRight: "30px",
-                width: "fit-content",
-                lineHeight: "30px",
-                whiteSpace: "nowrap",
-                backgroundColor: backgroundColor
-              }}
-            >
-              {params.value}
-            </span>
-          );
-        }
-      },
-      {
-        headerName: "Course Duration",
-        field: "courseDuration",
-        width: 250,
-      },
-      {
-        headerName: "Course Timing",
-        field: "courseTiming",
-        width: 180,
-      },
-      {
-        headerName: "SkillsFuture Credit Eligibility",
-        field: "eligibility",
-        width: 250,
-        cellRenderer: (params) => {
-          const imageSrc = params.value
-            ? "https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png" // ✅ Green Tick
-            : "https://upload.wikimedia.org/wikipedia/commons/5/5f/Red_X.svg"; // ❌ Red Cross
+    getColumnDefs = () => {
+      // Base columns definition
+      const columns = [
+        {
+          headerName: "Course ID",
+          field: "courseId",
+          width: 100,
+        },
+        {
+          headerName: "Course Name",
+          field: "courseName",
+          width: 350,
+        },
+        {
+          headerName: "Centre Location",
+          field: "centreLocation",
+          width: 150,
+        },
+        {
+          headerName: "Current",
+          field: "current",
+          width: 100,
+        },
+        {
+          headerName: "Projected",
+          field: "projected",
+          width: 100,
+        },
+        {
+          headerName: "Maximum",
+          field: "maximum",
+          width: 100,
+        },
+        {
+          headerName: "Status",
+          field: "status",
+          width: 200,
+          cellRenderer: (params) => {
+            const statusStyles = {
+              Ongoing: "#FF6347",  // Red (Tomato)
+              Available: "#32CD32",  // Green (LimeGreen)
+              Ended: "#A9A9A9",  // Gray (DarkGray)
+              Full: "#4682B4",  // Blue (SteelBlue)
+            };
       
-          return <img src={imageSrc} alt={params.value ? 'Eligible' : 'Not Eligible'} width="20" height="20" />;
+            const backgroundColor = statusStyles[params.value] || "#D3D3D3"; // Default light gray for unknown values
+      
+            return (
+              <span
+                style={{
+                  fontWeight: "bold",
+                  color: "white",
+                  textAlign: "center",
+                  display: "inline-block",
+                  borderRadius: "20px",
+                  paddingLeft: "30px",
+                  paddingRight: "30px",
+                  width: "fit-content",
+                  lineHeight: "30px",
+                  whiteSpace: "nowrap",
+                  backgroundColor: backgroundColor
+                }}
+              >
+                {params.value}
+              </span>
+            );
+          }
+        },
+        {
+          headerName: "Course Duration",
+          field: "courseDuration",
+          width: 250,
+        },
+        {
+          headerName: "Course Timing",
+          field: "courseTiming",
+          width: 180,
         }
+      ];
+      // Only add "SkillsFuture Credit Eligibility" column if courseType is NSA
+      if (this.props.courseType === 'NSA') {
+        columns.push({
+          headerName: "SkillsFuture Credit Eligibility",
+          field: "eligibility",
+          width: 250,
+          cellRenderer: (params) => {
+            const imageSrc = params.value
+              ? "https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png" // ✅ Green Tick
+              : "https://upload.wikimedia.org/wikipedia/commons/5/5f/Red_X.svg"; // ❌ Red Cross
+        
+            return <img src={imageSrc} alt={params.value ? 'Eligible' : 'Not Eligible'} width="20" height="20" />;
+          }
+        });
       }
-      
-    ];
+    
+      return columns;
+    };
+    
+    
   
     
     // Method to get all languages
@@ -447,7 +456,7 @@ class CoursesSection extends Component {
     if (
       courseType !== prevProps.courseType
     ) {
-      this.setState({ filteredCourses: [] });
+      this.setState({ filteredCourses: [], columnDefs: this.getColumnDefs() });
       this.fetchCourses(courseType);
     }
     else if (

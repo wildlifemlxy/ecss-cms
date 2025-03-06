@@ -391,7 +391,8 @@ class Popup extends Component {
   updateAccessRight = async() =>
   {
     var accessRight = this.state.message4;
-    var accessRightId = this.props.message._id;
+    console.log("Access Rights:", accessRight);
+    var accessRightId = accessRight.id;
     var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/accessRights`, { purpose: "updateAccessRight", accessRight, accessRightId });
     if(response.data.success === true)
       {
@@ -653,7 +654,6 @@ class Popup extends Component {
                <h2 className="edit-account-title">Account</h2>
               <p>Click on the button below:</p>
               <div className="button-container2">
-                <button onClick={() => this.manageAccountInfo("Edit")}>Edit Account Info</button>
                 <button onClick={() => this.manageAccountInfo("Delete")}>Delete Account</button>              
               </div>
             </div>
@@ -662,65 +662,49 @@ class Popup extends Component {
             <div className="access-right-message">
               <h2 className="access-right-title">Update Access Rights</h2>
               {Object.keys(message4)
-                .filter(mainKey => mainKey !== "_id") // Exclude mainKey named "_id"
-                .map((mainKey) => (
-                  <div key={mainKey} className="main-key">
-                      <h3>{mainKey}</h3>
+              .filter(mainKey => mainKey !== "id" && mainKey !== 'accType' && mainKey !== 'name' && mainKey !== 'sn') // Exclude unnecessary keys
+              .map((mainKey) => {
+                const formattedKey = 
+                  mainKey === "accounts" ? "Account" : 
+                  mainKey === "regPay" ? "Registration And Payment" : 
+                  mainKey === "qRCode" ? "QR Code" : 
+                  mainKey === "courses" ? "Courses" : 
+                  mainKey;
+
+                return (
+                  <div key={formattedKey} className="main-key">
+                    <h3>{formattedKey}</h3>
                     <div className="sub-keys">
                       <div className="checkbox-container">
-                        {Object.keys(message4[mainKey]).
-                         filter(subKey => subKey !== "Account ID").
-                         map((subKey) => {
-                          const value = message4[mainKey][subKey];
-                          return (
-                            <>
-                              {subKey === "Registration And Payment Table" ? (
-                                <div key={subKey}>
-                                  <label className="checkbox-label">
-                                    {/* Render checkbox only for boolean values */}
-                                    {typeof value === "boolean" ? (
-                                      <input 
-                                        type="checkbox" 
-                                        checked={value}
-                                        onChange={() => this.handleCheckboxChange(mainKey, subKey)}
-                                      />
-                                    ) : null}
-                                    <strong>
-                                      <h3 style={{fontSize: "1em"}}>Registration And</h3>
-                                      <h3 style={{fontSize: "1em"}}>Payment Table</h3>
-                                      {typeof value === "boolean" ? ' ' : ': '}
-                                    </strong>
-                                    &nbsp;
-                                    {typeof value === "string" ? value : ''}
-                                  </label>
-                                </div>
-                              ) : (
-                                <div key={subKey} className="checkbox-box">
-                                  <label className="checkbox-label">
-                                    {/* Render checkbox only for boolean values */}
-                                    {typeof value === "boolean" ? (
-                                      <input 
-                                        type="checkbox" 
-                                        checked={value}
-                                        onChange={() => this.handleCheckboxChange(mainKey, subKey)}
-                                      />
-                                    ) : null}
-                                    <strong>
-                                      {subKey}
-                                      {typeof value === "boolean" ? ' ' : ': '}
-                                    </strong>
-                                    &nbsp;
-                                    {typeof value === "string" ? value : ''}
-                                  </label>
-                                </div>
-                              )}
-                            </>
-                          );                          
-                        })}
+                        {Object.keys(message4[mainKey])
+                          .filter(subKey => subKey !== "Account ID")
+                          .map((subKey) => {
+                            const value = message4[mainKey][subKey];
+                            return (
+                              <div key={subKey} className="checkbox-box">
+                                <label className="checkbox-label">
+                                  {typeof value === "boolean" ? (
+                                    <input 
+                                      type="checkbox" 
+                                      checked={value}
+                                      onChange={() => this.handleCheckboxChange(mainKey, subKey)}
+                                    />
+                                  ) : null}
+                                  <strong>
+                                    {subKey}
+                                    {typeof value === "boolean" ? ' ' : ': '}
+                                  </strong>
+                                  &nbsp;
+                                  {typeof value === "string" ? value : ''}
+                                </label>
+                              </div>
+                            );
+                          })}
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+              })}
                 <div className="button-container1">
                   <button onClick={this.cancel}>Cancel</button>
                   <button onClick={() => this.updateAccessRight()}>Update</button>

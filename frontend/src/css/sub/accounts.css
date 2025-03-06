@@ -13,40 +13,63 @@
     width: 100%; /* Ensure the container takes full width */
   }
   
-  /* Table wrapper to control scrolling */
-  .table-wrapper {
-    width: 80vw; /* Table wrapper occupies 80% of the width of its container */
-    max-width: 120rem; /* Maximum width for large screens */
-    height: fit-content;/*height: 50vh*/ /* Table wrapper occupies 70% of the viewport height */
-    overflow: auto; /* Enable both vertical and horizontal scrolling */
-    margin: 0 auto; /* Center the wrapper horizontally */
-    margin-left: 8rem;
+  .grid-container1 {
+    height: 50vh;  /* Set a fixed height or use 100% if you want it to fill the remaining space */
+    display: block;  /* Ensure that the grid takes up the expected space */
+    overflow: auto;  /* Scrollbars will appear if the content overflows */
+    box-sizing: border-box;  /* Includes padding and border in the element's total width and height */
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .ag-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1 !important;
+    background-color: #E7B8B0;  /* Warm turquoise */
+    color: white;               /* White text */
+    text-align: center;         /* Center-align the text */
+    border: none;               /* Remove the border 8.5/
+    box-shadow: none;           /* Remove any shadow if present */
   }
   
-  
-  /* Ensure table takes full width */
-  .table-wrapper table {
-    width: 100%;
-    border-collapse: collapse; /* Clean border appearance */
-    table-layout: auto; /* Adjust column widths based on content */
+  .ag-header-cell-resize {
+    display: none !important; /* Hide the column resize handle */
   }
   
-  /* Header sticky with background color */
-  .table-wrapper thead {
-    position: sticky;
-    top: 0;
-    background-color: #f4f4f4;
-    z-index: 1;
-    border-bottom: 1px solid #ddd;
+  .ag-row
+  {
+    background-color: #EBC0A3;
   }
   
-  /* Styling for headers and cells */
-  .table-wrapper th, .table-wrapper td {
-    padding: 0.75rem; /* Padding for better readability */
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-    white-space: nowrap; /* Prevent text wrapping */
+  .ag-cell input[type="text"],
+  .ag-cell select {
+    background-color: transparent !important; /* Make textboxes and select boxes transparent */
+    border: 1px solid #ccc; /* Optional: Add a border to textboxes and select boxes */
   }
+  
+  .ag-cell input[type="text"]:focus,
+  .ag-cell select:focus {
+    outline: none; /* Optional: Remove outline on focus */
+  }
+  
+  .ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed input[type="text"],
+  .ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed {
+    background-color: transparent !important; /* Make textboxes and select boxes transparent */
+    border: 1px solid #ccc; /* Optional: Add a border to textboxes and select boxes */
+  }
+  
+  .ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed input[type="text"]:focus,
+  .ag-wrapper .ag-picker-field-wrapper .ag-picker-collapsed select:focus {
+    outline: none; /* Optional: Remove outline on focus */
+  }
+  
+  .ag-cell-edit-wrapper, .ag-cell-editor, .ag-cell-wrapper, :where(.ag-cell-editor) .ag-input-field-input, :where(.ag-cell-editor) .ag-wrapper
+  {
+    background-color: transparent !important; /* Make textboxes and select boxes transparent */
+    border: 1px solid #ccc; /* Optional: Add a border to textboxes and select boxes */
+  }
+  
   
   /* Hide webkit scrollbars */
   ::-webkit-scrollbar {
@@ -123,6 +146,7 @@
   font-family: 'Arial', sans-serif;
   background-color: #fff;
 }
+
 
 .dashboard-table th,
 .dashboard-table td {

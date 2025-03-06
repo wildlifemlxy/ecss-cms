@@ -19,8 +19,11 @@ router.post('/', async function(req, res, next)
     }
     else if(req.body.purpose === "updateAccessRight")
     {
+        console.log(req.body);
         var controller = new AccessRightController();
+
         var result = await controller.updateAccessRight(req.body.accessRightId, req.body.accessRight) ;
+        //console.log(result);
         return res.json({"result": result});
     }
 });
