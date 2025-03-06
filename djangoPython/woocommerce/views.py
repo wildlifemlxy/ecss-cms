@@ -538,126 +538,41 @@ def sales_report_view_react(request):
     except Exception as e:
         # Handle errors and return a JSON error response
         return JsonResponse({"error": str(e)}, status=500)
+    
 # Function to generate invoices
 @csrf_exempt
-def generate_invoice_view_react(request):
+def generate_report(request):
     # MongoDB connection
-    client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
-    db = client["Courses-Management-System"]
-    collection = db["Registration Forms"]
+    #client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
+    #db = client["Courses-Management-System"]
+    #collection = db["Registration Forms"]
 
-    p = inflect.engine()
+    """Fetches and returns a list of products from WooCommerce based on the courseType."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
 
-    # Query for filtering documents
-    query = {
-        "course.payment": "SkillsFuture",
-        "status": "Paid",
-        "official.receiptNo": {"$ne": ""}
-    }
+    try:
+        # Parse the request body as JSON if needed
+        # data = json.loads(request.body)  # Uncomment if you need to parse data
 
-    documents = list(collection.find(query))
+        print("Gathering Data For Monthly Report")
 
-    # Aggregation dictionary to store data
-    course_data = defaultdict(lambda: {
-        "courses": [],
-        "total_price": 0
-    })
+        # Your code for fetching data goes here
+        # For example, assuming you're fetching from WooCommerce or doing some processing
+        # result = fetch_woocommerce_data(course_type)
 
-    course_accumulation = defaultdict(lambda: {"count": 0, "total_price": 0})
-    seen_courses = set()
+        # Mock output for demonstration
+        result = {'status': 'success', 'message': 'Data fetched successfully'}  # Replace with actual result
+        
+        print(result)  # This will print the output
 
-    for doc in documents:
-        course_eng_name = doc["course"].get("courseEngName")
-        course_location = doc["course"].get("courseLocation")
-        if not course_eng_name:
-            continue
+        return JsonResponse({'success': True, 'data': result})
 
-        course_price = doc["course"].get("coursePrice", 0)
-        if isinstance(course_price, str) and course_price.startswith('$'):
-            course_price = float(course_price.replace('$', '').strip())
-        course_price *= 5
-        course_price = round(course_price, 2)
+    except Exception as e:
+        print("Error:", e)  # Log the error to the console
+        return JsonResponse({'success': False, 'error': str(e)})
 
-        no_of_people = doc["course"].get("numberOfPeople", 1)
-        total_price = round(course_price * no_of_people, 2)
-
-        course_duration_raw = doc["course"].get("courseDuration")
-        formatted_start_date = None
-        formatted_end_date = None
-        if course_duration_raw:
-            try:
-                start_raw, end_raw = course_duration_raw.split(" - ")
-                start_date = datetime.strptime(start_raw, "%d %B %Y")
-                end_date = datetime.strptime(end_raw, "%d %B %Y")
-                formatted_start_date = f"{start_date.day}.{start_date.month}.{start_date.year}"
-                formatted_end_date = f"{end_date.day}.{end_date.month}.{end_date.year}"
-            except (ValueError, IndexError):
-                pass
-
-        official_date_raw = doc["official"].get("date")
-        formatted_month_year = None
-        if official_date_raw:
-            try:
-                official_date = datetime.strptime(official_date_raw, "%d/%m/%Y")
-                formatted_month_year = official_date.strftime("%B %Y")
-            except ValueError:
-                pass
-
-        payment_date = formatted_month_year or "Unknown Month-Year"
-        course_key = (course_eng_name, course_location, formatted_start_date, formatted_end_date)
-        course_accumulation[course_key]["count"] += no_of_people
-        course_accumulation[course_key]["total_price"] += total_price
-
-        course_details = {
-            "course": course_eng_name,
-            "location": course_location,
-            "details": {
-                "price": f"${course_price:.2f}",
-                "total_price": f"${total_price:.2f}",
-                "startDate": formatted_start_date,
-                "endDate": formatted_end_date
-            }
-        }
-
-        if course_key not in seen_courses:
-            seen_courses.add(course_key)
-            course_data[payment_date]["courses"].append(course_details)
-
-    cleaned_course_data = {}
-    for payment_date, data in course_data.items():
-        filtered_courses = []
-        for course in data["courses"]:
-            course_key = (course["course"], course["location"], course["details"]["startDate"], course["details"]["endDate"])
-            count = course_accumulation[course_key]["count"]
-            total_price = course_accumulation[course_key]["total_price"]
-            if course["course"] and any(v for v in course["details"].values()):
-                course["details"]["total_price"] = f"${total_price:.2f}"
-                course["details"]["count"] = count
-                filtered_courses.append(course)
-
-        if filtered_courses:
-            cleaned_course_data[payment_date] = {
-                "courses": filtered_courses,
-                "total_price": 0
-            }
-
-            for course in filtered_courses:
-                cleaned_course_data[payment_date]["total_price"] += float(course["details"]["total_price"].replace('$', '').strip())
-
-            data["total_price"] = cleaned_course_data[payment_date]["total_price"]
-            price_value = data["total_price"]
-            dollars = int(price_value)
-            cents = round((price_value - dollars) * 100)
-            dollars_in_words = p.number_to_words(dollars)
-            if cents > 0:
-                cents_in_words = p.number_to_words(cents)
-                price_in_words = f"{dollars_in_words} Singapore Dollars and {cents_in_words} cents Only"
-            else:
-                price_in_words = f"{dollars_in_words} Singapore Dollars Only"
-
-            cleaned_course_data[payment_date]["total_price_in_words"] = ' '.join([word.capitalize() for word in price_in_words.split()])
-
-    return JsonResponse({"invoice": cleaned_course_data})
+   
 
 import json
 import re
@@ -775,7 +690,7 @@ def sendToWooCommerce(request):
     return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
     
 @csrf_exempt
-def update_stock_react(request):
+def update_stock(request):
     """Fetches and returns a list of products from WooCommerce based on the courseType."""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
