@@ -471,12 +471,9 @@ class Popup extends Component {
     console.log("Updated Details:", participant);
 
     try {
-      const response = 
-      //await axios.post('http://localhost:3001/courseregistration', {
-      await axios.post('https://ecss-backend-node.azurewebsites.net/courseregistration', {
-        purpose: "updateEntry",
-        entry: participant
-      });
+      const response = await axios.post(`${window.location.hostname === "localhost" ? 
+                        "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, 
+                        { purpose: "updateEntry", entry: participant });
 
       // Check the response data
       if (response.data.result === true) {
