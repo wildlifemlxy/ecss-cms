@@ -50,8 +50,7 @@ class DashboardSection extends Component {
     {
         try 
         {
-            //const response = await axios.post('http://localhost:3002/sales_report/');
-            const response = await axios.post('https://ecss-backend-django.azurewebsites.net/sales_report/');
+            const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/sales_report/`);
             const data = response.data;
             console.log(data.aggregated_data)
 

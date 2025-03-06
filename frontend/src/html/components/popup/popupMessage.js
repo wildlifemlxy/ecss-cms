@@ -201,8 +201,7 @@ class Popup extends Component {
     }
     else if(valid)
     {
-      //var response = await axios.post(`http://localhost:3001/login`, {"purpose": "changePassword", "accountId": accountId, "newPassword": newPassword});
-      var response = await axios.post(`https://ecss-backend-node.azurewebsites.net/login`, {"purpose": "changePassword", "accountId": accountId, "newPassword": newPassword});
+      var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/login`, { purpose: "changePassword", accountId, newPassword });
       if(response.data.success === true)
       {
         this.props.passPopupMessage(response.data.success, response.data.message);
@@ -257,8 +256,7 @@ class Popup extends Component {
   handleConfirm = async(id) =>
   {
     console.log("Registration Id1:", id);
-      axios.post('https://ecss-backend-node.azurewebsites.net/courseregistration', {"purpose": "delete", id})
-      //axios.post('http://localhost:3001/courseregistration', {"purpose": "delete", "id":id})
+    axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: "delete", id })
       .then((response) => {
         console.log("Deleted Participants:", response);
         this.props.closePopupMessage();
@@ -325,8 +323,7 @@ class Popup extends Component {
   
     if(valid === true)
     {
-      //var response = await axios.post(`http://localhost:3001/login`, {"purpose": "resetPassword",  "username": username, "password": newPassword1});
-      var response = await axios.post(`https://ecss-backend-node.azurewebsites.net/login`, {"purpose": "resetPassword",  "username": username, "password": newPassword1});
+      var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/login`, { purpose: "resetPassword", username, password: newPassword1 });
       console.log(response)
       if(response.data.success === true)
       {
@@ -354,8 +351,7 @@ class Popup extends Component {
       console.log("Delete Account");
       //console.log("Delete Account", this.props);
       var accountId = this.props.message;
-      var response = await axios.post(`http://ecss-backend-node.azurewebsites.net/accountDetails`, {"purpose": "deleteAccount",  "accountId": accountId});
-      //var response = await axios.post(`http://localhost:3001/accountDetails`, {"purpose": "deleteAccount",  "accountId": accountId});
+      var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "http://ecss-backend-node.azurewebsites.net"}/accountDetails`, { purpose: "deleteAccount", accountId });
       if(response.data.success === true)
       {
           //console.log("Change Password Successfully");
@@ -396,8 +392,7 @@ class Popup extends Component {
   {
     var accessRight = this.state.message4;
     var accessRightId = this.props.message._id;
-    var response = await axios.post(`https://ecss-backend-node.azurewebsites.net/accessRights`, {"purpose": "updateAccessRight",  "accessRight": accessRight, "accessRightId": accessRightId});
-    //var response = await axios.post(`http://localhost:3001/accessRights`, {"purpose": "updateAccessRight",  "accessRight": accessRight, "accessRightId": accessRightId});
+    var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/accessRights`, { purpose: "updateAccessRight", accessRight, accessRightId });
     if(response.data.success === true)
       {
           //console.log("Change Password Successfully");
@@ -474,7 +469,6 @@ class Popup extends Component {
       const response = await axios.post(`${window.location.hostname === "localhost" ? 
                         "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, 
                         { purpose: "updateEntry", entry: participant });
-
       // Check the response data
       if (response.data.result === true) {
         console.log("Successfully updated participant.");

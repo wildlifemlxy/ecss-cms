@@ -60,11 +60,7 @@ class RegistrationPaymentSection extends Component {
       try {
         var {siteIC, role} = this.props;  
         console.log("Role", role, "SiteIC", siteIC);
-        const response = await axios.post(
-          //'http://localhost:3001/courseregistration', 
-          'https://ecss-backend-node.azurewebsites.net/courseregistration', 
-          { purpose: 'retrieve', role, siteIC}
-        );
+        const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC });
 
         console.log("Course Registration:", response);
     
@@ -188,14 +184,8 @@ class RegistrationPaymentSection extends Component {
         // Check if the value is "Paid" or "Generate SkillsFuture Invoice"
         if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled" || updatedStatus === "Confirmed") {
           // Proceed to update WooCommerce stock
-          const stockResponse = await axios.post('http://localhost:3002/update_stock/', { 
-          //const stockResponse = await axios.post('https://ecss-backend-django.azurewebsites.net/update_stock/', { 
-            type: 'update', 
-            page: {"courseChiName":chi, "courseEngName":eng, "courseLocation":location}, // Assuming `chi` refers to the course or page
-            status: updatedStatus, // Using updatedStatus directly here
-            location: location // Added location if needed
-          });
-    
+          const stockResponse = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/update_stock/`, { type: 'update', page: { "courseChiName": chi, "courseEngName": eng, "courseLocation": location }, status: updatedStatus, location: location });
+
           console.log("WooCommerce stock update response:", stockResponse.data);
         
           // If WooCommerce stock update is successful, generate receipt
@@ -236,14 +226,7 @@ class RegistrationPaymentSection extends Component {
         console.log("Centre Location:", centreLocation);
         try {
           //console.log("Fetching receipt number for location:", courseLocation);
-          const response = await axios.post(
-           // "http://localhost:3001/receipt", {
-            'https://ecss-backend-node.azurewebsites.net/receipt',{
-            purpose: "getReceiptNo",
-            courseLocation,
-            centreLocation
-          });
-
+          const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/receipt`, { purpose: "getReceiptNo", courseLocation, centreLocation });
     
           if (response?.data?.result?.success) {
             console.log("Fetched receipt number:", response.data.result.receiptNumber);
@@ -259,19 +242,7 @@ class RegistrationPaymentSection extends Component {
 
       generatePDFReceipt = async (id, participant, course, receiptNo, status) => {
         try {
-          const pdfResponse = await axios.post(
-           //"http://localhost:3001/courseregistration",
-           'https://ecss-backend-node.azurewebsites.net/courseregistration',
-            {
-              purpose: "addReceiptNumber",
-              id,
-              participant,
-              course,
-              staff: this.props.userName,
-              receiptNo,
-              status,
-            }
-          );
+          const pdfResponse = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: "addReceiptNumber", id, participant, course, staff: this.props.userName, receiptNo, status });
           console.log("generatePDFReceipt:", pdfResponse);
           return pdfResponse;
         } catch (error) {
@@ -287,8 +258,7 @@ class RegistrationPaymentSection extends Component {
           if(course.payment === "Cash" || course.payment === "PayNow")
           {
             const pdfResponse = await axios.post(
-              //"http://localhost:3001/courseregistration",
-              'https://ecss-backend-node.azurewebsites.net/courseregistration',
+              `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, // Your endpoint
               {
                 purpose: "receipt",
                 participant,
@@ -299,28 +269,33 @@ class RegistrationPaymentSection extends Component {
               },
               { responseType: "blob" }
             );
-      
+            
+            // Extract the filename from the response's content-disposition header
             const contentDisposition = pdfResponse.headers["content-disposition"];
-            const filenameMatch = contentDisposition.match(
-              /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-            );
-            const filename = filenameMatch
-              ? filenameMatch[1].replace(/['"]/g, "")
-              : "unknown.pdf";
-            console.log(`PDF Filename: ${filename}`);
-      
+            const filenameMatch = contentDisposition ? contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/) : null;
+            const filename = filenameMatch ? filenameMatch[1].replace(/['"]/g, "") : "receipt.pdf";
+            
+            // Create a Blob object from the response data (PDF)
             const blob = new Blob([pdfResponse.data], { type: "application/pdf" });
+            
+            // Create a URL for the Blob
             const url = window.URL.createObjectURL(blob);
-            window.open(url, "_blank");
-      
-            console.log("PDF receipt URL:", url);
-            return url;
+            
+            // Open the PDF in a new tab (automatically triggering the popup)
+            const pdfWindow = window.open(url, '_blank');
+            
+            // Fallback if the window fails to open (in case of popup blockers)
+            if (!pdfWindow) {
+              alert('Please allow popups to view the PDF receipt.');
+            }
+            
+            console.log(`PDF URL: ${url}`);
+            
           }
           else
           {
             const pdfResponse = await axios.post(
-              //"http://localhost:3001/courseregistration",
-              "https://ecss-backend-node.azurewebsites.net/courseregistration",
+              `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
             {
               purpose: "invoice",
               participant,
@@ -331,21 +306,26 @@ class RegistrationPaymentSection extends Component {
             { responseType: "blob" }
           );
 
-            const contentDisposition = pdfResponse.headers["content-disposition"];
-            const filenameMatch = contentDisposition.match(
-              /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-            );
-            const filename = filenameMatch
-              ? filenameMatch[1].replace(/['"]/g, "")
-              : "unknown.pdf";
-            console.log(`PDF Filename: ${filename}`);
-      
-            const blob = new Blob([pdfResponse.data], { type: "application/pdf" });
-            const url = window.URL.createObjectURL(blob);
-            window.open(url, "_blank");
-      
-            console.log("PDF receipt URL:", url);
-            return url;
+          // Extract the filename from the response's content-disposition header
+          const contentDisposition = pdfResponse.headers["content-disposition"];
+          const filenameMatch = contentDisposition ? contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/) : null;
+          const filename = filenameMatch ? filenameMatch[1].replace(/['"]/g, "") : "receipt.pdf";
+          
+          // Create a Blob object from the response data (PDF)
+          const blob = new Blob([pdfResponse.data], { type: "application/pdf" });
+          
+          // Create a URL for the Blob
+          const url = window.URL.createObjectURL(blob);
+          
+          // Open the PDF in a new tab (automatically triggering the popup)
+          const pdfWindow = window.open(url, '_blank');
+          
+          // Fallback if the window fails to open (in case of popup blockers)
+          if (!pdfWindow) {
+            alert('Please allow popups to view the PDF receipt.');
+          }
+          
+          console.log(`PDF URL: ${url}`);
         }
         } catch (error) {
           console.error("Error generating PDF receipt:", error);
@@ -449,21 +429,13 @@ class RegistrationPaymentSection extends Component {
         }
     }
 
-    generatePDFInvoice = async (id, participant, course, receiptNo, status) => {
+    generatePDFInvoice = async (id, participant, course, receiptNo, status) => 
+    {
       try {
         const pdfResponse = await axios.post(
-          //"http://localhost:3001/courseregistration",
-          "https://ecss-backend-node.azurewebsites.net/courseregistration",
-          {
-            purpose: "addInvoiceNumber",
-            id,
-            participant,
-            course,
-            staff: this.props.userName,
-            receiptNo,
-            status,
-          }
-        );
+          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+          { purpose: "addInvoiceNumber", id, participant, course, staff: this.props.userName, receiptNo, status }
+        );        
         return pdfResponse;
       } catch (error) {
         console.error("Error generating PDF receipt:", error);
@@ -480,8 +452,7 @@ class RegistrationPaymentSection extends Component {
         });
   
         const receiptCreationResponse = await axios.post(
-          //"http://localhost:3001/receipt",
-          "https://ecss-backend-node.azurewebsites.net/receipt",
+          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/receipt`,
           {
             purpose: "createReceipt",
             receiptNo,
@@ -490,7 +461,7 @@ class RegistrationPaymentSection extends Component {
             url,
             staff: this.props.userName,
           }
-        );
+        );        
   
         console.log("Receipt creation response:", receiptCreationResponse.data);
       } catch (error) {
@@ -1194,28 +1165,28 @@ class RegistrationPaymentSection extends Component {
         {
           this.props.showUpdatePopup("Updating in progress... Please wait ...");
           await axios.post(
-            //'http://localhost:3001/courseregistration', 
-            'https://ecss-backend-node.azurewebsites.net/courseregistration',
-            { 
-              purpose: 'updatePaymentMethod', 
-              id: id, 
-              newUpdatePayment: newValue, 
-              staff: this.props.userName 
+            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+            {
+              purpose: 'updatePaymentMethod',
+              id: id,
+              newUpdatePayment: newValue,
+              staff: this.props.userName
             }
-          );
+          );          
           //Automatically Update Status
           console.log("newPaymentMethod:", newValue);
           if(newValue === "Cash" || newValue === "PayNow")
           {
               const response = await axios.post(
-               //'http://localhost:3001/courseregistration', 
-                'https://ecss-backend-node.azurewebsites.net/courseregistration',
+                `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
                 { 
                   purpose: 'updatePaymentStatus', 
                   id: id, 
                   newUpdateStatus: "Paid", 
                   staff: this.props.userName 
-                });
+                }
+              );
+            
               if (response.data.result === true) 
               {
                   // Define the parallel tasks function
@@ -1241,15 +1212,14 @@ class RegistrationPaymentSection extends Component {
           this.props.showUpdatePopup("Updating in progress... Please wait ...")
           console.log('Cell clicked', event);
           const response = await axios.post(
-              //'http://localhost:3001/courseregistration', 
-              'https://ecss-backend-node.azurewebsites.net/courseregistration',
-              { 
-                purpose: 'updateConfirmationStatus', 
-                id: id, 
-                newConfirmation: newValue, 
-                staff: this.props.userName 
-              }
-            );
+            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+            { 
+              purpose: 'updateConfirmationStatus', 
+              id: id, 
+              newConfirmation: newValue, 
+              staff: this.props.userName 
+            }
+          );          
           console.log(`${columnName}: ${newValue}`);
           if(paymentMethod === "SkillsFuture" && newValue === true)
           {
@@ -1258,8 +1228,7 @@ class RegistrationPaymentSection extends Component {
                 console.log("Auto Generate SkillsFuture Invoice");
                 // Define the parallel tasks function
                 const response = await axios.post(
-                  //'http://localhost:3001/courseregistration', 
-                  'https://ecss-backend-node.azurewebsites.net/courseregistration',
+                  `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, 
                   { 
                     purpose: 'updatePaymentStatus', 
                     id: id, 
@@ -1267,7 +1236,6 @@ class RegistrationPaymentSection extends Component {
                     staff: this.props.userName 
                   }
                 );
-
                 if (response.data.result === true) 
                   {
                       // Define the parallel tasks function
@@ -1292,16 +1260,15 @@ class RegistrationPaymentSection extends Component {
         {
           this.props.showUpdatePopup("Updating in progress... Please wait ...")
           console.log('Cell clicked', event);
-            const response = await axios.post(
-              //'http://localhost:3001/courseregistration', 
-              'https://ecss-backend-node.azurewebsites.net/courseregistration', 
-              { 
-                purpose: 'updatePaymentStatus', 
-                id: id, 
-                newUpdateStatus: newValue, 
-                staff: this.props.userName 
-              }
-            );
+          const response = await axios.post(
+            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+            {
+              purpose: 'updatePaymentStatus',
+              id: id,
+              newUpdateStatus: newValue,
+              staff: this.props.userName
+            }
+          );
             console.log("Response for Payment Status1:", response);
             if (response.data.result === true) 
             {
@@ -1422,15 +1389,15 @@ class RegistrationPaymentSection extends Component {
         {
           console.log("Updated Particulars:", event.colDef.field, newValue);
           const response = await axios.post(
-            //'http://localhost:3001/courseregistration', 
-            'https://ecss-backend-node.azurewebsites.net/courseregistration',
-              { 
-              purpose: 'edit', 
-              id: id, 
+            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+            {
+              purpose: 'edit',
+              id: id,
               field: event.colDef.field,
               editedValue: newValue
             }
           );
+          
         }
         this.refreshChild(); 
     } catch (error) {

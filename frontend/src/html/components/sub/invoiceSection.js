@@ -25,8 +25,7 @@ class InvoiceSection extends Component {
     // Fetch invoice data from API
     fetchInvoiceDetails = async () => {
         try {
-            //const response = await axios.post('http://localhost:3002/invoice_report/');
-            const response = await axios.post('https://ecss-backend-django.azurewebsites.net/invoice_report/');
+            const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/invoice_report/`);
             const invoice = response.data.invoice; // Assuming invoice is the main key here
             console.log("Invoice Details:", invoice);
 
@@ -83,17 +82,22 @@ class InvoiceSection extends Component {
         {
             try 
             {
-                //var response = await axios.post('http://localhost:3001/invoice', {purpose: 'findInvoiceNumber', selectedMonth: selectedMonth});
-                var response = await axios.post('https://ecss-backend-node.azurewebsites.net/invoice', {purpose: 'findInvoiceNumber', selectedMonth: selectedMonth});
+                var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/invoice`, { purpose: 'findInvoiceNumber', selectedMonth });
                 var invoiceNumber = response.data.invoiceNumber;
                 console.log(invoiceNumber);
                 if(invoiceNumber === "")
                 {
-                    //var response1 = await axios.post('http://localhost:3001/invoice', {purpose: 'getInvoiceNumber'});
-                    var response1 = await axios.post('https://ecss-backend-node.azurewebsites.net/invoice', {purpose: 'getInvoiceNumber'});
+                    var response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/invoice`, { purpose: 'getInvoiceNumber' });
                     var newInvoiceNumber = response1.data.invoiceNumber;
-                    //var response2 = await axios.post('http://localhost:3001/invoice', { purpose: 'generateInvoice', details: courses, totalPrice: totalPrice, totalPriceInWords: totalPriceInWords, invoiceNumber: newInvoiceNumber, selectedMonth: selectedMonth, userName: this.props.userName}, { responseType: 'blob' });
-                    var response2 = await axios.post('https://ecss-backend-node.azurewebsites.net/invoice', { purpose: 'generateInvoice', details: courses, totalPrice: totalPrice, totalPriceInWords: totalPriceInWords, invoiceNumber: newInvoiceNumber, selectedMonth: selectedMonth, userName: this.props.userName}, { responseType: 'blob' });
+                    var response2 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/invoice`, { 
+                        purpose: 'generateInvoice', 
+                        details: courses, 
+                        totalPrice, 
+                        totalPriceInWords, 
+                        invoiceNumber: newInvoiceNumber, 
+                        selectedMonth, 
+                        userName: this.props.userName 
+                      }, { responseType: 'blob' });
                     // Extract filename from Content-Disposition header
                     const contentDisposition = response2.headers['content-disposition'];
                     const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
@@ -111,22 +115,39 @@ class InvoiceSection extends Component {
                 }
                 else
                 {
-                    //var response1 = await axios.post('http://localhost:3001/invoice', { purpose: 'generateInvoice', details: courses, totalPrice: totalPrice, totalPriceInWords: totalPriceInWords, invoiceNumber: invoiceNumber, selectedMonth: selectedMonth, userName: this.props.userName}, { responseType: 'blob' });
-                    var response1 = await axios.post('https://ecss-backend-node.azurewebsites.net/invoice', { purpose: 'generateInvoice', details: courses, totalPrice: totalPrice, totalPriceInWords: totalPriceInWords, invoiceNumber: invoiceNumber, selectedMonth: selectedMonth, userName: this.props.userName}, { responseType: 'blob' })
-                    // Extract filename from Content-Disposition header
-                    const contentDisposition = response1.headers['content-disposition'];
-                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-                    let filename = filenameMatch && filenameMatch[1] ? filenameMatch[1].replace(/['"]/g, '') : 'unknown.pdf';
-
-                    console.log(`Filename: ${filename}`);
-
-                    // Create a Blob for the PDF
-                    const blob = new Blob([response1.data], { type: 'application/pdf' });
-                    const url = window.URL.createObjectURL(blob);
-
-                    // Open PDF in a new tab
-                    const pdfWindow = window.open();
-                    pdfWindow.location.href = url;
+                    var response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/invoice`, { 
+                        purpose: 'generateInvoice', 
+                        details: courses, 
+                        totalPrice, 
+                        totalPriceInWords, 
+                        invoiceNumber, 
+                        selectedMonth, 
+                        userName: this.props.userName 
+                      }, { responseType: 'blob' });                      
+                      
+                      // Extract filename from Content-Disposition header
+                      const contentDisposition = response1.headers['content-disposition'];
+                      const filenameMatch = contentDisposition ? contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/) : null;
+                      let filename = filenameMatch && filenameMatch[1] ? filenameMatch[1].replace(/['"]/g, '') : 'invoice.pdf';
+                      
+                      // Create a Blob for the PDF
+                      const blob = new Blob([response1.data], { type: 'application/pdf' });
+                      const url = window.URL.createObjectURL(blob);
+                      
+                      // Open PDF in a new tab
+                      const pdfWindow = window.open(url, '_blank');
+                      if (pdfWindow) {
+                        pdfWindow.onload = () => {
+                          // Optionally, set the filename in the download link for saving
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = filename;
+                          link.click(); // Trigger the download automatically
+                        };
+                      } 
+                      else {
+                        console.error('Failed to open a new tab for the PDF.');
+                      }                      
                 }
                 this.props.closePopup1();
             } 

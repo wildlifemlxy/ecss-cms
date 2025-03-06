@@ -57,11 +57,13 @@ class SideBarContent extends Component {
 
     getAccessRight = async (accountId) => {
         try {
-          const response = await axios.post('https://ecss-backend-node.azurewebsites.net/accessRights'
-                           /*'http://localhost:3001/accessRights'*/, {
-                                "purpose": "retrieveAccessRight",
-                                "accountId": accountId
-                            });
+            const response = await axios.post(
+                `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/accessRights`,
+                {
+                "purpose": "retrieveAccessRight",
+                "accountId": accountId
+                }
+            );          
             console.log(response);
 
             // Store the access rights in state

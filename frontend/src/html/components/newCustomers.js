@@ -206,25 +206,14 @@ class NewCustomersPage extends Component {
       // If valid, reset errors and proceed with submission logic
       this.setState({ nameError: '', emailError: '', passwordError: '', roleError: '' });
       var accountDetails = {"name": name, "email": email, "password": password, "role": role};
-      //axios.post('https://ecss-backend-node.azurewebsites.net/accountDetails', {"accountDetails": accountDetails, "purpose": "create"})
-      axios.post('http://localhost:3001/accountDetails', {"accountDetails": accountDetails, "purpose": "create"})
-      .then((response) => {
-        if(response.data.message === 'New account with respectively access rights created successfully')
-        {
-            this.setState({
-                isPopupOpen: true,
-                popupMessage: response.data.message,
-                popupType: "success-message",
-            });
-             // Set timeout to close the popup after 5 seconds
-            setTimeout(() => {
-                this.setState({ isPopupOpen: false, name: '', email: '', password: '', role: ''});
-            }, 5000);
+      axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/accountDetails`, { accountDetails, purpose: "create" })
+      .then(response => {
+        if (response.data.message === "New account with respectively access rights created successfully") {
+          this.setState({ isPopupOpen: true, popupMessage: response.data.message, popupType: "success-message" });
+          setTimeout(() => this.setState({ isPopupOpen: false, name: "", email: "", password: "", role: "" }), 5000);
         }
-        })
-      .catch((error) => {
-        console.error('Error submitting form:', error);
-      });
+      })
+      .catch(error => console.error("Error submitting form:", error));    
     }
   };
 

@@ -209,8 +209,7 @@ class FormPage extends Component {
     console.log('Participants Details', participantDetails);
     
     // Example of sending data to the server using Axios
-      axios.post('https://ecss-backend-node.azurewebsites.net/courseregistration', {"participantDetails": participantDetails, "purpose": "insert"})
-      //axios.post('http://localhost:3001/courseregistration', {"participantDetails": participantDetails, "purpose": "insert"})
+    axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { participantDetails, purpose: "insert" })
       .then((response) => {
         console.log('Form submitted successfully', response.data);
         if(response.data)

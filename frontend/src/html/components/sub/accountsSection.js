@@ -33,8 +33,7 @@ class AccountsSection extends Component {
   {
     try {
       this.setState({ loading: true });
-      var response = await axios.post(`https://ecss-backend-node.azurewebsites.net/accountDetails`, { "purpose": "retrieve"});
-      //var response = await axios.post(`http://localhost:3001/accountDetails`, { "purpose": "retrieve"});
+      var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/accountDetails`, { purpose: "retrieve" });
       console.log(response.data.result);
       var roles = this.getAllRoles(response.data.result);
 
@@ -63,8 +62,7 @@ class AccountsSection extends Component {
   {
     try {
       this.setState({ loading: true });
-      //var response = await axios.post(`https://ecss-backend-node.azurewebsites.net/accessRights`, { "purpose": "retrieve"});
-      var response = await axios.post(`http://localhost:3001/accessRights`, { "purpose": "retrieve"});
+      var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/accessRights`, { purpose: "retrieve" });
       console.log("Fetch Access Rights:",response.data.result);
       var roles = this.getAllRolesAccessRight(response.data.result);
 
