@@ -1,10 +1,19 @@
 /* General Styles */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevent horizontal overflow */
+}
+
 .formwholepage {
     font-family: 'Arial', sans-serif;
-    background-color: rgba(121, 62, 84, 0.4); 
-    margin: 0;
+    background-color: rgba(121, 62, 84, 0.4);
     padding: 20px;
     height: auto; /* Allow height to adapt to content */
+    min-height: 100%; /* Ensure it takes the full height of the screen */
+    box-sizing: border-box; /* Includes padding in height calculation */
+    overflow: auto; /* Allow scrolling if content overflows */
 }
 
 /* Header Styles */
@@ -20,36 +29,40 @@ h2 {
 }
 
 /* Form Container */
-.form-container { 
+.form-container {
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     padding: 20px;
     max-width: 95%; /* Adjust max width for smaller screens */
-    margin: 0 auto; /* Center align with no top margin */
-    background-color: rgba(238, 74, 74, 0.37); 
+    margin: 0 auto;
+    background-color: rgba(238, 74, 74, 0.37);
     display: flex;
-    flex-direction: column; /* Ensure elements stack vertically */
+    flex-direction: column;
+    min-height: 200px; /* Set a minimum height for the form container */
+    box-sizing: border-box;
 }
 
+/* Button Container */
 .button-container {
     display: flex;
-    flex-direction: row; /* Keep buttons in a row */
-    justify-content: space-between; /* Space them evenly */
-    margin: 20px 0; /* Vertical spacing */
-    max-width: 100%; /* Ensure it doesn’t exceed the container width */
-    padding: 10px; /* Padding for better touch targets */
-    background-color: transparent; /* Ensure it doesn’t blend with the background */
-    position: relative; /* Ensure it stays within the parent container */
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 20px;
+    max-width: 100%;
+    padding: 10px;
+    background-color: transparent;
+    position: relative;
+    box-sizing: border-box; /* Ensure proper width and no overlap */
 }
 
 /* Buttons within the container */
 .button-container button {
-    flex: 0 1 auto; /* Allow buttons to have their natural width without stretching */
-    margin: 0 5px; /* Space between buttons */
-    font-size: 1rem; /* Adjust font size */
-    padding: 10px; /* Ensure adequate touch area */
-    border-radius: 5px; /* Rounded corners */
-    background-color: #007bff; /* Background color */
+    flex: 0 1 auto;
+    margin: 0 5px;
+    font-size: 1rem;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #007bff;
     width: fit-content;
 }
 
@@ -66,62 +79,165 @@ h2 {
     margin-top: 8px;
 }
 
+/* Media Queries for Different Screen Sizes */
 
-/* Media Query for Devices up to 480px */
+/* Small Screens (phones) */
 @media (max-width: 480px) {
     h1 {
-        font-size: 1.5rem; /* Smaller header size for very small screens */
+        font-size: 1.5rem; /* Smaller header size for small phones */
     }
 
     .form-container {
         padding: 10px; /* Further reduce padding */
-        max-width: 85%;
+        max-width: 90%; /* Adjust container width for small screens */
     }
-    .button-container {
-        gap: 8px; /* Reduce gap */
 
-    }/* Ensure the button container is visible and responsive */
     .button-container {
         flex-direction: column; /* Stack buttons vertically */
         align-items: center; /* Center align buttons */
         gap: 10px; /* Add spacing between buttons */
+        margin-top: 20px;
     }
 
     .button-container button {
         font-size: 0.8rem; /* Smaller font size for compact devices */
-        padding: 6px; /* Compact padding */
-    }
-    
-    .button-container button {
-        font-size: 1em; /* Smaller button font size */
-        padding: 8px;
+        padding: 8px; /* Compact padding */
+        width: 100%; /* Make buttons full width on small screens */
     }
 
     .error-message, .error-message3 {
-        font-size: 0.9rem; /* Smallest error font size */
+        font-size: 1rem; /* Adjust error message size for small screens */
+    }
+
+    .formwholepage {
+        padding-bottom: 50px; /* Add padding to the bottom for better scrolling */
+    }
+
+    .form-container {
+        margin-bottom: 30px; /* Ensure space at the bottom for smaller screens */
+    }
+}
+
+/* Medium Screens (small phones & larger phones, up to 600px) */
+@media (max-width: 600px) {
+    h1 {
+        font-size: 1.6rem; /* Adjust for slightly larger small phones */
+    }
+
+    .form-container {
+        padding: 12px; /* Slightly larger padding */
+        max-width: 92%; /* Slightly more width on medium small screens */
     }
 
     .button-container {
-        display: flex;
-        flex-direction: column; /* Keep buttons in a row */
-        justify-content: space-between; /* Space them evenly */
-        margin: 20px 0; /* Vertical spacing */
-        max-width: 100%; /* Ensure it doesn’t exceed the container width */
-        padding: 10px; /* Padding for better touch targets */
-        background-color: transparent; /* Ensure it doesn’t blend with the background */
-        position: relative; /* Ensure it stays within the parent container */
+        flex-direction: column; /* Stack buttons vertically */
+        align-items: center;
+        gap: 12px;
     }
-    
 
-    /* Buttons within the container */
     .button-container button {
-        flex: 0 1 auto; /* Allow buttons to have their natural width without stretching */
-        margin: 0 5px; /* Space between buttons */
-        font-size: 1rem; /* Adjust font size */
-        padding: 10px; /* Ensure adequate touch area */
-        border-radius: 5px; /* Rounded corners */
-        background-color: #007bff; /* Background color */
+        font-size: 0.9rem;
+        padding: 10px;
         width: 100%;
     }
 
+    .formwholepage {
+        padding-bottom: 60px; /* More padding for medium screens */
+    }
+
+    .form-container {
+        margin-bottom: 35px;
+    }
+}
+
+/* Large Phones (up to 768px) */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.75rem; /* Larger font for slightly bigger phones */
+    }
+
+    .form-container {
+        padding: 15px; /* Adjust padding */
+        max-width: 85%; /* Adjust container width */
+    }
+
+    .button-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .button-container button {
+        font-size: 1rem;
+        padding: 10px;
+        width: 100%;
+    }
+
+    .error-message, .error-message3 {
+        font-size: 1rem; /* Adjust error size */
+    }
+
+    .formwholepage {
+        padding-bottom: 70px; /* Add padding for larger phones */
+    }
+
+    .form-container {
+        margin-bottom: 40px;
+    }
+}
+
+/* Tablets and Larger Phones (up to 1024px) */
+@media (max-width: 1024px) {
+    h1 {
+        font-size: 1.8rem; /* Adjust header for tablets */
+    }
+
+    .form-container {
+        padding: 18px; /* Adjust padding */
+        max-width: 80%; /* Container takes less width */
+    }
+
+    .button-container {
+        flex-direction: row; /* Keep buttons in a row for tablets */
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .button-container button {
+        font-size: 1rem;
+        padding: 12px;
+        width: auto;
+    }
+
+    .formwholepage {
+        padding-bottom: 80px; /* Add space for tablets */
+    }
+}
+
+/* Larger Screens (Laptops, Desktops) */
+@media (min-width: 1025px) {
+    h1 {
+        font-size: 2rem; /* Larger header size for desktop */
+    }
+
+    .form-container {
+        padding: 20px;
+        max-width: 70%;
+    }
+
+    .button-container {
+        flex-direction: row; /* Keep buttons in a row */
+        justify-content: center;
+        gap: 20px;
+    }
+
+    .button-container button {
+        font-size: 1.1rem; /* Slightly larger font size for desktops */
+        padding: 12px;
+        width: auto;
+    }
+
+    .formwholepage {
+        padding-bottom: 100px; /* Extra space at the bottom on larger screens */
+    }
 }
