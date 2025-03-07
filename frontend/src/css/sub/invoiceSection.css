@@ -1,52 +1,114 @@
-.invoice-section {
-    display: block; /* or use display: flex; for more control over layout */
-    margin: 20px 0; /* Optional margin */
-    max-height: fit-content;  /* Set a maximum height to trigger vertical scrolling */
-    max-width: 90%;  /* Ensure it doesn’t overflow horizontally */
-    overflow: auto;   /* Enable both vertical and horizontal scrolling */
-    margin-left: 3%;
+/* Invoice Section Container */
+#invoice-section-container {
+  padding: 20px;
+  margin: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-#invoiceSelectBox {
-    display: flex;
-    align-items: center; /* Align the label and select box vertically in the same row */
-    gap: 10px; /* Space between the label and the select box */
+/* Title */
+#monthly-report-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+  letter-spacing: 1px;
 }
 
-#monthDropdown {
-    width: 20vw; /* Adjust the width to avoid it being too wide */
+/* Dropdown Selector */
+#month-year-selector {
+  margin-top: 20px;
+  text-align: center;
 }
 
-  
-::-webkit-scrollbar {
-    width: 8px; /* Hides vertical scrollbar */
-    height: 8px; /* Keeps horizontal scrollbar */
-  }
-  
-  /* Customize horizontal scrollbar */
-  ::-webkit-scrollbar-horizontal {
-    height: 8px; /* Set height for horizontal scrollbar */
-  }
-  
-  /* Optional: Customize the appearance of the horizontal scrollbar */
-  ::-webkit-scrollbar-thumb {
-    background-color: #888; /* Color of the scrollbar thumb */
-    border-radius: 10px; /* Rounded corners for the scrollbar thumb */
-  }
-  
-  /* Optional: Customize the scrollbar track */
-  ::-webkit-scrollbar-track {
-    background-color: #f1f1f1; /* Color of the scrollbar track */
+#month-year-dropdown {
+  padding: 10px 15px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 250px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+
+#month-year-dropdown:focus {
+  border-color: #0066cc;
+  outline: none;
+}
+
+/* Table Container */
+#invoice-table-container {
+  margin-top: 30px;
+  width: 90vw; /* Make the table container take up full width */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ag-theme-alpine {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: visible; /* Allow overflow to make sticky header work */
+  width: 100%; /* Make the table take up full width */
+  margin: 0 auto; /* Center the table */
+}
+
+/* Make sure the ag-grid container allows both horizontal and vertical scrolling */
+#ag-grid-container {
+  width: 100%;
+  height: 400px;  /* Adjust height as needed */
+  overflow: auto;  /* Allow scrolling both horizontally and vertically */
+}
+
+.report-container {
+  border-radius: 8px; /* Rounded corners for the container */
+  margin-left: auto;
+  margin-right: auto;
+  width: 90vw;
+}
+
+/* Export Button */
+#export-button-container {
+  margin-top: 20px;
+  text-align: center;
+}
+
+#export-to-excel-button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: inline-block;
+  width: auto;
+  font-weight: bolder;
+}
+
+#export-to-excel-button:hover {
+  background-color: #0056b3;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  #invoice-section-container {
+    padding: 10px;
+    margin: 10px;
   }
 
-  
-  .table-wrapper 
-  {
-    width: 80vw;
-    max-width: 120rem;
-    height: 35vh;
-    /* height: 50vh; */
-    overflow: auto;
-    margin: 0 auto;
-    margin-top: 2%;
+  #monthly-report-title {
+    font-size: 1.6rem;
   }
+
+  #month-year-dropdown {
+    width: 200px;
+  }
+
+  #export-to-excel-button {
+    padding: 8px 16px;
+  }
+}
