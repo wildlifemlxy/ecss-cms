@@ -57,7 +57,7 @@ class AccountController
                     else if(accountDetails.role === "Site in-charge")
                     {
                             var accountID = connectedDatabase.accountId;
-                            var accessRightDetails = {"Account Details":{"Account ID": accountID, "Name": accountDetails.name, "Role": accountDetails.role}, "Account":{"Create Account": false,"Account Table": false, "Access Rights Table": false}, "Courses":{"Upload Courses": false, "NSA Courses": true, "ILP Courses": true, "Update Courses": false, "Delete Courses": false}, "Registration And Payment": {"Registration And Payment Table": true, "Invoice Table": true}, "QR Code": {"Create QR Code": true, "QR Code Table": true, "Update QR Code": true, "Delete QR Code": true}};
+                            var accessRightDetails = {"Account Details":{"Account ID": accountID, "Name": accountDetails.name, "Role": accountDetails.role}, "Account":{"Create Account": false,"Account Table": false, "Access Rights Table": false}, "Courses":{"Upload Courses": false, "NSA Courses": true, "ILP Courses": true, "Update Courses": false, "Delete Courses": false}, "Registration And Payment": {"Registration And Payment Table": true, "Invoice Table": false}, "QR Code": {"Create QR Code": true, "QR Code Table": true, "Update QR Code": false, "Delete QR Code": false}};
                             var collectionName = "Access Rights";
                             var connectedDatabase = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, accessRightDetails);   
                             return {
