@@ -286,14 +286,9 @@ class JSONEncoder(json.JSONEncoder):
 def format_price(price):
     return f"${price:,.2f}"
 
-from collections import defaultdict
-from datetime import datetime
-from pymongo import MongoClient
-from django.shortcuts import render
-
 @csrf_exempt
 def generate_report(request):
-    """Fetches and returns data from the MongoDB collection for the report."""
+    """Fetches and returns data from the MongoDB collection for the report, filtering only NSA course types."""
 
     # MongoDB connection
     client = MongoClient("mongodb+srv://moseslee:Mlxy6695@ecss-course.hejib.mongodb.net/?retryWrites=true&w=majority&appName=ECSS-Course")
@@ -304,28 +299,24 @@ def generate_report(request):
         return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
 
     try:
-        print("Gathering Data For Monthly Report")
+        print("Gathering Data For Monthly Report (NSA Courses Only)")
 
-        # Fetch all data from the collection
-        all_data = list(collection.find())  # This will retrieve all documents in the collection
+        # Fetch only documents where course.courseType is "NSA"
+        filtered_data = list(collection.find({"course.courseType": "NSA"}))
 
-        # Convert the ObjectId to string so it can be serialized to JSON
-        for doc in all_data:
-            doc['_id'] = str(doc['_id'])  # Convert the _id to a string
+        # Convert ObjectId to string for JSON serialization
+        for doc in filtered_data:
+            doc['_id'] = str(doc['_id'])  # Convert ObjectId to a string
 
-        # Optionally, you can remove other fields like '_id' if not needed
-        # all_data = [{key: doc[key] for key in doc if key != '_id'} for doc in all_data]
+        # Log the filtered data for debugging
+        print(filtered_data)
 
-        # Log the data for debugging
-        print(all_data)  # This will print the raw data
-
-        # Return the fetched data as a JSON response
-        return JsonResponse({'success': True, 'data': all_data})
+        # Return the filtered data
+        return JsonResponse({'success': True, 'data': filtered_data})
 
     except Exception as e:
-        print("Error:", e)  # Log the error to the console
+        print("Error:", e)  # Log the error
         return JsonResponse({'success': False, 'error': str(e)})
-
 
 @csrf_exempt
 def sales_report_view_react(request):
@@ -396,6 +387,7 @@ def sales_report_view_react(request):
     except Exception as e:
         # Handle errors and return a JSON error response
         return JsonResponse({"error": str(e)}, status=500)
+    
 # Function to generate invoices
 @csrf_exempt
 def generate_invoice_view_react(request):
