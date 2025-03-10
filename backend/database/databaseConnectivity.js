@@ -596,7 +596,7 @@ class DatabaseConnectivity {
             } 
             else if (centreLocation === "Pasir Ris West Wellness Centre") {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 12;
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 13;
             }
         } 
         // Logic for 2026 and beyond
