@@ -929,7 +929,7 @@ class RegistrationPaymentSection extends Component {
       {
         headerName: "Course Location",
         field: "location",
-        width: 350,
+        width: 300,
         cellRenderer: (params) => {
           // Hide value if the role is "Site in-charge"
           if (role === "Site in-charge") {
