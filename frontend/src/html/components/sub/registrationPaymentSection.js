@@ -927,6 +927,17 @@ class RegistrationPaymentSection extends Component {
         width: 350,
       },
       {
+        headerName: "Course Location",
+        field: "location",
+        width: 350,
+        cellRenderer: (params) => {
+          // Check if the role is NOT "Site in-charge" or "Finance"
+          if (["Site in-charge"].includes(role)) {
+            return null; // If the role is "Site in-charge" or "Finance", don't show the button
+          }
+        }
+      },
+      {
         headerName: "Payment Method",
         field: "paymentMethod",
         cellRenderer: (params) => {
@@ -1682,9 +1693,6 @@ class RegistrationPaymentSection extends Component {
                   <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Course Details</h3></p>
                   <p style={{textAlign:"left"}}>
                     <strong>Type: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseType}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Location: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseLocation}
                   </p>
                   <p style={{textAlign:"left"}}>
                     <strong>Price: </strong>{rowData[this.state.expandedRowIndex].courseInfo.coursePrice}
