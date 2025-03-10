@@ -931,8 +931,6 @@ class RegistrationPaymentSection extends Component {
         field: "location",
         width: 350,
         cellRenderer: (params) => {
-          const role = params.context.role; // Ensure role is passed in the grid context
-      
           // Hide value if the role is "Site in-charge"
           if (role === "Site in-charge") {
             return null;
