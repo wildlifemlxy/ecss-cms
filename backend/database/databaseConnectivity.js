@@ -899,7 +899,7 @@ class DatabaseConnectivity {
             const result = await table.updateOne(filter, update);
     
             if (result.modifiedCount === 1) {
-                console.log("Successfully updated the access righta.");
+                console.log("Successfully updated the access right.");
                 return { success: true, message: "Document updated successfully." };
             } else {
                 console.log("No document found with that ID or no changes made.");
