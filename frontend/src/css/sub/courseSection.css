@@ -18,7 +18,7 @@
 
 /* Table wrapper wit responsive adjstments */
 .course-table-wrapper {
-  width: 100%; /* Full width for smaller screens */
+  width: 80%; /* Full width for smaller screens */
   max-width: 1430px;
   overflow: auto;
   margin: 0 auto; /* Center the table */
