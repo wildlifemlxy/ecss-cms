@@ -343,11 +343,11 @@ class CreateAccountsSection extends Component {
                                         <input 
                                             type="radio" 
                                             name="site" 
-                                            value="Tampines North Community Club" 
-                                            checked={this.state.site === "Tampines North Community Club"}
+                                            value="Tampines North Community Centre" 
+                                            checked={this.state.site === "Tampines North Community Centre"}
                                             onChange={this.handleChange} 
                                         />
-                                        Tampines North Community Club
+                                        Tampines North Community Centre
                                     </label>
                                     <label>
                                         <input 

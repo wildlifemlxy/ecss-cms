@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import '../../css/formPage.css';
-import FormDetails from './sub/formDetails'; // Import the FormDetails component
-import PersonalInfo from './sub/personalInfo'; // Import PersonalInfo component
-import CourseDetails from './sub/courseDetails'; // Import CourseDetails component
-import AgreementDetailsSection from './sub/agreementDetails';
-import SubmitDetailsSection from './sub/submitDetails';
+import FormDetails from './sub/registrationForm/formDetails';
+import PersonalInfo from './sub/registrationForm/personalInfo'; // Import PersonalInfo component
+import CourseDetails from './sub/registrationForm/courseDetails'; // Import CourseDetails component
+import AgreementDetailsSection from './sub/registrationForm/agreementDetails';
+import SubmitDetailsSection from './sub/registrationForm/submitDetails';
 import axios from 'axios';
 
 class FormPage extends Component {

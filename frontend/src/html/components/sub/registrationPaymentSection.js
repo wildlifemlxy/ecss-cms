@@ -1593,28 +1593,27 @@ class RegistrationPaymentSection extends Component {
 
     render()
     {
+      var {rowData} = this.state
       ModuleRegistry.registerModules([AllCommunityModule]);
-      var paginatedDetails =  this.state.registerationDetails;
-      console.log("Rows Data:", this.state.registerationDetails);
       return (
         <>
           <div className="registration-payment-container" >
             <div className="registration-payment-heading">
               <h1>{this.props.language === 'zh' ? '报名与支付' : 'Registration And Payment'}</h1>
               <div className="button-row">
-                <button className="save-btn" onClick={() => this.saveData(this.state.rowData)}>
+                <button className="save-btn" onClick={() => this.saveData(rowData)}>
                   Save Data
                 </button>
-                <button className="export-btn" onClick={() => this.exportToLOP(this.state.rowData)}>
+                <button className="export-btn" onClick={() => this.exportToLOP(rowData)}>
                   Export To LOP
                 </button>
               </div>
               <div className="grid-container">
               <AgGridReact
                   columnDefs={this.state.columnDefs}
-                  rowData={this.state.rowData}
+                  rowData={rowData}
                   domLayout="normal"
-                  paginationPageSize={this.state.rowData.length}
+                  paginationPageSize={rowData.length}
                   sortable={true}
                   statusBar={false}
                   pagination={true}
@@ -1652,59 +1651,59 @@ class RegistrationPaymentSection extends Component {
                   <p  style={{textAlign:"left"}}><h2 style={{color:'#000000'}}>More Information</h2></p>
                   <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Participant Details</h3></p>
                   <p style={{textAlign:"left"}}>
-                    <strong>NRIC: </strong>{this.state.rowData[this.state.expandedRowIndex].participantInfo.nric}
+                    <strong>NRIC: </strong>{rowData[this.state.expandedRowIndex].participantInfo.nric}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Residential Status: </strong>{this.state.rowData[this.state.expandedRowIndex].participantInfo.residentialStatus}
+                    <strong>Residential Status: </strong>{rowData[this.state.expandedRowIndex].participantInfo.residentialStatus}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Race: </strong>{this.state.rowData[this.state.expandedRowIndex].participantInfo.race}
+                    <strong>Race: </strong>{rowData[this.state.expandedRowIndex].participantInfo.race}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Gender: </strong>{this.state.rowData[this.state.expandedRowIndex].participantInfo.gender}
+                    <strong>Gender: </strong>{rowData[this.state.expandedRowIndex].participantInfo.gender}
                   </p>                  <p style={{textAlign:"left"}}>
-                    <strong>Date of Birth: </strong>{this.state.rowData[this.state.expandedRowIndex].participantInfo.dateOfBirth}
+                    <strong>Date of Birth: </strong>{rowData[this.state.expandedRowIndex].participantInfo.dateOfBirth}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Contact Number : </strong>{this.state.rowData[this.state.expandedRowIndex].participantInfo.contactNumber}
+                    <strong>Contact Number : </strong>{rowData[this.state.expandedRowIndex].participantInfo.contactNumber}
                   </p> 
                   <p style={{textAlign:"left"}}>
-                    <strong>Email: </strong>{this.state.rowData[this.state.expandedRowIndex].participantInfo.email}
+                    <strong>Email: </strong>{rowData[this.state.expandedRowIndex].participantInfo.email}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Postal Code: </strong>{this.state.rowData[this.state.expandedRowIndex].participantInfo.postalCode}
+                    <strong>Postal Code: </strong>{rowData[this.state.expandedRowIndex].participantInfo.postalCode}
                   </p>                  
                   <p style={{textAlign:"left"}}>
-                    <strong>Education Level: </strong>{this.state.rowData[this.state.expandedRowIndex].participantInfo.educationLevel}
+                    <strong>Education Level: </strong>{rowData[this.state.expandedRowIndex].participantInfo.educationLevel}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Work Status: </strong>{this.state.rowData[this.state.expandedRowIndex].participantInfo.workStatus}
+                    <strong>Work Status: </strong>{rowData[this.state.expandedRowIndex].participantInfo.workStatus}
                   </p>
                   <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Course Details</h3></p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Type: </strong>{ }
+                    <strong>Type: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseType}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Location: </strong>{this.state.rowData[this.state.expandedRowIndex].courseInfo.courseLocation}
+                    <strong>Location: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseLocation}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Price: </strong>{this.state.rowData[this.state.expandedRowIndex].courseInfo.coursePrice}
+                    <strong>Price: </strong>{rowData[this.state.expandedRowIndex].courseInfo.coursePrice}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Duration: </strong>{this.state.rowData[this.state.expandedRowIndex].courseInfo.courseDuration}
+                    <strong>Duration: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseDuration}
                   </p>
                   <p style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Official Use</h3></p>
                   <p style={{textAlign:"left"}}> 
-                    <strong>Staff Name: </strong>{this.state.rowData[this.state.expandedRowIndex].officialInfo.name}
+                    <strong>Staff Name: </strong>{rowData[this.state.expandedRowIndex].officialInfo.name}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Received Date: </strong>{this.state.rowData[this.state.expandedRowIndex].officialInfo.date}
+                    <strong>Received Date: </strong>{rowData[this.state.expandedRowIndex].officialInfo.date}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Received Time: </strong>{this.state.rowData[this.state.expandedRowIndex].officialInfo.time}
+                    <strong>Received Time: </strong>{rowData[this.state.expandedRowIndex].officialInfo.time}
                   </p>
                   <p style={{textAlign:"left"}}>
-                    <strong>Registration Date: </strong>{this.state.rowData[this.state.expandedRowIndex].registrationDate}
+                    <strong>Registration Date: </strong>{rowData[this.state.expandedRowIndex].registrationDate}
                   </p>
                 </div>
               )}

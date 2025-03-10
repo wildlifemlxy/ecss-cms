@@ -488,37 +488,39 @@
                   <i className="fas fa-angle-down dropdown-icon"></i>
                 </div>
               </div>
-              <div className="form-group">
-                <label htmlFor="courseType">{this.props.language === 'zh' ? '' : 'Type'}</label>
-                <div
-                  className={`dropdown-container ${showTypeDropdown ? 'open' : ''}`}
-                  ref={this.typeDropdownRef}
-                >
-                  <input
-                    type="text"
-                    id="courseType"
-                    name="courseType"
-                    value={courseType}
-                    onChange={this.handleChange}
-                    onClick={() => this.handleDropdownToggle('showTypeDropdown')}
-                    placeholder={this.props.language === 'zh' ? '' : 'Filter by type'}
-                    autoComplete="off"
-                  />
-                  {showTypeDropdown && (
-                    <ul className="dropdown-list">
-                      {filteredTypes.map((type, index) => (
-                        <li
-                          key={index}
-                          onClick={() => this.handleOptionSelect(type, 'showTypeDropdown')}
-                        >
-                          {type}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <i className="fas fa-angle-down dropdown-icon"></i>
+              {filteredTypes.length > 1 && (
+                <div className="form-group">
+                  <label htmlFor="courseType">{this.props.language === 'zh' ? '' : 'Type'}</label>
+                  <div
+                    className={`dropdown-container ${showTypeDropdown ? 'open' : ''}`}
+                    ref={this.typeDropdownRef}
+                  >
+                    <input
+                      type="text"
+                      id="courseType"
+                      name="courseType"
+                      value={courseType}
+                      onChange={this.handleChange}
+                      onClick={() => this.handleDropdownToggle('showTypeDropdown')}
+                      placeholder={this.props.language === 'zh' ? '' : 'Filter by type'}
+                      autoComplete="off"
+                    />
+                    {showTypeDropdown && (
+                      <ul className="dropdown-list">
+                        {filteredTypes.map((type, index) => (
+                          <li
+                            key={index}
+                            onClick={() => this.handleOptionSelect(type, 'showTypeDropdown')}
+                          >
+                            {type}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <i className="fas fa-angle-down dropdown-icon"></i>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="form-group">
                 <label htmlFor="course">{this.props.language === 'zh' ? '': 'Course'}</label>
                 <div
