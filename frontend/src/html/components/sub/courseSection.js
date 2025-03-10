@@ -241,6 +241,7 @@ class CoursesSection extends Component {
     var year = parseInt(startDates[2]);
     
     var endDate = array.flatMap(item => item.replace(/\<strong>|\<\/strong>|\n|<b>|<\/b>/g, "")).find(item => item.toLowerCase().includes("end date")).split("<br />").pop().trim();
+    console.log("Course End Date:", startDate, endDate);
     var endDates = endDate.split(" ");
     var day1 = parseInt(endDates[0]);
     var month1 = this.changeMonthToNumber(endDates[1]);
@@ -276,7 +277,7 @@ class CoursesSection extends Component {
     endDateTime.setMinutes(endMinutes);
     endDateTime.setSeconds(0);
   
-    console.log("End Date Time:", endDateTime);
+    console.log("End Date Time:", endDate, endDateTime);
   
     console.log("Start Date:", startDate, year, month, day, startTime, startHours);
   
@@ -302,7 +303,7 @@ class CoursesSection extends Component {
   
     console.log("Status:", status);
     startDate = this.shorternMonth(startDate);
-    endDate = this.shorternMonth(startDate);
+    endDate = this.shorternMonth(endDate);
   
     return JSON.stringify({
       noOfLesson,
