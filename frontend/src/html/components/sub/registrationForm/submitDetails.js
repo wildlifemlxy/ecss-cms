@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../../css/sub/submitDetails.css';
+import '../../../../css/sub/registrationForm/submitDetails.css';
 
 class SubmitDetailsSection extends React.Component {
   render() {

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { DatePicker } from "@heroui/date-picker";
-import '../../../css/sub/personalInfo.css'; // Custom styles
+import '../../../../css/sub/registrationForm/personalInfo.css'; // Custom styles
 import { DayPicker, dayPickerContext } from 'react-day-picker';
 import 'react-day-picker/style.css'; // Import default styles
 

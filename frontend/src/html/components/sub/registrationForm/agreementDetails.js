@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import '../../../css/sub/agreementDetails.css';
+import '../../../../css/sub/registrationForm/agreementDetails.css';
 
 class AgreementDetailsSection extends Component {
   constructor(props) {
