@@ -429,12 +429,12 @@ class invoiceGenerator {
         const invoiceText = 'Invoice Total';
         doc.font(fontPathBold).text(invoiceText, columnPositions.fullCourse + 10, currentY + 10); 
         
-        const totalPrice = array.reduce((acc, item) => {
+        const payablePrice = array.reduce((acc, item) => {
             const coursePrice = parseFloat(item.course.coursePrice.replace('$', '').trim());
-            return acc + coursePrice * 5;
+            return acc + coursePrice;
         }, 0);
-        
-        doc.text(`$${coursePrice.toFixed(2)}`, columnPositions.subsidised + 10, currentY + 10);
+
+        doc.text(`$${payablePrice.toFixed(2)}`, columnPositions.subsidised + 10, currentY + 10);
 
         // Draw borders only for the 4th, 5th, and 6th columns
         ['endDate', 'subsidised'].forEach((column) => {
