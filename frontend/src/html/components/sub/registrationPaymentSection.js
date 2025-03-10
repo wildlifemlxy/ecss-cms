@@ -131,8 +131,9 @@ class RegistrationPaymentSection extends Component {
       const data = await this.fetchCourseRegistrations(language);
       console.log('All Courses Registration:  ', data);
       var locations = await this.getAllLocations(data);
+      var types = await this.getAllTypes(data);
       var names = await this.getAllNames(data);
-      this.props.passDataToParent(locations, names);
+      this.props.passDataToParent(locations, types, names);
 
       const statuses = data.map(item => item.status); // Extract statuses
       console.log('Statuses:', statuses); // Log the array of statuses
@@ -211,10 +212,20 @@ class RegistrationPaymentSection extends Component {
           return data.course.courseLocation;
         }))];
       }
+
+      
+      // Method to get all locations
+      getAllTypes = async (datas) => {
+        return [...new Set(datas.map(data => {
+          //console.log(data.course)
+          return data.course.courseType;
+        }))];
+      }
   
       // Method to get all languages
       getAllNames = async (datas) => {
-        return [...new Set(datas.map(data => {
+         return [...new Set(datas.map(data => {
+          console.log("Course Name:", data.course.courseEngName); 
           return data.course.courseEngName;
         }))];
       }
@@ -1452,31 +1463,35 @@ class RegistrationPaymentSection extends Component {
 
  // componentDidUpdate is called after the component has updated (re-rendered)
   componentDidUpdate(prevProps, prevState) {
-    const { selectedLocation, selectedCourseName, searchQuery} = this.props;
+    const { selectedLocation, selectedCourseType, searchQuery, selectedCourseName} = this.props;
+    console.log("This Props:", selectedCourseName);
     // Check if the relevant props have changed
     if (
       selectedLocation !== prevProps.selectedLocation ||
+      selectedCourseType !== prevProps.selectedCourseType ||
       selectedCourseName !== prevProps.selectedCourseName ||
       searchQuery !== prevProps.searchQuery
     ) {
+      //console.log("ComponentDidUpdate");
       // Call the filter method when relevant props change
       this.filterRegistrationDetails();
     }
   }
 
   filterRegistrationDetails() {
-    const { section, selectedLocation, selectedCourseName, searchQuery } = this.props;
+    const { section, selectedLocation, selectedCourseType, selectedCourseName, searchQuery } = this.props;
     console.log("Section:", section);
 
     if (section === "registration") {
       const { originalData } = this.state;
 
       console.log("Original Data:", originalData);
-      console.log("Filters Applied:", { selectedLocation, selectedCourseName, searchQuery });
+      console.log("Filters Applied:", { selectedLocation, selectedCourseType, searchQuery, selectedCourseName });
 
       if (
         (selectedLocation === "All Locations" || !selectedLocation) &&
-        (selectedCourseName === "All Courses" || !selectedCourseName) &&
+        (selectedCourseType === "All Courses Types" || !selectedCourseType) &&
+        (selectedCourseName === "All Courses Name" || !selectedCourseName) &&
         (!searchQuery)
       ) {
         const rowData = originalData.map((item, index) => ({
@@ -1511,7 +1526,8 @@ class RegistrationPaymentSection extends Component {
       // Define filter conditions
       const filters = {
         location: selectedLocation !== "All Locations" ? selectedLocation : null,
-        courseName: selectedCourseName !== "All Courses" ? selectedCourseName : null,
+        courseType: selectedCourseType !== "All Courses Types" ? selectedCourseType : null,
+        courseName: selectedCourseName !== "All Courses Name" ? selectedCourseName : null,
         searchQuery: normalizedSearchQuery || null,
       };
 
@@ -1524,10 +1540,15 @@ class RegistrationPaymentSection extends Component {
       filteredDetails = filteredDetails.filter(data => data.course?.courseLocation === filters.location);
     }
 
-    // Apply course name filter
+    if (filters.courseType) {
+      filteredDetails = filteredDetails.filter(data => data.course?.courseType === filters.courseType);
+    }
+
     if (filters.courseName) {
       filteredDetails = filteredDetails.filter(data => data.course?.courseEngName === filters.courseName);
     }
+
+
 
     // Apply search query filter
     if (filters.searchQuery) {
@@ -1535,6 +1556,7 @@ class RegistrationPaymentSection extends Component {
         return [
           (data.participant?.name || "").toLowerCase(),
           (data.course?.courseLocation || "").toLowerCase(),
+          (data.course?.courseType || "").toLowerCase(),
           (data.course?.courseEngName || "").toLowerCase(),
         ].some(field => field.includes(filters.searchQuery));
       });

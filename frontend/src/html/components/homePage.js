@@ -33,9 +33,11 @@
         locations: [],
         languages: [],
         types: [],
+        names: [],
         selectedCourseLanguage: '',
         selectedCourseLocation: '',
         selectedCourseType: '',
+        selectedCourseName: '',
         courseSearchQuery: '',
         selectedRegPaymentLanguage: '',
         selectedRegPaymentLocation: '',
@@ -82,7 +84,7 @@
     }
 
     // Function to handle data passed from the child
-    handleDataFromChild = async (filter1, filter2) =>
+    handleDataFromChild = async (filter1, filter2, filter3) =>
     {
       var {section} = this.state;
       console.log("Current Sections:", section);  
@@ -100,9 +102,12 @@
      {
       const filterLocations = new Set(filter1);
       const filterType = new Set(filter2);
+      const filterCourse = new Set(filter3);
+      console.log("Filter Course:", filterCourse);
       this.setState({
         locations: Array.from(filterLocations),
-        types: Array.from(filterType)
+        types: Array.from(filterType),
+        names: Array.from(filterCourse)
       });
      }
      else if(section === "accounts")
@@ -140,10 +145,10 @@
       {
         if(dropdown === "showAccountTypeDropdown")
         {
-              this.setState({
-                selectedAccountType: updateState.role
-              });
-          }
+          this.setState({
+            selectedAccountType: updateState.role
+          });
+        }
       }
     }
 
@@ -160,6 +165,13 @@
       {
         this.setState({
           selectedCourseType: updateState.courseType
+        });
+      }
+      else if(updateState.course)
+      {
+        console.log("Hello");
+        this.setState({
+          selectedCourseName: updateState.course
         });
       }
     }
@@ -768,7 +780,7 @@
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const { item,isDropdownOpen, isReceiptVisible, invoiceVisibility, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount} = this.state;
+      const { item,isDropdownOpen, isReceiptVisible, invoiceVisibility, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName} = this.state;
 
       return (
         <>
@@ -913,6 +925,7 @@
                       <Search
                         locations={locations}
                         types={types}
+                        courses={names}
                         resetSearch={resetSearch}
                         section={section}
                         passSelectedValueToParent={this.handleRegPaymentSelectFromChild}
@@ -926,7 +939,8 @@
                         section={section}
                         passDataToParent={this.handleDataFromChild}
                         selectedLocation={selectedLocation}
-                        selectedCourseName={selectedCourseType}
+                        selectedCourseType={selectedCourseType}
+                        selectedCourseName={selectedCourseName}
                         searchQuery={searchQuery}
                         resetSearch={resetSearch}
                         getTotalNumberofDetails={this.getTotalNumberofDetails}
