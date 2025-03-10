@@ -434,7 +434,7 @@ class invoiceGenerator {
             return acc + coursePrice * 5;
         }, 0);
         
-        doc.text(`$${totalPrice.toFixed(2)}`, columnPositions.subsidised + 10, currentY + 10);
+        doc.text(`$${coursePrice.toFixed(2)}`, columnPositions.subsidised + 10, currentY + 10);
 
         // Draw borders only for the 4th, 5th, and 6th columns
         ['endDate', 'subsidised'].forEach((column) => {
