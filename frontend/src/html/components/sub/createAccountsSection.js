@@ -64,9 +64,9 @@ class CreateAccountsSection extends Component {
                 // Check if the role is valid
                 if (!value) {
                     roleError = 'Role is required.';
-                } else if(value !== "Ops in-charge" && value !== "NSA in-charge" && value !== "Site in-charge" && value !== "Finance")
+                } else if(value !== "Ops in-charge" && value !== "NSA in-charge" && value !== "Site in-charge" && value !== "Finance" && value !== "Others")
                 {
-                    roleError = 'Role must be Ops in-charge, NSA in-charge, Site in-charge or Finance';
+                    roleError = 'Role must be Ops in-charge, NSA in-charge, Site in-charge, Finance or Others';
                 }
                 else {
                     roleError = ''; // Clear the error if the role is valid
