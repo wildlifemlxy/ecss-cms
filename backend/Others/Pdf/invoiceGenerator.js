@@ -161,14 +161,28 @@ class invoiceGenerator {
             let currentYInvoice = textY-(15*6); // Start a bit lower than the last Y position
     
           // Add "INVOICE DATE:"
-            doc.font(fontPathRegular).text("INVOICE DATE: " + this.getCurrentDateTime().date, newTextX, currentYInvoice);
+            if(invoiceNumber.includes("TP"))
+            {
+                doc.font(fontPathRegular).text("INVOICE DATE: " + this.getCurrentDateTime().date, newTextX-10, currentYInvoice);
+            }
+            else
+            {
+                doc.font(fontPathRegular).text("INVOICE DATE: " + this.getCurrentDateTime().date, newTextX, currentYInvoice);
+            }
             currentYInvoice += 15; // Move down for the next line
 
             // Add gap after odd line (even line should have a gap)
             currentYInvoice += 15; // Increase Y to add space for the next line (even line gap)
 
             // Add "INVOICE NO."
-            doc.font(fontPathRegular).text("INVOICE NO.: "+invoiceNumber, newTextX, currentYInvoice);
+            if(invoiceNumber.includes("TP"))
+            {
+                doc.font(fontPathRegular).text("INVOICE NO.: "+invoiceNumber, newTextX-10, currentYInvoice);
+            }
+            else
+            {
+                doc.font(fontPathRegular).text("INVOICE NO.: "+invoiceNumber, newTextX, currentYInvoice);
+            }
             currentYInvoice += 15; // Move down for the next line
 
             // Add gap after odd line (even line should have a gap)

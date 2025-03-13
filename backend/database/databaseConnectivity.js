@@ -540,34 +540,59 @@ class DatabaseConnectivity {
         var currentYear = new Date().getFullYear().toString().slice(-2);
         currentYear = parseInt(currentYear);
     
-        // Retrieve all receipts matching the specified courseLocation and location
+        let regexPattern = `^${courseLocation}`; // Default pattern
+
+        if (centreLocation === "Tampines 253 Centre") {
+            regexPattern = `${courseLocation}TP`; // Ensure "TP" appears after courseLocation
+        }
+
+        console.log("Regex Pattern:", regexPattern);
+        
         const existingReceipts = await collection.find({
-            receiptNo: { $regex: `^${courseLocation}` },  // Match all receipts starting with courseLocation
-            location: centreLocation                      // Filter by centre location
+            receiptNo: { $regex: regexPattern },
+            location: centreLocation
         }).toArray();
+        
 
         console.log("Existing Receipts:", existingReceipts);
-    
-
     
         let formattedReceiptNumber;
     
         // First, handle the SkillsFuture Invoice Number
         if (courseLocation.startsWith("ECSS/SFC/")) 
-            {
+        {
+            console.log("Skillsfuture Invoice");
             // Filter receipts to get only those from the current year
             const validReceipts = existingReceipts.filter(receipt => {
-                const regex = new RegExp(`^${courseLocation}\\d+/(${currentYear})$`);
-                return regex.test(receipt.receiptNo);
+                let regexPattern;
+                // Check if the location is Tampines 253 Centre
+                if (centreLocation === "Tampines 253 Centre") {
+                    // Ensure "TP" appears for Tampines 253 Centre
+                    regexPattern = new RegExp(`^${courseLocation}TP\\d+/(${currentYear})$`);
+                } else {
+                    // Default pattern without "TP"
+                    regexPattern = new RegExp(`^${courseLocation}\\d+/(${currentYear})$`);
+                }
+                return regexPattern.test(receipt.receiptNo);
             });
+            console.log("Valid Receipts:", courseLocation, validReceipts);
         
             // Get the current year's receipt numbers for the specific location (centreLocation)
             const centreReceiptNumbers = validReceipts.map(receipt => {
-                // Match format: ECSS/SFC/037/2024 or XXX - 0001
-                const regex = new RegExp(`^${courseLocation}(\\d+)(?:/\\d+| - \\d+)$`);
-                const match = receipt.receiptNo.match(regex);
+                // Create regex pattern based on the centreLocation
+                let regexPattern;    
+                if (centreLocation === "Tampines 253 Centre") {
+                    // Enforce "TP" for Tampines 253 Centre receipts
+                    regexPattern = new RegExp(`^${courseLocation}TP(\\d+)(?:/\\d+| - \\d+)$`);
+                } else {
+                    // Default pattern without "TP"
+                    regexPattern = new RegExp(`^${courseLocation}(\\d+)(?:/\\d+| - \\d+)$`);
+                }
+                const match = receipt.receiptNo.match(regexPattern);
                 return match ? parseInt(match[1], 10) : null;
             }).filter(num => num !== null);
+            
+            console.log(courseLocation, centreReceiptNumbers, centreLocation, currentYear);
             formattedReceiptNumber = this.getNextReceiptNumberForSkillsFuture(courseLocation, centreReceiptNumbers, centreLocation, currentYear);
         } 
         else 
@@ -583,21 +608,21 @@ class DatabaseConnectivity {
     getNextReceiptNumberForSkillsFuture(courseLocation, centreReceiptNumbers, centreLocation, currentYear) 
     {
         let nextNumber;
-    
+        console.log("Centre Receipt Number:", centreReceiptNumbers, centreLocation);
         // Logic for 2025
         if (currentYear === 25) {
             if (centreLocation === "CT Hub") {
              // For CT Hub in 2025, start from 109
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 109;
             }             
-            else if (centreLocation === "Tampines 253 Centre") {
+            else if (centreLocation === "Tampines 253 Centre") 
+            {             
                 // For Tampines 253 Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 91;
-                //nextNumber = `TP${(centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 91).toString().padStart(3, '0')}`;
             } 
             else if (centreLocation === "Pasir Ris West Wellness Centre") {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 13   ;
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 13 ;
             }
         } 
         // Logic for 2026 and beyond
@@ -607,14 +632,14 @@ class DatabaseConnectivity {
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             } else if (centreLocation === "Tampines 253 Centre") {
                 // For Tampines 253 Centre in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
-                //nextNumber = `TP${(centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1).toString().padStart(3, '0')}`;
-               // nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumber.substring(2)) + 1 : 1;
             } else if (centreLocation === "Pasir Ris West Wellness Centre") {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
         }
+
+        console.log("Tampines 253 Centre Next Receipt:", nextNumber);
     
         // Pad number to 3 digits if less than 3 digits, else keep original length
         if (nextNumber.toString().length < 3) 
@@ -634,7 +659,7 @@ class DatabaseConnectivity {
         }
             
         // Return the formatted receipt number
-        return `${courseLocation}${nextNumber}/${currentYear.toString()}`;
+       return `${courseLocation}${nextNumber}/${currentYear.toString()}`;
     }
     
     
