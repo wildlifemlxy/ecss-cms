@@ -592,7 +592,7 @@ class DatabaseConnectivity {
             }             
             else if (centreLocation === "Tampines 253 Centre") {
                 // For Tampines 253 Centre in 2026 and beyond, start from 1
-                nextNumber = `TP ${centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 091}`;
+                nextNumber = `TP ${centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 91}`;
             } 
             else if (centreLocation === "Pasir Ris West Wellness Centre") {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
