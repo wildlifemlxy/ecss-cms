@@ -286,10 +286,10 @@
   padding: 1rem 0;
   top: 1rem;
   margin-left: 5%;
-  width: 18rem;
+  width: 35rem;
 }
 
-.save-btn, .export-btn {
+.save-btn, .export-btn, .attendance-btn {
   padding: 0.8rem 1.2rem;
   font-size: 0.9rem;
   border: 2px solid #ccc;
@@ -299,12 +299,12 @@
   transition: background-color 0.3s, transform 0.2s;
 }
 
-.save-btn:hover, .export-btn:hover {
+.save-btn:hover, .export-btn:hover, .attendance-btn:hover {
   background-color: #e0e0e0;
   transform: translateY(-2px);
 }
 
-.save-btn:active, .export-btn:active {
+.save-btn:active, .export-btn:active, .attendance-btn:active {
   transform: translateY(1px);
 }
 
@@ -318,11 +318,20 @@
   border-color: #2196F3;
 }
 
+.attendance-btn {
+  color: #FF0000;
+  border-color: #FF0000;
+}
+
 .save-btn:hover {
   background-color: #d4e8d0;
 }
 
 .export-btn:hover {
   background-color: #d0e2f5;
+}
+
+.attendance-btn:hover {
+  background-color: #FFCCCC;
 }
 

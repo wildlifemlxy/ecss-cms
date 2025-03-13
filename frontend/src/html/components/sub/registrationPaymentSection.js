@@ -800,7 +800,145 @@ class RegistrationPaymentSection extends Component {
       }
     };
 
-  getCurrentDateTime = () => {
+    exportAttendance = async (paginatedDetails) => {
+      var { selectedCourseName, selectedLocation } = this.props;
+    
+      try {
+        // Fetch the Excel file from public folder (adjust the path if necessary)
+        const filePath = '/external/Attendance.xlsx';  // Path relative to the public folder
+        const response = await fetch(filePath);
+    
+        if (!response.ok) {
+          return this.props.warningPopUpMessage("Error fetching the Excel file.");
+        }
+    
+        const data = await response.arrayBuffer(); // Convert file to ArrayBuffer
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(data);
+    
+        const sourceSheet = workbook.getWorksheet('Sheet1');
+        if (!sourceSheet) {
+          return this.props.warningPopUpMessage("Sheet 'Sheet1' not found!");
+        }
+    
+        // Set Course Title in A1
+        const cellA1 = sourceSheet.getCell('A1');
+        cellA1.value = `Course Title: ${selectedCourseName}`;
+        cellA1.font = { name: 'Calibri', size: 18, bold: true };
+    
+        // Set Course Commencement Date in A2
+        let courseCommencementDate = '';
+        for (let i = 0; i < paginatedDetails.length; i++) {
+          const item = paginatedDetails[i];
+          if (item.course === selectedCourseName) {
+            courseCommencementDate = item.courseInfo.courseDuration.split("-")[0].trim();
+            break;
+          }
+        }
+    
+        const cellA2 = sourceSheet.getCell('A2');
+        cellA2.value = `Course Commencement Date: ${courseCommencementDate}`;
+        cellA2.font = { name: 'Calibri', size: 18, bold: true };
+    
+        // Set Venue in A3 based on selected location
+        const cellA3 = sourceSheet.getCell('A3');
+        if (selectedLocation === "Tampines 253 Centre") {
+          cellA3.value = `Venue: Blk 253 Tampines St 21 #01-406 Singapore 521253`;
+        } else if (selectedLocation === "CT Hub") {
+          cellA3.value = `Venue: En Community Services Society 2 Kallang Avenue CT Hub #06-14 Singapore 339407`;
+        } else if (selectedLocation === "Tampines North Community Centre") {
+          cellA3.value = `Venue: Tampines North Community Club Blk 421 Tampines St 41 #01-132 Singapore 520420`;
+        } else if (selectedLocation === "Pasir Ris West Wellness Centre") {
+          cellA3.value = `Venue: Pasir Ris West Wellness Centre Blk 605 Elias Road #01-200 Singapore 510605`;
+        }
+        cellA3.font = { name: 'Calibri', size: 18, bold: true };
+    
+        // Loop for S/N and Name starting from row 6 in Columns A and B
+        let rowIndex = 6; // Start from row 6 for S/N and Name
+        let participantIndex = 1;  // Initialize participant index for S/N
+        for (let i = 0; i < paginatedDetails.length; i++) {
+          const item = paginatedDetails[i];
+          if (item.course === selectedCourseName && item.courseInfo.courseLocation === selectedLocation) {
+            const cellA = sourceSheet.getCell(`A${rowIndex}`);
+            const cellB = sourceSheet.getCell(`B${rowIndex}`);
+    
+            cellA.value = participantIndex;  // Set S/N dynamically
+            cellB.value = item.participantInfo.name;
+    
+            // Apply font styling
+            cellA.font = { name: 'Calibri', size: 18, bold: true };
+            cellB.font = { name: 'Calibri', size: 18, bold: true };
+    
+            rowIndex++;
+            participantIndex++; // Increment participant index for S/N
+          }
+        }
+    
+        // Set Weekly labels in row 4 (D4 onwards)
+        const courseDuration = paginatedDetails[0]?.courseInfo?.courseDuration || '';
+        const [startDate, endDate] = courseDuration.split(" - ");  // Split course duration into start and end dates
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+    
+        // Calculate weeks
+        let weekIndex = 1;
+        let currentDate = new Date(start);
+    
+        const row = sourceSheet.getRow(4); // Row 4 for weekly labels
+    
+        let lessonColumns = [];  // To store columns that will contain lessons
+    
+        // Loop for lessons (L1, L2, L3, etc.)
+        for (let col = 4; col <= 42; col += 2) {  // Every 2 columns will represent 1 lesson
+          if (currentDate <= end) {
+            const lessonLabel = `L${weekIndex}: ${formatDateToDDMMYYYY(currentDate)}`;
+            const cell = row.getCell(col);  // Get the cell in the specific column of row 4
+    
+            // Set the value for the lesson
+            cell.value = lessonLabel;
+            cell.font = { name: 'Calibri', size: 16, bold: true };
+    
+            // Store the column index for lesson
+            lessonColumns.push(col);
+    
+            // Move to the next week
+            currentDate.setDate(currentDate.getDate() + 7);  // Move 1 week ahead
+            weekIndex++; // Increment the week number
+          }
+        }
+    
+        // Helper function to format a date to dd/mm/yyyy
+        function formatDateToDDMMYYYY(date) {
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+          const year = date.getFullYear();
+          return `${day}/${month}/${year}`;
+        }
+
+        // Helper function to format a date to dd/mm/yyyy
+        function formatDateToDDMMYYYY1(date) {
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+          const year = date.getFullYear();
+          return `${day}${month}${year}`;
+        }
+          
+    
+        // Create a new file and trigger download
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+    
+        // Trigger the file download with a new name
+        saveAs(blob, `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${selectedCourseName}.xlsx`);
+      } catch (error) {
+        console.error("Error exporting LOP:", error);
+        this.props.warningPopUpMessage("An error occurred during export.");
+      }
+    };
+    
+    getCurrentDateTime = () => {
       const now = new Date();
       const day = String(now.getDate()).padStart(2, '0');
       const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -1619,6 +1757,9 @@ class RegistrationPaymentSection extends Component {
                 </button>
                 <button className="export-btn" onClick={() => this.exportToLOP(rowData)}>
                   Export To LOP
+                </button>
+                <button className="attendance-btn" onClick={() => this.exportAttendance(rowData)}>
+                  Course Attendance
                 </button>
               </div>
               <div className="grid-container">
