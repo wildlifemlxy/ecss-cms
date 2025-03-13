@@ -7,7 +7,7 @@ class CreateAccountsSection extends Component {
   constructor(props) {
     super(props);
     this.state = {
-        roleOptions: ['Ops in-charge', 'NSA in-charge', 'Site in-charge', 'Finance'],
+        roleOptions: ['Ops in-charge', 'NSA in-charge', 'Site in-charge', 'Finance', 'Others'],
         filteredRoles: [],
         site: ""
     };

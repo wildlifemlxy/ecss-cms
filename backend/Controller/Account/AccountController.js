@@ -76,6 +76,17 @@ class AccountController
                                     message: "New account with respectively access rights created successfully"
                                 }
                     }
+                    else if(accountDetails.role === "Others")
+                    {
+                        var accountID = connectedDatabase.accountId;
+                        var accessRightDetails = {"Account Details":{"Account ID": accountID, "Name": accountDetails.name, "Role": accountDetails.role}, "Account":{"Create Account": false, "Account Table": false, "Access Rights Table": false}, "Courses":{"Upload Courses": false, "NSA Courses": true, "ILP Courses": true, "Update Courses": false, "Delete Courses": false}, "Registration And Payment": {"Registration And Payment Table": false, "Invoice Table": false}, "QR Code": {"Create QR Code": false, "QR Code Table": false, "Update QR Code": false, "Delete QR Code": false}};
+                        var collectionName = "Access Rights";
+                        var connectedDatabase = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, accessRightDetails);   
+                        return {
+                                    success: true,
+                                    message: "New account with respectively access rights created successfully"
+                                }
+                    }
                 }
             }
         } 
