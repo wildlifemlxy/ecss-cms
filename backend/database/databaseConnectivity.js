@@ -592,7 +592,7 @@ class DatabaseConnectivity {
             }             
             else if (centreLocation === "Tampines 253 Centre") {
                 // For Tampines 253 Centre in 2026 and beyond, start from 1
-                nextNumber = `TP ${centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 91}`;
+                nextNumber = `TP${(centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 91).toString().padStart(3, '0')}`;
             } 
             else if (centreLocation === "Pasir Ris West Wellness Centre") {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
@@ -606,7 +606,8 @@ class DatabaseConnectivity {
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             } else if (centreLocation === "Tampines 253 Centre") {
                 // For Tampines 253 Centre in 2026 and beyond, start from 1
-                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
+                nextNumber = `TP${(centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1).toString().padStart(3, '0')}`;
+               // nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             } else if (centreLocation === "Pasir Ris West Wellness Centre") {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
