@@ -321,12 +321,12 @@ class Popup extends Component {
       console.error("Error during the update process:", error);
     }
   };
-  handlePortOver = async (id, courseInfo, status) => {
+
+  handlePortOver = async (id, participantInfo, courseInfo, status) => {
     try {
-      console.log("Registration Id1:", id);
+      console.log("Registration Id1:", id, participantInfo, courseInfo, status);
       const { selectedLocation } = this.state;
   
-      // Use await for the axios request
       const response = await axios.post(
         `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
         { purpose: "portOver", id, selectedLocation }
@@ -335,15 +335,143 @@ class Popup extends Component {
       console.log("PortOver Participants:", response);
   
       if (response.data.result === true) {
-        await this.updateWooCommerceForPortOver(courseInfo.courseChiName, courseInfo.courseEngName, selectedLocation, status);
-        await this.updateWooCommerceForUpdate(courseInfo.courseChiName, courseInfo.courseEngName, courseInfo.courseLocation, status);
+        // Execute each function one by one
+        await this.updateWooCommerceForPortOver(
+          courseInfo.courseChiName, 
+          courseInfo.courseEngName, 
+          selectedLocation, 
+          status
+        );
+  
+        await this.updateWooCommerceForUpdate(
+          courseInfo.courseChiName, 
+          courseInfo.courseEngName, 
+          courseInfo.courseLocation, 
+          status
+        );
+  
+        await this.receiptGenerator(
+          id, 
+          participantInfo, 
+          courseInfo, 
+          selectedLocation, 
+          courseInfo.payment, 
+          status
+        );
+  
+        // Close popup after all tasks are completed
+        this.props.closePopupMessage();  
       }
   
-      this.props.closePopupMessage(); // Close the popup after the process
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error("Error submitting form:", error);
     }
-  }  
+  };  
+
+  generatePDFReceipt = async (id, participant, course, receiptNo, status) => {
+    console.log("Parameters:", id, participant, course, receiptNo, status);
+    try {
+      const pdfResponse = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: "addReceiptNumber", id, participant, staff: this.props.userName, receiptNo, status });
+      console.log("generatePDFReceipt:", pdfResponse);
+      return pdfResponse;
+    } catch (error) {
+      console.error("Error generating PDF receipt:", error);
+      throw error;
+    }
+  };
+
+    
+  createReceiptInDatabase = async (receiptNo, participant, location, registration_id, url) => {
+    try {
+      console.log("Creating receipt in database:", {
+        receiptNo, participant, location, registration_id, url
+      }, this.props);
+
+      const receiptCreationResponse = await axios.post(
+        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/receipt`,
+        {
+          purpose: "createReceipt",
+          receiptNo,
+          location, 
+          registration_id,
+          url,
+          staff: this.props.userName,
+        }
+      );        
+      console.log("createReceiptInDatabase", receiptCreationResponse);
+      //console.log("Receipt creation response:", receiptCreationResponse.data);
+    } catch (error) {
+      console.error("Error creating receipt in database:", error);
+      throw error;
+    }
+  };
+
+  generateReceiptNumber = async (course, newLocation, newMethod) => 
+  {
+    const courseLocation = newMethod === "SkillsFuture" ? "ECSS/SFC/" : newLocation;
+    console.log("Course Location111:", courseLocation);
+    const centreLocation = newLocation;
+    console.log("Centre Location111:", centreLocation);
+    try {
+      //console.log("Fetching receipt number for location:", courseLocation);
+      const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/receipt`, { purpose: "getReceiptNo", courseLocation, centreLocation });
+      console.log("Receipt Response1:", response);
+      if (response?.data?.result?.success) {
+        console.log("Fetched receipt number:", response.data.result.receiptNumber);
+        return response.data.result.receiptNumber;
+      } else {
+        throw new Error("Failed to fetch receipt number from response");
+      }
+    } catch (error) {
+      console.error("Error fetching receipt number:", error);
+      throw error;
+    }
+  };
+
+  //this.autoReceiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue, "Paid")
+  receiptGenerator = async (id, participant, course, newLocation, newMethod, value) => {
+    console.log("Selected Parameters auto:", { id, participant, course, newMethod, value });
+
+    if (newMethod === "Cash" || newMethod === "PayNow") 
+    {
+      if (value === "Paid") 
+      {
+        try 
+        {
+          console.log(`${value} For This Course:`, course);
+  
+          //const registration_id = id;
+          const receiptNo = await this.generateReceiptNumber(course, newLocation, newMethod);
+          console.log("Receipt No:", receiptNo);
+          await this.generatePDFReceipt(id, participant, course, receiptNo, value);
+          await this.createReceiptInDatabase(receiptNo, participant, course, id, "");    
+          //console.log("Close Popup");
+        } 
+        catch (error) 
+        {
+          console.error("Error during receipt generation:", error);
+        }
+      }
+    } 
+    else if(newMethod === "SkillsFuture")
+    {
+      try 
+      {
+        console.log("Generating receipt for course:", course);
+
+        const registration_id = id;
+        const invoiceNo = await this.generateReceiptNumber(course, newMethod);
+        console.log("Invoice No:", invoiceNo);
+        await this.generatePDFReceipt(id, participant, course, invoiceNo, value);
+        await this.createReceiptInDatabase(invoiceNo, course.courseLocation, id, "");    
+      } 
+      catch (error) 
+      {
+        console.error("Error during receipt generation:", error);
+      }
+    }
+  };
+  
 
   // Toggle confirm password visibility
   toggleConfirmPasswordVisibility = () => {
@@ -833,7 +961,7 @@ class Popup extends Component {
                   ))}
                 </select>
               <div className="confirmation-buttons">
-                  <button onClick={() => this.handlePortOver(this.props.id, this.props.courseInfo, this.props.status)} className="confirm-btn">Confirm</button>
+                  <button onClick={() => this.handlePortOver(this.props.id, this.props.participantInfo, this.props.courseInfo, this.props.status)} className="confirm-btn">Confirm</button>
                   <button onClick={this.cancel} className="cancel-btn">Cancel</button>
               </div>
             </div>

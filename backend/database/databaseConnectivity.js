@@ -542,7 +542,7 @@ class DatabaseConnectivity {
     
         let regexPattern = `^${courseLocation}`; // Default pattern
 
-        if (centreLocation === "Tampines 253 Centre") {
+        if (centreLocation === "Tampines 253 Centre" && courseLocation.startsWith("ECSS/SFC")) {
             regexPattern = `${courseLocation}TP`; // Ensure "TP" appears after courseLocation
         }
 
@@ -669,7 +669,8 @@ class DatabaseConnectivity {
         console.log("Centre Receipt Number:", courseLocation, existingReceipts, centreLocation, currentYear);
 
          // Filter the existing receipts based on the location
-        const filteredReceipts = existingReceipts.filter(receipt => receipt.location === centreLocation);
+        //const filteredReceipts = existingReceipts.filter(receipt => receipt.location === centreLocation);
+        const filteredReceipts = existingReceipts;
         console.log("Filtered Receipts for Centre Location:", filteredReceipts);
 
         // Extract the numeric part of the receiptNo (before the "-") and get the numbers
@@ -680,7 +681,7 @@ class DatabaseConnectivity {
 
         console.log("Centre Receipt Numbers11:", centreReceiptNumbers);
 
-        const maxReceiptNumber = existingReceipts.length > 0 ? Math.max(...centreReceiptNumbers) : 0;
+       const maxReceiptNumber = existingReceipts.length > 0 ? Math.max(...centreReceiptNumbers) : 0;
         console.log("Latest Receipt Numbers:", maxReceiptNumber);
        // Handle specific logic for each centre location
         if (centreLocation === "Tampines 253 Centre") {
@@ -700,7 +701,7 @@ class DatabaseConnectivity {
         let numberLength = nextNumber.toString().length;
     
         // Format the next number dynamically with leading zeros based on its length
-        let formattedNextNumber = String(nextNumber).padStart(numberLength + 3, '0');  // Start with length 4, increase as needed
+        let formattedNextNumber = String(nextNumber).padStart(numberLength + 3, '0');  // Start with length 4, increase as needed*/
     
         // Return the formatted receipt number in the format: "courseLocation - 0001"
         return `${courseLocation} - ${formattedNextNumber}`;

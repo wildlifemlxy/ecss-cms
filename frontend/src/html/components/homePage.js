@@ -446,7 +446,7 @@
     };
 
     
-    generatePortOverConfirmationPopup = (id, courseInfo, status) => {
+    generatePortOverConfirmationPopup = (id, participantInfo, courseInfo, status) => {
       console.log("ID deleted:", id);
       console.log("Course Info:", courseInfo);
       console.log("Payment Status:", status);
@@ -456,6 +456,7 @@
         popupType: "portOver", // You can use this to style it differently if needed
         deleteId: id, // Store the row data to handle the deletion later
         courseInfo: courseInfo, // Store the row data to handle the deletion later
+        participantInfo: participantInfo,
         status: status
       });
     };
@@ -797,7 +798,7 @@
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const { status, item, isDropdownOpen, isReceiptVisible, invoiceVisibility, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo} = this.state;
+      const { participantInfo, status, item, isDropdownOpen, isReceiptVisible, invoiceVisibility, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo} = this.state;
 
       return (
         <>
@@ -1037,7 +1038,7 @@
                 All rights reserved.</p>
             </div>
           </div>
-          <Popup isOpen={isPopupOpen} message={popupMessage} type={popupType} status={status} courseInfo={courseInfo} closePopup={this.closePopup} closePopup2={this.closePopup2} goBackLoginPage={this.goBackHome} closePopupMessage={this.closePopupMessage} id = {this.state.deleteId}/>
+          <Popup isOpen={isPopupOpen} message={popupMessage} userName={userName} type={popupType} participantInfo={participantInfo} status={status} courseInfo={courseInfo} closePopup={this.closePopup} closePopup2={this.closePopup2} goBackLoginPage={this.goBackHome} closePopupMessage={this.closePopupMessage} id = {this.state.deleteId}/>
         </>
       );
     }

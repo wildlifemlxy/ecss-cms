@@ -1100,31 +1100,35 @@ class RegistrationPaymentSection extends Component {
         cellEditorParams: (params) => {
           const { paymentMethod, courseInfo } = params.data;
           const courseType = courseInfo.courseType;
-  
+      
           const options =
             courseType === "NSA"
               ? paymentMethod === "SkillsFuture"
-                ? ["Pending", "Generating SkillsFuture Invoice", "SkillsFuture Done", "Cancelled"]
-                : ["Pending", "Paid", "Cancelled"]
-              : ["Pending", "Confirmed", "Cancelled"];
-  
+                ? ["Pending", "Generating SkillsFuture Invoice", "SkillsFuture Done", "Cancelled", "Refunded"]
+                : ["Pending", "Paid", "Cancelled", "Refunded"]
+              : ["Pending", "Confirmed", "Cancelled", "Refunded"];
+      
           return { values: options };
         },
         cellRenderer: (params) => {
           const statusStyles = {
-            Pending: "#FFA500",
-            "Generating SkillsFuture Invoice": "#00CED1",
-            "SkillsFuture Done": "#008000",
-            Cancelled: "#FF0000",
-            Paid: "#008000",
-            Confirmed: "#008000",
+            Pending: "#FFA500", // Orange
+            "Generating SkillsFuture Invoice": "#00CED1", // Dark Turquoise
+            "SkillsFuture Done": "#008000", // Green
+            Cancelled: "#FF0000", // Red
+            Paid: "#008000", // Green
+            Confirmed: "#008000", // Green
+            Refunded: "#D2691E", // Lighter brown (Dark orange brown)
           };
-  
+      
+          const statusText = params.value;
+          const backgroundColor = statusStyles[statusText] || "#D3D3D3"; // Default gray if the status doesn't match
+      
           return (
             <span
               style={{
                 fontWeight: "bold",
-                color: "white",
+                color: "#FFFFFF", // Ensure the text color is white for all statuses
                 textAlign: "center",
                 display: "inline-block",
                 borderRadius: "20px",
@@ -1132,16 +1136,16 @@ class RegistrationPaymentSection extends Component {
                 minWidth: "150px",
                 lineHeight: "30px",
                 whiteSpace: "nowrap",
-                backgroundColor: statusStyles[params.value] || "#D3D3D3",
+                backgroundColor: backgroundColor,
               }}
             >
-              {params.value}
+              {statusText}
             </span>
           );
         },
         editable: true,
         width: 350,
-      },
+      },      
       {
         headerName: "Receipt/Invoice Number",
         field: "recinvNo",
@@ -1182,7 +1186,7 @@ class RegistrationPaymentSection extends Component {
         width: 300,
         cellRenderer: (params) => (
           <button
-            onClick={() => this.handlePortOver(params.data.id, params.data.courseInfo, params.data.paymentStatus)}
+            onClick={() => this.handlePortOver(params.data.id, params.data.participantInfo, params.data.courseInfo, params.data.paymentStatus)}
             style={{
               backgroundColor: "#C7A29B", // Pastel Brown
               color: "#ffffff",
@@ -1208,10 +1212,11 @@ class RegistrationPaymentSection extends Component {
     await this.props.generateDeleteConfirmationPopup(id);
   }
 
-  handlePortOver = async(id, courseInfo, status) =>
+  handlePortOver = async(id, participantsInfo, courseInfo, status) =>
   {
-    console.log("Params:", id, courseInfo, status);
-    await this.props.generatePortOverConfirmationPopup(id, courseInfo, status);
+    //console.log("Params1:", official);
+    console.log("Params1:", id, participantsInfo, courseInfo, status);
+    await this.props.generatePortOverConfirmationPopup(id, participantsInfo, courseInfo, status);
   }
   
   getPaginatedDetails() {
