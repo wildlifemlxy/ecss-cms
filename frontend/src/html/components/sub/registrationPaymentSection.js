@@ -1357,6 +1357,13 @@ class RegistrationPaymentSection extends Component {
     {
         if (columnName === "Payment Method") 
         {
+          await axios.post(
+            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+            {
+              id: id,
+              purpose: 'rempvedRefundedDate'
+            }
+          );
           this.props.showUpdatePopup("Updating in progress... Please wait ...");
           await axios.post(
             `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
@@ -1452,6 +1459,13 @@ class RegistrationPaymentSection extends Component {
         }
         else if (columnName === "Payment Status") 
         {
+          await axios.post(
+            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+            {
+              id: id,
+              purpose: 'rempvedRefundedDate'
+            }
+          );
           this.props.showUpdatePopup("Updating in progress... Please wait ...")
           console.log('Cell clicked', event);
           const response = await axios.post(
