@@ -21,6 +21,7 @@ class Popup extends Component {
       countdown: 10,
       checked: true, 
       message4: null,
+      selectedLocation: "",
       participant: {
         id: '',
         name: '',
@@ -46,103 +47,107 @@ class Popup extends Component {
     this.countdownInterval = null;
   } 
 
-    componentDidMount = async () => {  
+  handleSelection = (location) => {
+    this.setState({ selectedLocation: location });
+  };
+
+  componentDidMount = async () => {  
+    if (this.props.type === "no-activity") {
+      console.log("Start CountDown");
+      this.startCountdown();
+    }
+  
+    if (this.props.type === "update-access-right") {
+      console.log("Update Access Right", this.props.message);
+      this.setState({ message4: this.props.message }, () => {
+        console.log("Updated message4 state:", this.state.message4);
+      });
+    }
+  
+    if (this.props.type === "edit") {
+      console.log("Edit", this.props.message);
+      console.log("Participants Details:", this.props.message.participant);
+      // Check if message and participant data are available
+      if (this.props.message && this.props.message.participant) {
+        this.setState({
+          participant: {
+            id: this.props.message._id|| '',
+            name: this.props.message.participant.name || '',
+            nric: this.props.message.participant.nric || '',
+            residentialStatus: this.props.message.participant.residentialStatus || '',
+            race: this.props.message.participant.race || '',
+            gender: this.props.message.participant.gender || '',
+            contactNumber: this.props.message.participant.contactNumber || '',
+            email: this.props.message.participant.email || '',
+            postalCode: this.props.message.participant.postalCode || '',
+            educationLevel: this.props.message.participant.educationLevel || '',
+            workStatus: this.props.message.participant.workStatus || ''
+          },
+          showEditMessage: true // Set state to show the edit-message div
+        }, () => {
+          console.log("Updated participant state:", this.state.participant);
+        });
+      } else {
+        console.error("Participant data is missing in message.");
+      }
+    }
+  };
+  
+
+  componentDidUpdate(prevProps) {
+    // Check if the type prop has changed from the previous value
+    if (this.props.type !== prevProps.type) {
+      console.log("Type prop changed. Current type:", this.props.type);
+  
+      // If the new type is "no-activity", restart the countdown
       if (this.props.type === "no-activity") {
-        console.log("Start CountDown");
+        console.log("Restart CountDown");
         this.startCountdown();
       }
-    
-      if (this.props.type === "update-access-right") {
+      // If the new type is "update-access-right", update the message state
+      else if (this.props.type === "update-access-right" && this.props.message !== prevProps.message) {
         console.log("Update Access Right", this.props.message);
         this.setState({ message4: this.props.message }, () => {
           console.log("Updated message4 state:", this.state.message4);
         });
       }
-    
-      if (this.props.type === "edit") {
-        console.log("Edit", this.props.message);
-        console.log("Participants Details:", this.props.message.participant);
-        // Check if message and participant data are available
-        if (this.props.message && this.props.message.participant) {
-          this.setState({
-            participant: {
-              id: this.props.message._id|| '',
-              name: this.props.message.participant.name || '',
-              nric: this.props.message.participant.nric || '',
-              residentialStatus: this.props.message.participant.residentialStatus || '',
-              race: this.props.message.participant.race || '',
-              gender: this.props.message.participant.gender || '',
-              contactNumber: this.props.message.participant.contactNumber || '',
-              email: this.props.message.participant.email || '',
-              postalCode: this.props.message.participant.postalCode || '',
-              educationLevel: this.props.message.participant.educationLevel || '',
-              workStatus: this.props.message.participant.workStatus || ''
-            },
-            showEditMessage: true // Set state to show the edit-message div
-          }, () => {
-            console.log("Updated participant state:", this.state.participant);
-          });
-        } else {
-          console.error("Participant data is missing in message.");
-        }
-      }
-    };
-    
-
-    componentDidUpdate(prevProps) {
-      // Check if the type prop has changed from the previous value
-      if (this.props.type !== prevProps.type) {
-        console.log("Type prop changed. Current type:", this.props.type);
-    
-        // If the new type is "no-activity", restart the countdown
-        if (this.props.type === "no-activity") {
-          console.log("Restart CountDown");
-          this.startCountdown();
-        }
-        // If the new type is "update-access-right", update the message state
-        else if (this.props.type === "update-access-right" && this.props.message !== prevProps.message) {
-          console.log("Update Access Right", this.props.message);
-          this.setState({ message4: this.props.message }, () => {
-            console.log("Updated message4 state:", this.state.message4);
-          });
-        }
-        // For any other type change, clear the countdown
-        else {
-          clearInterval(this.countdownInterval);
-          console.log("Countdown cleared due to type change");
-        }
-      }
-    
-      // Handle "edit" type condition
-      if (this.props.type === "edit" && this.props.message !== prevProps.message) {
-        console.log("Edit", this.props.message);
-        console.log("Participants Details:", this.props.message.participant);
-        if (this.props.message && this.props.message.participant) {
-          this.setState({
-            participant: {
-              id: this.props.message._id|| '',
-              name: this.props.message.participant.name || '',
-              nric: this.props.message.participant.nric || '',
-              residentialStatus: this.props.message.participant.residentialStatus || '',
-              race: this.props.message.participant.race || '',
-              gender: this.props.message.participant.gender || '',
-              contactNumber: this.props.message.participant.contactNumber || '',
-              email: this.props.message.participant.email || '',
-              postalCode: this.props.message.participant.postalCode || '',
-              educationLevel: this.props.message.participant.educationLevel || '',
-              workStatus: this.props.message.participant.workStatus || ''      
-            },
-            showEditMessage: true // Show the edit form
-          }, () => {
-            console.log("Updated participant state:", this.state.participant);
-          });
-        } else {
-          console.error("Participant data is missing in the message.");
-        }
+      // For any other type change, clear the countdown
+      else {
+        clearInterval(this.countdownInterval);
+        console.log("Countdown cleared due to type change");
       }
     }
+  
+    // Handle "edit" type condition
+    if (this.props.type === "edit" && this.props.message !== prevProps.message) {
+      console.log("Edit", this.props.message);
+      console.log("Participants Details:", this.props.message.participant);
+      if (this.props.message && this.props.message.participant) {
+        this.setState({
+          participant: {
+            id: this.props.message._id|| '',
+            name: this.props.message.participant.name || '',
+            nric: this.props.message.participant.nric || '',
+            residentialStatus: this.props.message.participant.residentialStatus || '',
+            race: this.props.message.participant.race || '',
+            gender: this.props.message.participant.gender || '',
+            contactNumber: this.props.message.participant.contactNumber || '',
+            email: this.props.message.participant.email || '',
+            postalCode: this.props.message.participant.postalCode || '',
+            educationLevel: this.props.message.participant.educationLevel || '',
+            workStatus: this.props.message.participant.workStatus || ''      
+          },
+          showEditMessage: true // Show the edit form
+        }, () => {
+          console.log("Updated participant state:", this.state.participant);
+        });
+      } else {
+        console.error("Participant data is missing in the message.");
+      }
+    }
+  }
 
- componentWillUnmount() {
+  componentWillUnmount() {
     clearInterval(this.countdownInterval);
     this.setState({ countdown: 10 });
   }
@@ -161,8 +166,6 @@ class Popup extends Component {
       });
     }, 1000);
   };
-
-
 
   validatePassword = (password) => {
     // Password validation regex: at least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
@@ -253,7 +256,7 @@ class Popup extends Component {
     }));
   };
 
-  handleConfirm = async(id) =>
+  handleDelete = async(id) =>
   {
     console.log("Registration Id1:", id);
     axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: "delete", id })
@@ -265,6 +268,82 @@ class Popup extends Component {
       console.error('Error submitting form:', error);
     });
   }
+
+  updateWooCommerceForPortOver = async (chi, eng, location, updatedStatus) => 
+  {
+    console.log("Update Port Over Woocommerce", chi, eng, location, updatedStatus);
+    try {
+      // Check if the value is "Paid" or "Generate SkillsFuture Invoice"
+      if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled" || updatedStatus === "Confirmed") {
+        // Proceed to update WooCommerce stock
+        const stockResponse = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/update_stock/`, { type: 'update', page: { "courseChiName": chi, "courseEngName": eng, "courseLocation": location }, status: updatedStatus, location: location });
+
+        console.log("WooCommerce stock update response:", stockResponse.data);
+      
+        // If WooCommerce stock update is successful, generate receipt
+        if (stockResponse.data.success === true) {
+          console.log("Stock updated successfully.");
+          // Call the function to generate receipt or perform other action
+        } else {
+          console.error("Error updating WooCommerce stock:", stockResponse.data);
+        }
+      } else {
+        console.log("No update needed for the given status.");
+      }
+    } catch (error) {
+      console.error("Error during the update process:", error);
+    }
+  };
+
+  
+  updateWooCommerceForUpdate = async (chi, eng, location, updatedStatus) => 
+  {
+    console.log("Update Port Over +1", chi, eng, location, updatedStatus);
+    try {
+      // Check if the value is "Paid" or "Generate SkillsFuture Invoice"
+      if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done") {
+        // Proceed to update WooCommerce stock
+        const stockResponse = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/port_over/`, { type: 'update', page: { "courseChiName": chi, "courseEngName": eng, "courseLocation": location }, status: updatedStatus, location: location });
+
+        console.log("WooCommerce stock update response:", stockResponse.data);
+      
+        // If WooCommerce stock update is successful, generate receipt
+        if (stockResponse.data.success === true) {
+          console.log("Stock updated successfully.");
+          // Call the function to generate receipt or perform other action
+        } else {
+          console.error("Error updating WooCommerce stock:", stockResponse.data);
+        }
+      } else {
+        console.log("No update needed for the given status.");
+      }
+    } catch (error) {
+      console.error("Error during the update process:", error);
+    }
+  };
+  handlePortOver = async (id, courseInfo, status) => {
+    try {
+      console.log("Registration Id1:", id);
+      const { selectedLocation } = this.state;
+  
+      // Use await for the axios request
+      const response = await axios.post(
+        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+        { purpose: "portOver", id, selectedLocation }
+      );
+  
+      console.log("PortOver Participants:", response);
+  
+      if (response.data.result === true) {
+        await this.updateWooCommerceForPortOver(courseInfo.courseChiName, courseInfo.courseEngName, selectedLocation, status);
+        await this.updateWooCommerceForUpdate(courseInfo.courseChiName, courseInfo.courseEngName, courseInfo.courseLocation, status);
+      }
+  
+      this.props.closePopupMessage(); // Close the popup after the process
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
+  }  
 
   // Toggle confirm password visibility
   toggleConfirmPasswordVisibility = () => {
@@ -509,7 +588,7 @@ class Popup extends Component {
       message4,
       participant,
       showEditMessage,
-      errors
+      selectedLocation
     } = this.state;
 
     if (!isOpen) return null;
@@ -715,12 +794,47 @@ class Popup extends Component {
             <div className="edit-message">
             <p>{message}</p>
           </div>
-          ):type === "confirmation" ? (
+          ):type === "delete" ? (
             <div className="confirmation-message">
               <p>{message}</p>
               <div className="confirmation-buttons">
-                <button onClick={() => this.handleConfirm(this.props.id)} className="confirm-btn">Confirm</button>
+                <button onClick={() => this.handleDelete(this.props.id)} className="confirm-btn">Confirm</button>
                 <button onClick={this.cancel} className="cancel-btn">Cancel</button>
+              </div>
+            </div>
+          ):
+          type === "portOver" ? (
+            <div className="confirmation-message">
+              <p>{message}</p>
+              <select
+                  value={selectedLocation}
+                  onChange={(e) => this.handleSelection(e.target.value)}
+                  style={{
+                    cursor: "pointer",
+                    padding: "5px",
+                    background: "#000000", // Adjust background color if needed
+                    color: "#FFFFFF",
+                    fontWeight: "bold",
+                    width: "100%",
+                    borderRadius: "5px",
+                    marginBottom:"20px"
+                  }}
+                >
+                  <option value="" disabled>Select a location</option>
+                  {[
+                    "Tampines 253 Centre",
+                    "Pasir Ris West Wellness Centre",
+                    "Tampines North Community Centre",
+                    "CT Hub",
+                  ].map((location) => (
+                    <option key={location} value={location} style={{ color: "#FFFFFF"}}>
+                      {location}
+                    </option>
+                  ))}
+                </select>
+              <div className="confirmation-buttons">
+                  <button onClick={() => this.handlePortOver(this.props.id, this.props.courseInfo, this.props.status)} className="confirm-btn">Confirm</button>
+                  <button onClick={this.cancel} className="cancel-btn">Cancel</button>
               </div>
             </div>
           )

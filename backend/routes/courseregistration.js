@@ -70,6 +70,14 @@ router.post('/', async function(req, res, next)
         //console.log("Retrieve Registration Records:", result);
         return res.json({"result": result}); 
     }
+    else if(req.body.purpose === "portOver")
+    {
+        var {id, selectedLocation} = req.body;
+        var controller = new RegistrationController();
+        var result = await controller.portOverParticipant(id, selectedLocation);
+        //console.log("Retrieve Registration Records:", result);
+        return res.json({"result": result}); 
+    }
     else if(req.body.purpose === "update")
     {
         var id = req.body.id;

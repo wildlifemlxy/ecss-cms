@@ -868,6 +868,34 @@ class DatabaseConnectivity {
             return { success: false, error };
         }
     }
+    
+    async portOverParticipant(databaseName, collectionName, id, selectedLocation) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+      
+        try {
+          const filter = { _id: new ObjectId(id) }; // Find document by ID
+          const update = { $set: { "course.courseLocation": selectedLocation } }; // Update nested field
+      
+          // Perform the update operation
+          const result = await table.updateOne(filter, update);
+      
+          if (result.modifiedCount === 1) {
+            console.log("Successfully ported over the document.");
+            return { success: true, message: "Document ported over successfully." };
+          } else if (result.matchedCount === 0) {
+            console.log("No document found with that ID.");
+            return { success: false, message: "No document found with that ID." };
+          } else {
+            console.log("Document found but not modified.");
+            return { success: false, message: "Document was found but no changes were made." };
+          }
+        } catch (error) {
+          console.log("Error porting over document:", error);
+          return { success: false, error: error.message || error };
+        }
+      }
+      
 
     async deleteAccessRights(databaseName, collectionName, id) {
         const db = this.client.db(databaseName);

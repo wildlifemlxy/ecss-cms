@@ -1,6 +1,7 @@
 import requests
 from django.conf import settings
 import re
+import math
 
 class WooCommerceAPI:
     def __init__(self):
@@ -204,7 +205,7 @@ class WooCommerceAPI:
             # Extract actual vacancies number using a regex directly in this function
             vacancies_match = re.search(r'(\d+)\s*Vacancies', vacancies_text)
             if vacancies_match:
-                vacancies = int(vacancies_match.group(1))
+                vacancies =  math.ceil(int(vacancies_match.group(1))*1.5)
             else:
                 vacancies = 0  # Return 0 if no vacancies are found
 
@@ -240,3 +241,69 @@ class WooCommerceAPI:
         except requests.exceptions.RequestException as e:
             print(f"Error updating product stock: {e}")
             return False
+
+    def updatePortOver(request, product_id):
+            """
+            Updates the product stock based on the product ID and the status.
+            Arguments:
+                - product_id: The ID of the product to update.
+                - status: The status to update stock based on ("Cancelled", "Paid", "SkillsFuture Done").
+            """
+            try:
+                # Fetch current product details
+                url = f"{settings.WOOCOMMERCE_API_URL}products/{product_id}"
+                auth = (settings.WOOCOMMERCE_CONSUMER_KEY, settings.WOOCOMMERCE_CONSUMER_SECRET)
+                response = requests.get(url, auth=auth)
+                response.raise_for_status()
+
+                product = response.json()
+
+                # Get the current stock quantity
+                original_stock_quantity = product.get("stock_quantity", 0)
+                new_stock_quantity = original_stock_quantity  # Start with current stock
+                print("Current Stock Quantity:", new_stock_quantity)
+
+                # Parse short description to find "vacancy"
+                short_description = product.get("short_description", "")
+                array = short_description.split("<p>")
+                if array and array[0] == '':
+                    array.pop(0)  # Remove empty first entry
+
+                # Extract the number of vacancies directly within this function
+                vacancies_text = next(
+                    (item.replace("\n", "").replace("<b>", "").replace("</b>", "")
+                    for item in array if "vacancy" in item.lower()),
+                    ""
+                ).split("<br />")[-1].strip()
+                vacancies_text = vacancies_text.replace("</p>", "").strip()        
+
+                print("Vacancies Text:", vacancies_text)
+
+                # Extract actual vacancies number using a regex directly in this function
+                vacancies_match = re.search(r'(\d+)\s*Vacancies', vacancies_text)
+                if vacancies_match:
+                    vacancies = math.ceil(int(vacancies_match.group(1))*1.5)
+                else:
+                    vacancies = 0  # Return 0 if no vacancies are found
+
+                print("Actual Vacancies:", vacancies)
+
+                if new_stock_quantity < vacancies:  # Only increase stock if it is below vacancies
+                    print("Increase stock by 1")
+                    new_stock_quantity += 1
+                else:
+                    print("Stock is full, no increase.")  # Prevent increase beyond vacancies
+
+                print("Updated Stock Quantity:", new_stock_quantity)
+
+                # Only update stock if it has changed
+                update_data = {"stock_quantity": new_stock_quantity}
+                update_response = requests.put(f"{settings.WOOCOMMERCE_API_URL}products/{product_id}",
+                                                json=update_data, auth=auth)
+                update_response.raise_for_status()
+
+                return True  # Successfully updated stock
+
+            except requests.exceptions.RequestException as e:
+                print(f"Error updating product stock: {e}")
+                return False

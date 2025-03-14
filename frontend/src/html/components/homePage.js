@@ -34,6 +34,7 @@
         languages: [],
         types: [],
         names: [],
+        status: '',
         selectedCourseLanguage: '',
         selectedCourseLocation: '',
         selectedCourseType: '',
@@ -44,6 +45,7 @@
         regPaymentSearchQuery: '',
         resetSearch: false,
         currentPage: 1,
+        courseInfo: {},
         entriesPerPage: 100000000000,
         totalPages: 1,
         nofCourses: 0,
@@ -437,9 +439,24 @@
       console.log("ID deleted:", id);
       this.setState({
         isPopupOpen: true,
-        popupMessage: `Are you sure you want to delete this item?`, // You can customize this based on your data
-        popupType: "confirmation", // You can use this to style it differently if needed
+        popupMessage: `Are you sure you want to delete this participant?`, // You can customize this based on your data
+        popupType: "delete", // You can use this to style it differently if needed
         deleteId: id, // Store the row data to handle the deletion later
+      });
+    };
+
+    
+    generatePortOverConfirmationPopup = (id, courseInfo, status) => {
+      console.log("ID deleted:", id);
+      console.log("Course Info:", courseInfo);
+      console.log("Payment Status:", status);
+      this.setState({
+        isPopupOpen: true,
+        popupMessage: `Are you sure you want to port over this participant?`, // You can customize this based on your data
+        popupType: "portOver", // You can use this to style it differently if needed
+        deleteId: id, // Store the row data to handle the deletion later
+        courseInfo: courseInfo, // Store the row data to handle the deletion later
+        status: status
       });
     };
     
@@ -780,7 +797,7 @@
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const { item,isDropdownOpen, isReceiptVisible, invoiceVisibility, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName} = this.state;
+      const { status, item, isDropdownOpen, isReceiptVisible, invoiceVisibility, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo} = this.state;
 
       return (
         <>
@@ -960,6 +977,7 @@
                         onResetSearch = {this.onResetSearch}
                         closePopupMessage = {this.closePopupMessage}
                         generateDeleteConfirmationPopup = {this.generateDeleteConfirmationPopup}
+                        generatePortOverConfirmationPopup = {this.generatePortOverConfirmationPopup}
                     />
                     </div>
                   </>}                 
@@ -1019,7 +1037,7 @@
                 All rights reserved.</p>
             </div>
           </div>
-          <Popup isOpen={isPopupOpen} message={popupMessage} type={popupType} closePopup={this.closePopup} closePopup2={this.closePopup2} goBackLoginPage={this.goBackHome} closePopupMessage={this.closePopupMessage} id = {this.state.deleteId}/>
+          <Popup isOpen={isPopupOpen} message={popupMessage} type={popupType} status={status} courseInfo={courseInfo} closePopup={this.closePopup} closePopup2={this.closePopup2} goBackLoginPage={this.goBackHome} closePopupMessage={this.closePopupMessage} id = {this.state.deleteId}/>
         </>
       );
     }

@@ -670,3 +670,46 @@ def update_stock(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
     
+@csrf_exempt
+def port_over(request):
+    """Fetches and returns a list of products from WooCommerce based on the courseType."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid method, please use POST'})
+
+    try:
+        # Parse the request body as JSON
+        data = json.loads(request.body)
+        print("Data received Port Over:", data)
+
+        # Get courseName from the request body and clean it up
+        courseName = data.get('page')  # Assuming 'page' is where the course name is stored
+
+        if courseName:
+            # Format the course name details as a string for logging
+            # Get the course name components
+            chi_name = courseName.get('courseChiName', '')
+            eng_name = courseName.get('courseEngName', '')
+            location = courseName.get('courseLocation', '')
+            print(chi_name+"<br />"+eng_name+"<br />"+location)
+
+            # Initialize WooCommerce API and fetch the product ID
+            woo_api = WooCommerceAPI()
+            result = woo_api.getProductId(chi_name, eng_name, f"({location})")  # Use the formatted string
+            print("Result:", result)
+
+            if result['exist'] == True:
+                print("Update Product Stocks")
+                productId = result['id']
+                print('Product Id:', result)
+                result2 = woo_api.updatePortOver(productId)
+
+                return JsonResponse({'success': result2})
+
+        else:
+            print("No course data found in the 'page' field.")
+
+    except Exception as e:
+        print("Error:", e)  # Log the error to the console
+        return JsonResponse({'success': False, 'error': str(e)})
+
+    

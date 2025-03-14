@@ -1040,8 +1040,8 @@ class RegistrationPaymentSection extends Component {
   
   getColumnDefs = () => {
     const { role } = this.props; // Get the role from props
-    
-    return [
+  
+    const columnDefs = [
       {
         headerName: "S/N",
         field: "sn",
@@ -1070,21 +1070,15 @@ class RegistrationPaymentSection extends Component {
         width: 300,
         cellRenderer: (params) => {
           // Hide value if the role is "Site in-charge"
-          if (role === "Site in-charge") {
-            return null;
-          }
-      
-          return params.value; // Just return the location value
-        }
-      },      
+          return role === "Site in-charge" ? null : params.value;
+        },
+      },
       {
         headerName: "Payment Method",
         field: "paymentMethod",
         cellRenderer: (params) => {
-          const courseName = params.data.course;
-          const courseLocation = params.data.courseInfo.courseLocation;
-          const courseType = params.data.courseInfo.courseType;
-          return this.paymentMethodRenderer(params, courseName, courseLocation, courseType);
+          const { course, courseInfo } = params.data;
+          return this.paymentMethodRenderer(params, course, courseInfo.courseLocation, courseInfo.courseType);
         },
         editable: false,
         width: 500,
@@ -1096,8 +1090,7 @@ class RegistrationPaymentSection extends Component {
         editable: false,
         width: 180,
         cellStyle: (params) => {
-          const paymentMethodValue = params.data.paymentMethod;
-          return paymentMethodValue !== "SkillsFuture" ? { display: "none" } : {};
+          return params.data.paymentMethod !== "SkillsFuture" ? { display: "none" } : {};
         },
       },
       {
@@ -1105,21 +1098,16 @@ class RegistrationPaymentSection extends Component {
         field: "paymentStatus",
         cellEditor: "agSelectCellEditor",
         cellEditorParams: (params) => {
-          const paymentMethod = params.data.paymentMethod;
-          const courseType = params.data.courseInfo.courseType;
-          
-          const skillsFutureOptions = [
-            "Pending",
-            "Generating SkillsFuture Invoice",
-            "SkillsFuture Done",
-            "Cancelled",
-          ];
-          const otherOptions = ["Pending", "Paid", "Cancelled"];
-          const iLPoptions = ["Pending", "Confirmed", "Cancelled"];
-          const options = courseType === "NSA"
-              ? (paymentMethod === "SkillsFuture" ? skillsFutureOptions : otherOptions)
-              : iLPoptions;
-
+          const { paymentMethod, courseInfo } = params.data;
+          const courseType = courseInfo.courseType;
+  
+          const options =
+            courseType === "NSA"
+              ? paymentMethod === "SkillsFuture"
+                ? ["Pending", "Generating SkillsFuture Invoice", "SkillsFuture Done", "Cancelled"]
+                : ["Pending", "Paid", "Cancelled"]
+              : ["Pending", "Confirmed", "Cancelled"];
+  
           return { values: options };
         },
         cellRenderer: (params) => {
@@ -1131,8 +1119,6 @@ class RegistrationPaymentSection extends Component {
             Paid: "#008000",
             Confirmed: "#008000",
           };
-          
-          const backgroundColor = statusStyles[params.value] || "#D3D3D3"; // Default light gray for unknown values
   
           return (
             <span
@@ -1142,12 +1128,11 @@ class RegistrationPaymentSection extends Component {
                 textAlign: "center",
                 display: "inline-block",
                 borderRadius: "20px",
-                paddingLeft: "30px",
-                paddingRight: "30px",
+                padding: "5px 15px",
                 minWidth: "150px",
                 lineHeight: "30px",
                 whiteSpace: "nowrap",
-                backgroundColor: backgroundColor
+                backgroundColor: statusStyles[params.value] || "#D3D3D3",
               }}
             >
               {params.value}
@@ -1162,37 +1147,71 @@ class RegistrationPaymentSection extends Component {
         field: "recinvNo",
         width: 300,
       },
-      // Conditionally include the "Delete" column based on the role
-      !["Site in-charge", "Finance"].includes(role) 
-        ? {
-            headerName: "",
-            field: "delete",
-            width: 300,
-            cellRenderer: (params) => {
-              // Check if the role is NOT "Site in-charge" or "Finance"
-              if (["Site in-charge", "Finance"].includes(role)) {
-                return null; // If the role is "Site in-charge" or "Finance", don't show the button
-              }
-              
-              // Return a "Delete" button if the role is allowed
-              return (
-                <button
-                  onClick={() => this.handleDelete(params.data.id)} // Call the delete handler with row data
-                  style={{ backgroundColor: "#87CEEB", color: "#ffffff", borderRadius: "5px", width: "fit-content", fontWeight: "bold", height: "fit-content", margin: "auto"}}
-                >
-                  Delete
-                </button>
-              );
-            }
-          }
-        : null
-    ].filter(Boolean); // Filter out null values if the "Delete" column is not included
+    ];
+  
+    // Add the "Delete" button column conditionally
+    if (!["Site in-charge", "Finance"].includes(role)) {
+      columnDefs.push({
+        headerName: "",
+        field: "delete",
+        width: 300,
+        cellRenderer: (params) => (
+          <button
+            onClick={() => this.handleDelete(params.data.id)}
+            style={{
+              backgroundColor: "#87CEEB",
+              color: "#ffffff",
+              borderRadius: "5px",
+              width: "fit-content",
+              fontWeight: "bold",
+              height: "fit-content",
+              margin: "auto",
+            }}
+          >
+            Delete
+          </button>
+        ),
+      });
+    }
+  
+    // Add the "Port Over" button column conditionally
+    if (!["Ops in-charge", "NSA in-charge", "Finance"].includes(role)) {
+      columnDefs.push({
+        headerName: "",
+        field: "portOver",
+        width: 300,
+        cellRenderer: (params) => (
+          <button
+            onClick={() => this.handlePortOver(params.data.id, params.data.courseInfo, params.data.paymentStatus)}
+            style={{
+              backgroundColor: "#C7A29B", // Pastel Brown
+              color: "#ffffff",
+              borderRadius: "5px",
+              width: "fit-content",
+              fontWeight: "bold", 
+              height: "fit-content",
+              margin: "auto",
+            }}
+          >
+            Port Over
+          </button>
+        ),
+      });
+    }
+  
+    return columnDefs;
   };
-
+  
   handleDelete = async(id) =>
   {
     //console.log("Registration Id:", id);
     await this.props.generateDeleteConfirmationPopup(id);
+  }
+
+  handlePortOver = async(id, courseInfo, status) =>
+  {
+    console.log("Params:", id, courseInfo, status);
+    await this.props.generatePortOverConfirmationPopup(id, courseInfo, status);
   }
   
   getPaginatedDetails() {
