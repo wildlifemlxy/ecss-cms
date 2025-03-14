@@ -1261,7 +1261,7 @@ class RegistrationPaymentSection extends Component {
         agreement: item.agreement,
         status: item.status,
         registrationDate: item.registrationDate,
-        refundedDate: item.official.refundedDate || ""
+        refundedDate: item.official?.refundedDate || ""
       };
     });
     console.log("All Rows Data:", rowData);
@@ -1355,16 +1355,8 @@ class RegistrationPaymentSection extends Component {
 
     try 
     {
-      //try agsain
         if (columnName === "Payment Method") 
         {
-          await axios.post(
-            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
-            {
-              id: id,
-              purpose: 'rempvedRefundedDate'
-            }
-          );
           this.props.showUpdatePopup("Updating in progress... Please wait ...");
           await axios.post(
             `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
@@ -1460,13 +1452,6 @@ class RegistrationPaymentSection extends Component {
         }
         else if (columnName === "Payment Status") 
         {
-          await axios.post(
-            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
-            {
-              id: id,
-              purpose: 'rempvedRefundedDate'
-            }
-          );
           this.props.showUpdatePopup("Updating in progress... Please wait ...")
           console.log('Cell clicked', event);
           const response = await axios.post(
@@ -1562,7 +1547,7 @@ class RegistrationPaymentSection extends Component {
                   `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
                   {
                     id: id,
-                    purpose: 'rempvedRefundedDate'
+                    purpose: 'removedRefundedDate'
                   }
                 );
                 console.log("Response Add Refunded Date:", response);
@@ -1745,7 +1730,7 @@ class RegistrationPaymentSection extends Component {
           participantInfo: item.participant,  // Participant details
           courseInfo: item.course,  // Course details
           officialInfo: item.official,  // Official details
-          refundedDate: item.offical.refundedDate|| ""// Official details
+          refundedDate: item.offical?.refundedDate|| ""// Official details
         }));
   
         // Update the row data with the filtered results
@@ -1816,7 +1801,7 @@ class RegistrationPaymentSection extends Component {
         participantInfo: item.participant,  // Participant details
         courseInfo: item.course,  // Course details
         officialInfo: item.official,  // Official details
-        refundedDate: item.official.refundedDate || ""// Official details
+        refundedDate: item.offical?.refundedDate || ""// Official details
       }));
 
       // Update the row data with the filtered results
