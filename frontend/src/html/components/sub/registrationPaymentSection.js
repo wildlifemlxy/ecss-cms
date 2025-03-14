@@ -182,6 +182,7 @@ class RegistrationPaymentSection extends Component {
     
           
     updateWooCommerceForRegistrationPayment = async (chi, eng, location, updatedStatus) => {
+      console.log("NOWWWW");  
       try {
         // Check if the value is "Paid" or "Generate SkillsFuture Invoice"
         if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled" || updatedStatus === "Confirmed") {
@@ -1336,6 +1337,7 @@ class RegistrationPaymentSection extends Component {
   
 
   onCellValueChanged = async (event) => {
+    console.log("Event Data111:", event);
     const columnName = event.colDef.headerName;
     const id = event.data.id;
     const courseName = event.data.course;
@@ -1348,7 +1350,7 @@ class RegistrationPaymentSection extends Component {
     const confirmed = event.data.confirmed;
     const paymentMethod = event.data.paymentMethod;
     const paymentStatus = event.data.paymentStatus;
-    const oldPaymentStatus = event.data.status;
+    const oldPaymentStatus = event.oldValue;
 
     console.log("Column Name:", columnName);
     this.setState({editedRowIndex: id});
@@ -1472,13 +1474,6 @@ class RegistrationPaymentSection extends Component {
                 console.log("Update Payment Status Success1");
                 if(newValue === "Cancelled")
                 {
-                    const response = await axios.post(
-                      `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
-                      {
-                        id: id,
-                        purpose: 'removedRefundedDate'
-                      }
-                    );
                     console.log("Old Payment Status:", oldPaymentStatus);
                     if(oldPaymentStatus === "Paid")
                     {
@@ -1489,6 +1484,13 @@ class RegistrationPaymentSection extends Component {
                             this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
                           ]);
                           console.log("Both tasks completed successfully.");
+                          const response = await axios.post(
+                            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+                            {
+                              id: id,
+                              purpose: 'removedRefundedDate'
+                            }
+                          );
                         } catch (error) {
                           console.error("Error occurred during parallel task execution:", error);
                         }};
@@ -1543,14 +1545,6 @@ class RegistrationPaymentSection extends Component {
               else if(newValue === "Cancelled")
               {
                 console.log("SkillsFuture, Old Payment Status:", oldPaymentStatus);
-                const response = await axios.post(
-                  `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
-                  {
-                    id: id,
-                    purpose: 'removedRefundedDate'
-                  }
-                );
-                console.log("Response Add Refunded Date:", response);
                 if(oldPaymentStatus === "SkillsFuture Done")
                 {
                   const performParallelTasks = async () => {
@@ -1560,6 +1554,14 @@ class RegistrationPaymentSection extends Component {
                         this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
                       ]);
                       console.log("Both tasks completed successfully.");
+                      const response = await axios.post(
+                        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+                        {
+                          id: id,
+                          purpose: 'removedRefundedDate'
+                        }
+                      );
+                      console.log("Response Add Refunded Date:", response);
                     } catch (error) {
                       console.error("Error occurred during parallel task execution:", error);
                     }};
