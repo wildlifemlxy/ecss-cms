@@ -1355,6 +1355,7 @@ class RegistrationPaymentSection extends Component {
 
     try 
     {
+      //try agsain
         if (columnName === "Payment Method") 
         {
           await axios.post(
