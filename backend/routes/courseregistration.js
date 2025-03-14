@@ -207,6 +207,15 @@ router.post('/', async function(req, res, next)
         //console.log("Update Remarks:". result);
         return res.json({"result": result}); 
     }
+    else if(req.body.purpose === "addRefundedDate")
+    {
+        //console.log("Add Refunded Date:", req.body);
+        const currentDateTime = getCurrentDateTime();
+        var controller = new RegistrationController();
+        var date = currentDateTime.date;
+        var result = await controller.addRefundedDate(req.body.id, date);
+        return res.json({"result": result});
+    }
 });
 
 module.exports = router;

@@ -169,7 +169,7 @@ class RegistrationPaymentSection extends Component {
     updateRowData(paginatedDetails) {
      // this.props.onResetSearch();
       // Update the state with the newly formatted rowData
-      //console.log("Row Datawe:", rowData);
+      //console.log("Row Datawe:", paginatedDetails);
       this.setState({registerationDetails: paginatedDetails});
     }
 
@@ -574,7 +574,7 @@ class RegistrationPaymentSection extends Component {
             "Participant Name", "Participant NRIC", "Participant Residential Status", "Participant Race", "Participant Gender", "Participant Date of Birth",
             "Participant Contact Number", "Participant Email", "Participant Postal Code", "Participant Education Level", "Participant Work Status",
             "Course Type", "Course English Name", "Course Chinese Name", "Course Location",
-            "Course Price", "Course Duration", "Payment", "Agreement", "Payment Status",
+            "Course Price", "Course Duration", "Payment", "Agreement", "Payment Status", "Refunded Date",
             "Staff Name", "Received Date", "Received Time", "Receipt/Inovice Number", "Remarks"
         ];
     
@@ -603,6 +603,7 @@ class RegistrationPaymentSection extends Component {
                 detail.courseInfo.payment,
                 detail.agreement,
                 detail.status,
+                detail.officialInfo?.refundedDate,
                 detail.officialInfo?.name,
                 detail.officialInfo?.date,
                 detail.officialInfo?.time,
@@ -1147,6 +1148,11 @@ class RegistrationPaymentSection extends Component {
         width: 350,
       },      
       {
+        headerName: "Refunded Date",
+        field: "refundedDate",
+        width: 250,
+      },
+      {
         headerName: "Receipt/Invoice Number",
         field: "recinvNo",
         width: 300,
@@ -1254,7 +1260,8 @@ class RegistrationPaymentSection extends Component {
         officialInfo: item.official,
         agreement: item.agreement,
         status: item.status,
-        registrationDate: item.registrationDate
+        registrationDate: item.registrationDate,
+        refundedDate: item.official.refundedDate || ""
       };
     });
     console.log("All Rows Data:", rowData);
@@ -1463,14 +1470,14 @@ class RegistrationPaymentSection extends Component {
               if(paymentMethod === "Cash" || paymentMethod === "PayNow")
               {
                 console.log("Update Payment Status Success1");
-                  if(newValue === "Cancelled")
-                  {
+                if(newValue === "Cancelled")
+                {
                     console.log("Old Payment Status:", oldPaymentStatus);
                     if(oldPaymentStatus === "Paid")
                     {
                       const performParallelTasks = async () => {
                         try {
-                          // Run the two functions in parallel using Promise.all
+                        // Run the two functions in parallel using Promise.all
                           await Promise.all([
                             this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
                           ]);
@@ -1480,6 +1487,18 @@ class RegistrationPaymentSection extends Component {
                         }};
                         await performParallelTasks();
                     }
+                }
+                else if(newValue === "Refunded")
+                {
+                  //console.log("Refunding in progress");
+                  const response = await axios.post(
+                    `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+                    {
+                      id: id,
+                      purpose: 'addRefundedDate'
+                    }
+                  );
+                  console.log("Response Add Refunded Date:", response);
                 }
                 else
                 {
@@ -1674,8 +1693,6 @@ class RegistrationPaymentSection extends Component {
           sn: index + 1,  // Serial number (S/N)
           name: item.participant.name,  // Participant's name
           contactNo: item.participant.contactNumber,  // Contact number
-          //course: this.decodeHtmlEntities(item.course.courseEngName),  // Course English name
-          //courseChi: this.decodeHtmlEntities(item.course.courseChiName),  // Course Chinese name
           course: item.course.courseEngName,  // Course English name
           courseChi: item.course.courseChiName,  // Course Chinese name
           location: item.course.courseLocation,  // Course location
@@ -1685,7 +1702,8 @@ class RegistrationPaymentSection extends Component {
           recinvNo: item.official.receiptNo,  // Receipt number
           participantInfo: item.participant,  // Participant details
           courseInfo: item.course,  // Course details
-          officialInfo: item.official  // Official details
+          officialInfo: item.official,  // Official details
+          refundedDate: item.offical.refundedDate|| ""// Official details
         }));
   
         // Update the row data with the filtered results
@@ -1746,8 +1764,6 @@ class RegistrationPaymentSection extends Component {
         sn: index + 1,  // Serial number (S/N)
         name: item.participant.name,  // Participant's name
         contactNo: item.participant.contactNumber,  // Contact number
-        //course: this.decodeHtmlEntities(item.course.courseEngName),  // Course English name
-        //courseChi: this.decodeHtmlEntities(item.course.courseChiName),  // Course Chinese name
         course: item.course.courseEngName,  // Course English name
         courseChi: item.course.courseChiName,  // Course Chinese name
         location: item.course.courseLocation,  // Course location
@@ -1757,7 +1773,8 @@ class RegistrationPaymentSection extends Component {
         recinvNo: item.official.receiptNo,  // Receipt number
         participantInfo: item.participant,  // Participant details
         courseInfo: item.course,  // Course details
-        officialInfo: item.official  // Official details
+        officialInfo: item.official,  // Official details
+        refundedDate: item.official.refundedDate || ""// Official details
       }));
 
       // Update the row data with the filtered results
