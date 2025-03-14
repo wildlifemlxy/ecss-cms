@@ -216,6 +216,14 @@ router.post('/', async function(req, res, next)
         var result = await controller.addRefundedDate(req.body.id, date);
         return res.json({"result": result});
     }
+    else if(req.body.purpose === "removedRefundedDate")
+    {
+        //console.log("Add Refunded Date:", req.body);
+        const currentDateTime = getCurrentDateTime();
+        var controller = new RegistrationController();
+        var result = await controller.addRefundedDate(req.body.id, "");
+        return res.json({"result": result});
+    }
 });
 
 module.exports = router;

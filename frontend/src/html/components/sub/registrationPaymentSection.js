@@ -1472,6 +1472,13 @@ class RegistrationPaymentSection extends Component {
                 console.log("Update Payment Status Success1");
                 if(newValue === "Cancelled")
                 {
+                    const response = await axios.post(
+                      `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+                      {
+                        id: id,
+                        purpose: 'removedRefundedDate'
+                      }
+                    );
                     console.log("Old Payment Status:", oldPaymentStatus);
                     if(oldPaymentStatus === "Paid")
                     {
@@ -1536,6 +1543,14 @@ class RegistrationPaymentSection extends Component {
               else if(newValue === "Cancelled")
               {
                 console.log("SkillsFuture, Old Payment Status:", oldPaymentStatus);
+                const response = await axios.post(
+                  `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+                  {
+                    id: id,
+                    purpose: 'rempvedRefundedDate'
+                  }
+                );
+                console.log("Response Add Refunded Date:", response);
                 if(oldPaymentStatus === "SkillsFuture Done")
                 {
                   const performParallelTasks = async () => {
@@ -1549,6 +1564,18 @@ class RegistrationPaymentSection extends Component {
                       console.error("Error occurred during parallel task execution:", error);
                     }};
                     await performParallelTasks();
+                }
+                else if(newValue === "Refunded")
+                {
+                  //console.log("Refunding in progress");
+                  const response = await axios.post(
+                    `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+                    {
+                      id: id,
+                      purpose: 'addRefundedDate'
+                    }
+                  );
+                  console.log("Response Add Refunded Date:", response);
                 }
                 else
                 {
