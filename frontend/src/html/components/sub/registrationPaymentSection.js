@@ -1454,7 +1454,8 @@ class RegistrationPaymentSection extends Component {
         }
         else if (columnName === "Payment Status") 
         {
-          this.props.showUpdatePopup("Updating in progress... Please wait ...")
+          this.props.showUpdatePopup("Updating in progress... Please wait ...");
+          
           console.log('Cell clicked', event);
           const response = await axios.post(
             `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,

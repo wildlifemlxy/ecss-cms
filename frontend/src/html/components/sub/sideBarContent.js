@@ -60,8 +60,8 @@ class SideBarContent extends Component {
             const response = await axios.post(
                 `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/accessRights`,
                 {
-                "purpose": "retrieveAccessRight",
-                "accountId": accountId
+                    "purpose": "retrieveAccessRight",
+                    "accountId": accountId
                 }
             );          
             console.log(response);
@@ -114,12 +114,16 @@ class SideBarContent extends Component {
        }
        else if(subKey === "Registration And Payment Table")
        {
-        this.props.toggleRegistrationPaymentComponent(subKey);
+          this.props.toggleRegistrationPaymentComponent(subKey);
        }
-       else if(subKey === "Invoice Table")
-        {
-         this.props.toggleInvoiceComponent(subKey);
-        }
+       else if(subKey === "Monthly Report")
+       {
+         this.props.toggleReportComponent(subKey);
+       }
+       else if(subKey === "Payment Report")
+       {
+        this.props.toggleReportComponent(subKey);
+       }
     }
 
     closeSubMenu = () =>
@@ -133,11 +137,12 @@ class SideBarContent extends Component {
         // Map of icons for each main item
         const iconMap = {
             "Home": 'fa-solid fa-house-user',
-            "Dashboard": 'fa fa-dashboard',
+            "Dashboard": 'fa-solid fa-dashboard',
             "Account": 'fa-solid fa-users',
             "Courses": "fa-solid fa-chalkboard-user",
-            "Registration And Payment": 'fa-brands fa-wpforms',
+            "Registration And Payment": 'fa-solid fa-brands fa-wpforms',
             "QR Code": 'fa-solid fa-qrcode',
+            "Reports": 'fa-solid fa-table'
         };
 
         return (

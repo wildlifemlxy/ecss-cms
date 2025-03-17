@@ -958,6 +958,7 @@ class DatabaseConnectivity {
                 regPay: "Registration And Payment",
                 qRCode: "QR Code",
                 courses: "Courses",
+                reports: "Reports"
               };
     
            // Exclude _id from the updateAccessRight if it exists

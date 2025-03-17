@@ -82,7 +82,7 @@ class AccessRightController
                 var databaseName = "Courses-Management-System";
                 var collectionName = "Access Rights";
                 var connectedDatabase = await this.databaseConnectivity.retrieveOneFromDatabase(databaseName, collectionName, accountId);   
-                var accessRights = {"Account": connectedDatabase["Account"], "Courses": connectedDatabase["Courses"], "Registration And Payment": connectedDatabase["Registration And Payment"], "QR Code":  connectedDatabase["QR Code"]}
+                var accessRights = {"Account": connectedDatabase["Account"], "Courses": connectedDatabase["Courses"], "Registration And Payment": connectedDatabase["Registration And Payment"], "QR Code":  connectedDatabase["QR Code"], "Reports":  connectedDatabase["Reports"]}
                 return accessRights;
             }
         } 
