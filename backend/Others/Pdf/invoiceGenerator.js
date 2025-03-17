@@ -299,7 +299,7 @@ class invoiceGenerator {
             "Therapeutic Watercolour Painting for Beginners ": "TGS-2022015736",
             "Chinese Calligraphy Intermediate": "TGS-2022011921",
             "Chinese Calligraphy Basic": "TGS-2022011920",
-            "Nagomi Pastel Art Appreciation": "TGS-2022011920",
+            "Nagomi Pastel Art Appreciation": "TGS-2022011918",
             "Community Ukulele – Mandarin": "TGS-2021008564",
             "Community Singing – Mandarin": "TGS-2021008563",
             "Self-Care TCM Wellness – Mandarin": "TGS-2021008561",

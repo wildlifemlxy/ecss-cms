@@ -5,6 +5,7 @@ import NewCustomersPage from './html/components/newCustomers';
 import HomePage from './html/components/homePage';
 import FormPage from './html/components/formPage';
 import SingpassPage from './html/components/singpassPage';
+import MassImportPage from './html/components/massImportPage';
 import MyInfoRedirectPage from './html/components/MyInfoRedirectPage';
 import MyInfoResultsPage from './html/components/MyInfoResultsPage';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -24,6 +25,7 @@ class App extends Component
           <ProtectedRoute path="/home" component={HomePage} />
           <Route path="/form" component={FormPage} />
           <Route path="/new" component={NewCustomersPage} />
+          <Route path="/mass" component={MassImportPage} />
           <Route exact path="/singpass" component={SingpassPage} />
           <Route path="/myinfo-redirect" component={MyInfoRedirectPage} />
           <Route path="/myinfo-results" component={MyInfoResultsPage} />

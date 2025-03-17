@@ -1,0 +1,51 @@
+  
+  /* File input styling */
+  .upload-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+  }
+  
+  .upload-section h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  /* Hide the default file input */
+  .file-input {
+    display: none;
+  }
+  
+  /* Custom file input label */
+  .custom-file-input {
+    padding: 12px;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    width: auto;
+    text-align: center;
+    cursor: pointer;
+    background-color: #f1f3f6;
+    color: #333;
+    margin-top: 10px;
+    display: inline-block;
+    text-transform: uppercase;
+  }
+  
+  .custom-file-input:hover {
+    background-color: #ddd;
+  }
+  
+  .custom-file-input:active {
+    background-color: #ccc;
+  }
+  
+  /* Optional: Add additional styles for responsiveness */
+  @media (max-width: 768px) {
+    .custom-file-input {
+      width: 100%;
+    }
+  }
+  

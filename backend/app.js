@@ -15,6 +15,7 @@ var accessRightsRouter = require("./routes/accessRights");
 var receiptRouter = require("./routes/receipt");
 var invoiceRouter = require("./routes/invoice");
 var singpassRouter = require("./routes/singpass");
+var massimportRouter = require("./routes/massimport");
 
 app.use(cors()); // Enable CORS
 app.use(logger('dev')); // HTTP request logger
@@ -47,6 +48,7 @@ app.use("/accessRights", accessRightsRouter);
 app.use("/receipt", receiptRouter);
 app.use("/invoice", invoiceRouter);
 app.use("/singpass", singpassRouter);
+app.use("/massimport", massimportRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

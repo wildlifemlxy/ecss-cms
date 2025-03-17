@@ -895,7 +895,24 @@ class DatabaseConnectivity {
           console.log("Error porting over document:", error);
           return { success: false, error: error.message || error };
         }
-      }
+    }
+    
+    async massImport(databaseName, collectionName, formattedData) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            // Insert many documents at once
+            const result = await table.insertMany(formattedData);
+    
+            console.log(`${result.insertedCount} documents were inserted.`);
+            return { success: true, message: `${result.insertedCount} documents inserted successfully.` };
+        } catch (error) {
+            console.log("Error inserting documents:", error);
+            return { success: false, error };
+        }
+    }
+    
       
 
     async deleteAccessRights(databaseName, collectionName, id) {
@@ -1011,6 +1028,8 @@ class DatabaseConnectivity {
         }
     }
 }
+
+
 
 // Export the instance for use in other modules
 module.exports = DatabaseConnectivity;
