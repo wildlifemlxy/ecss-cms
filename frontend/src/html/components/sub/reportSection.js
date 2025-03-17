@@ -33,7 +33,9 @@ class ReportSection extends Component {
       fromDate: '',
       toDate: '',
       showReport: false,
-      dateRange: ""
+      dateRange: "", 
+      totalCash: 0,
+      totalPayNow: 0
     };
   }
 
@@ -68,6 +70,7 @@ class ReportSection extends Component {
       this.props.closePopup1();
     }
   };
+
   calculateTotalPriceForSelectedMonth = (selectedMonth) => {
     const { invoiceData } = this.state;
     console.log("Invoice Data:", invoiceData);
@@ -148,16 +151,37 @@ class ReportSection extends Component {
     const filteredData = invoiceData.filter(item => {
       const paymentDateString = item.official.date; // Assuming the format is 'dd/mm/yyyy'
       const paymentDate = parseDate(paymentDateString);
-      
+  
       // Ensure there's a valid receipt number, the payment date is within the specified range,
       // and the course location is 'Tampines 253 Centre'
-      return item.official.receiptNo && paymentDate >= fromParsed && paymentDate <= toParsed && item.course.courseLocation === "Tampines 253 Centre" && item.course.payment !== "SkillsFuture";
+      return item.official.receiptNo && paymentDate >= fromParsed && paymentDate <= toParsed && item.course.courseLocation === "Tampines 253 Centre" && item.official.date !== "" && item.official.receiptNo !== "" && item.course.payment !== "SkillsFuture";
     });
-    
   
     console.log("Filtered Data:", filteredData);
   
-    // Calculate total price for the filtered data
+    // Calculate total price for Cash, PayNow, and Total
+    const totalCash = filteredData.reduce((total, item) => {
+      let price = 0;
+      if (item.official.date && item.course.payment === "Cash") {
+        const priceString = item.course?.coursePrice.replace('$', '').trim();
+        if (priceString !== "" && !isNaN(parseFloat(priceString))) {
+          price = parseFloat(priceString);
+        }
+      }
+      return total + price;
+    }, 0);
+  
+    const totalPayNow = filteredData.reduce((total, item) => {
+      let price = 0;
+      if (item.official.date && item.course.payment === "PayNow") {
+        const priceString = item.course?.coursePrice.replace('$', '').trim();
+        if (priceString !== "" && !isNaN(parseFloat(priceString))) {
+          price = parseFloat(priceString);
+        }
+      }
+      return total + price;
+    }, 0);
+  
     const totalPrice = filteredData.reduce((total, item) => {
       let price = 0;
       if (item.official.date) {
@@ -166,14 +190,20 @@ class ReportSection extends Component {
           price = parseFloat(priceString);
         }
       }
-      return total + price; // Perform numerical addition
+      return total + price;
     }, 0);
   
-    console.log("Filtered Total Price:", totalPrice);
+    console.log("Total Cash:", totalCash);
+    console.log("Total PayNow:", totalPayNow);
+    console.log("Total Price:", totalPrice);
   
-    // Update the state with the total price, formatted to two decimal places
-    this.setState({ totalPrice: totalPrice.toFixed(2) });
-  };
+    // Update the state with the totals, formatted to two decimal places
+    this.setState({
+      totalCash: totalCash.toFixed(2),
+      totalPayNow: totalPayNow.toFixed(2),
+      totalPrice: totalPrice.toFixed(2)
+    });
+  };  
   
   
   // Function to fetch invoice details and populate the AG-Grid
@@ -250,7 +280,7 @@ class ReportSection extends Component {
         if (date) {
           // If both fromDate and toDate are valid, filter based on date range and location
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
-            return date >= fromParsed && date <= toParsed && courseLocation === targetLocation && item.official.receiptNo !== "";
+            return date >= fromParsed && date <= toParsed && courseLocation === targetLocation && item.official.receiptNo !== "" && item.official.date !== "" && item.course.payment !== "SkillsFuture";
           } else if (!fromParsed && !toParsed) {
             // If no date range, just filter by courseLocation
             return false;
@@ -648,7 +678,7 @@ class ReportSection extends Component {
                     onChange={this.handleFromDateChange}
                     value={this.state.fromDate}
                     placeholder = "dd/mm/yyyy"
-                    style={{ padding: '8px', fontSize: '1rem', width: '15vw',  border: '1px solid #000000', borderRadius: '4px'}}
+                    style={{ padding: '8px', fontSize: '1rem', width: '7vw',  border: '1px solid #000000', borderRadius: '4px'}}
                   />
                 </div>
 
@@ -661,7 +691,7 @@ class ReportSection extends Component {
                     onChange={this.handleToDateChange}
                     value={this.state.toDate}
                     placeholder = "dd/mm/yyyy"
-                    style={{ padding: '8px', fontSize: '1rem', width: '15vw',  border: '1px solid #000000', borderRadius: '4px' }}
+                    style={{ padding: '8px', fontSize: '1rem', width: '7vw',  border: '1px solid #000000', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
@@ -678,8 +708,13 @@ class ReportSection extends Component {
                   <p>
                     <strong>Status : {this.state.status}</strong>
                   </p>
-                  <p>
-                    <strong>Total : ${this.state.totalPrice}</strong>
+                  <p style={{ display: 'flex', alignItems: 'flex-start' }}>
+                    <strong style={{ marginRight: '10px' }}>Total:</strong>
+                    <span style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span>${this.state.totalPrice} </span>
+                      <span>${this.state.totalCash}   (Cash)</span>
+                      <span> ${this.state.totalPayNow}   (PayNow)</span>
+                    </span>
                   </p>
                 </div>
                 <div id="ag-grid-container" name="agGridContainer" className="ag-theme-alpine">

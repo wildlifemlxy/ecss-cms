@@ -263,88 +263,57 @@ class RegistrationPaymentSection extends Component {
           throw error;
         }
       };
-      
-    
-      receiptShown = async (participant, course, receiptNo, officialInfo) => 
-      {
+
+
+      receiptShown = async (participant, course, receiptNo, officialInfo) => {
         try {
-          if(course.payment === "Cash" || course.payment === "PayNow")
-          {
-            const pdfResponse = await axios.post(
-              `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, // Your endpoint
-              {
-                purpose: "receipt",
-                participant,
-                course,
-                staff: this.props.userName,
-                receiptNo,
-                officialInfo
-              },
-              { responseType: "blob" }
-            );
-            
-            // Extract the filename from the response's content-disposition header
-            const contentDisposition = pdfResponse.headers["content-disposition"];
-            const filenameMatch = contentDisposition ? contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/) : null;
-            const filename = filenameMatch ? filenameMatch[1].replace(/['"]/g, "") : "receipt.pdf";
-            
-            // Create a Blob object from the response data (PDF)
-            const blob = new Blob([pdfResponse.data], { type: "application/pdf" });
-            
-            // Create a URL for the Blob
-            const url = window.URL.createObjectURL(blob);
-            
-            // Open the PDF in a new tab (automatically triggering the popup)
-            const pdfWindow = window.open(url, '_blank');
-            
-            // Fallback if the window fails to open (in case of popup blockers)
-            if (!pdfWindow) {
-              alert('Please allow popups to view the PDF receipt.');
-            }
-            
-            console.log(`PDF URL: ${url}`);
-            
-          }
-          else
-          {
-            const pdfResponse = await axios.post(
-              `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+          // Define the purpose based on payment type
+          let purpose = course.payment === "Cash" || course.payment === "PayNow" ? "receipt" : "invoice";
+      
+          // Send request to backend to generate PDF
+          const pdfResponse = await axios.post(
+            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
             {
-              purpose: "invoice",
+              purpose,
               participant,
               course,
               staff: this.props.userName,
               receiptNo,
+              officialInfo
             },
             { responseType: "blob" }
           );
-
-          // Extract the filename from the response's content-disposition header
-          const contentDisposition = pdfResponse.headers["content-disposition"];
-          const filenameMatch = contentDisposition ? contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/) : null;
-          const filename = filenameMatch ? filenameMatch[1].replace(/['"]/g, "") : "receipt.pdf";
-          
-          // Create a Blob object from the response data (PDF)
+      
+          // Dynamically generate filename based on participant name, payment type, and receipt number
+          const filename = `${participant.name}-${course.payment}-${receiptNo}.pdf`;
+          console.log("Generated Filename:", filename);  // Debugging
+      
+          // Create a Blob from the PDF data
           const blob = new Blob([pdfResponse.data], { type: "application/pdf" });
-          
-          // Create a URL for the Blob
-          const url = window.URL.createObjectURL(blob);
-          
-          // Open the PDF in a new tab (automatically triggering the popup)
-          const pdfWindow = window.open(url, '_blank');
-          
-          // Fallback if the window fails to open (in case of popup blockers)
+      
+          // Create a Blob URL
+          const blobUrl = window.URL.createObjectURL(blob);
+      
+          // Open the PDF in a new tab for viewing
+          const pdfWindow = window.open(blobUrl, "_blank");
+      
+          // Fallback if popups are blocked
           if (!pdfWindow) {
-            alert('Please allow popups to view the PDF receipt.');
+            alert("Please allow popups to view the PDF receipt.");
           }
-          
-          console.log(`PDF URL: ${url}`);
-        }
+      
+          // Create a temporary <a> element to trigger the download
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          a.download = filename;  // Set the filename for download
+          a.click();  // Programmatically click to download the PDF
+      
+          // Clean up by revoking the Blob URL after download is triggered
+          window.URL.revokeObjectURL(blobUrl);
         } catch (error) {
           console.error("Error generating PDF receipt:", error);
-          throw error;
         }
-      };
+      };      
 
       async getNextReceiptNumber(databaseName, collectionName, courseLocation, centreLocation) {
         const db = this.client.db(databaseName);
