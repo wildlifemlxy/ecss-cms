@@ -300,6 +300,34 @@ class RegistrationController {
         }    
     }
 
+    async addRefundedDate(id, date) {
+        try {
+            // Connect to the database
+            var result = await this.databaseConnectivity.initialize();
+            console.log("Database Connectivity:", result);
+    
+            if (result === "Connected to MongoDB Atlas!") {
+                var databaseName = "Courses-Management-System"; 
+                var collectionName = "Registration Forms"; // ✅ Defined collection name
+    
+                // Call addRefundedDate function in databaseConnectivity
+                var updateResult = await this.databaseConnectivity.addRefundedDate(databaseName, collectionName, id, date);
+    
+                console.log("Update Result:", updateResult);
+                return updateResult.acknowledged;
+            }
+        } catch (error) {
+            console.error("Error adding Refunded Date:", error);
+            return {
+                success: false,
+                message: "Error adding Refunded Date",
+                error: error
+            };
+        } finally {
+            await this.databaseConnectivity.close(); // ✅ Ensure the connection is closed
+        }
+    }
+    
     async updateEntry(participantDetails)
     {
         try {
@@ -310,7 +338,8 @@ class RegistrationController {
             if(result === "Connected to MongoDB Atlas!")
             {
                 var databaseName = "Courses-Management-System"; 
-                var connectedDatabase = await this.databaseConnectivity.updateRegistrationEntry(databaseName, participantDetails);  
+                var collectionName = "Registration Forms";
+                var connectedDatabase = await this.databaseConnectivity.updateRegistrationEntry(databaseName, collectionName, participantDetails);  
                 return connectedDatabase.acknowledged;
                 //console.log(connectedDatabase);
             }

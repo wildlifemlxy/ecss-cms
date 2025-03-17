@@ -12,7 +12,7 @@
   import ReceiptSection from './sub/receiptSection';
   import SideBarContent from './sub/sideBarContent';
   import DashboardSection from './sub/dashboardSection';
-  import InvoiceSection from './sub/invoiceSection';
+  import ReportSection from './sub/reportSection';
   import { withAuth } from '../../AuthContext';
   import axios from 'axios';  
 
@@ -63,9 +63,10 @@
         item: '',
         isInactive: false,
         refreshKey: 0,
-        invoiceVisibility: false,
         dashboard: false,
-        deleteId: ""
+        deleteId: "",
+        reportVisibility: false,
+        reportType: ""
       };
   
       // Set the initial state
@@ -178,7 +179,7 @@
       }
     }
 
-    toggleInvoiceComponent = async() =>
+    toggleReportComponent = async(reportType) =>
     {
       try 
       {
@@ -194,7 +195,8 @@
             section: "",
             accountType: null,
             createAccount: false,
-            invoiceVisibility: true
+            reportVisibility: true, 
+            reportType: reportType
           });
       } 
       catch (error) 
@@ -271,7 +273,7 @@
           accountType: "",
           createAccount: false,
           isReceiptVisible: false,
-          invoiceVisibility: false
+          reportVisibility: false
         });
       } catch (error) {
         console.log(error);
@@ -327,7 +329,7 @@
               section: "",
               accountType: null,
               createAccount: false,
-              invoiceVisibility: false,
+              reportVisibility: false,
               dashboard: true,
               isPopupOpen: true,
               popupMessage: "Loading Dashboard",
@@ -362,7 +364,7 @@
             section: "accounts",
             accountType: accountType,
             createAccount: false,
-            invoiceVisibility: false
+            reportVisibility: false
           });
         }
         else
@@ -377,7 +379,7 @@
             section: "accounts",
             accountType: null,
             createAccount: true,
-            invoiceVisibility: false
+            reportVisibility: false
           });
         }
       } 
@@ -582,7 +584,7 @@
             createAccount: false,
             isReceiptVisible: false,
             item: item,
-            invoiceVisibility: false
+            reportVisibility: false
             //viewMode: "full"
         }));
       }
@@ -798,7 +800,7 @@
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const { participantInfo, status, item, isDropdownOpen, isReceiptVisible, invoiceVisibility, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo} = this.state;
+      const { reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo} = this.state;
 
       return (
         <>
@@ -840,13 +842,13 @@
                   toggleAccountsComponent = {this.toggleAccountsComponent}
                   toggleCourseComponent = {this.toggleCourseComponent}
                   toggleRegistrationPaymentComponent = {this.toggleRegistrationPaymentComponent}
-                  toggleInvoiceComponent = {this.toggleInvoiceComponent}
+                  toggleReportComponent = {this.toggleReportComponent}
                   key={this.state.refreshKey}
                 />
               </div>
               <div className="main-content">
               {
-                accountType === null && courseType === null && isRegistrationPaymentVisible === false && createAccount === false && invoiceVisibility === false && dashboard === true &&
+                accountType === null && courseType === null && isRegistrationPaymentVisible === false && createAccount === false && reportVisibility === false && dashboard === true &&
                 (
                   <>
                   <div className="dashboard-section">
@@ -1020,14 +1022,16 @@
                     />
                     </div>
                   </>} 
-                  {invoiceVisibility && 
+                  {reportVisibility && 
                   <>
                     <div className="invoice-section">
-                    <InvoiceSection 
-                      userName = {userName}
-                      closePopup1={this.closePopup}
-                      loadingPopup1 = {this.loadingPopup1}
-                      generateInvoicePopup = {this.generateInvoicePopup}/>
+                      <ReportSection 
+                        userName = {userName}
+                        closePopup1={this.closePopup}
+                        loadingPopup1 = {this.loadingPopup1}
+                        generateInvoicePopup = {this.generateInvoicePopup}
+                        reportType = {reportType}
+                        />
                     </div>
                   </>} 
                   {/* Conditionally render the section */}
