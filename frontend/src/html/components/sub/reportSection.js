@@ -68,6 +68,7 @@ class ReportSection extends Component {
       this.props.closePopup1();
     }
   };
+
   calculateTotalPriceForSelectedMonth = (selectedMonth) => {
     const { invoiceData } = this.state;
     console.log("Invoice Data:", invoiceData);
@@ -151,7 +152,7 @@ class ReportSection extends Component {
       
       // Ensure there's a valid receipt number, the payment date is within the specified range,
       // and the course location is 'Tampines 253 Centre'
-      return item.official.receiptNo && paymentDate >= fromParsed && paymentDate <= toParsed && item.course.courseLocation === "Tampines 253 Centre" && item.course.payment !== "SkillsFuture";
+      return item.official.receiptNo && paymentDate >= fromParsed && paymentDate <= toParsed && item.course.courseLocation === "Tampines 253 Centre" && item.official.date !== "" && item.official.receiptNo !== "" && item.course.payment !== "SkillsFuture";
     });
     
   
@@ -250,7 +251,7 @@ class ReportSection extends Component {
         if (date) {
           // If both fromDate and toDate are valid, filter based on date range and location
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
-            return date >= fromParsed && date <= toParsed && courseLocation === targetLocation && item.official.receiptNo !== "";
+            return date >= fromParsed && date <= toParsed && courseLocation === targetLocation && item.official.receiptNo !== "" && item.official.date !== "" && item.course.payment !== "SkillsFuture";
           } else if (!fromParsed && !toParsed) {
             // If no date range, just filter by courseLocation
             return false;
