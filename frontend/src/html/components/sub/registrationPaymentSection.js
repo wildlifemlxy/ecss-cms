@@ -24,7 +24,7 @@ class RegistrationPaymentSection extends Component {
         columnDefs: this.getColumnDefs(),
         rowData: [],
         expandedRowIndex: null,
-        editedRowIndex: 0
+        editedRowIndex: ""
       };
       this.tableRef = React.createRef();
     }
@@ -1240,6 +1240,7 @@ class RegistrationPaymentSection extends Component {
     this.setState({registerationDetails: rowData, rowData });
   };
 
+
   handleValueClick = async (event) =>
   {
     console.log("handleValueClick");
@@ -1309,6 +1310,7 @@ class RegistrationPaymentSection extends Component {
     console.log("Event Data111:", event);
     const columnName = event.colDef.headerName;
     const id = event.data.id;
+    const sn = event.data.sn;
     const courseName = event.data.course;
     const courseChiName = event.data.courseChi;
     const courseLocation = event.data.location;
@@ -1322,7 +1324,7 @@ class RegistrationPaymentSection extends Component {
     const oldPaymentStatus = event.oldValue;
 
     console.log("Column Name:", columnName);
-    this.setState({editedRowIndex: id});
+    //this.setState({editedRowIndex: id});
 
     try 
     {
@@ -1645,14 +1647,15 @@ class RegistrationPaymentSection extends Component {
         }
   
         // Optionally call getRowData to process the updated data
+        //this.updateRowData(this.state.rowData);
+        //this.getRefreshedRowData(data);
         this.getRowData(data);
-  
+
         // Close the popup
         this.props.closePopup();
       }
     );
   };
-  
 
  // componentDidUpdate is called after the component has updated (re-rendered)
   componentDidUpdate(prevProps, prevState) {
@@ -1814,6 +1817,7 @@ class RegistrationPaymentSection extends Component {
                   defaultColDef={{
                     resizable: true, // Make columns resizable
                   }}
+                  onGridReady={this.onGridReady} 
                   onCellValueChanged={this.onCellValueChanged} // Handle cell value change
                   onCellClicked={this.handleValueClick} // Handle cell click event
                   getRowStyle={(params) => {

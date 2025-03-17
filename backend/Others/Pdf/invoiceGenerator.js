@@ -291,12 +291,13 @@ class invoiceGenerator {
 
     courseReferenceCode(course) {
         //The Rest Note of Life – Mandarin 14-Feb
+        course = course.trim();
         console.log("Course Name: ", course);
     
         const courseMap = {
             "TCM – Don’t be a friend of Chronic Diseases": "TGS-2021008576",
             "Nagomi Pastel Art Basic": "TGS-2022011919",
-            "Therapeutic Watercolour Painting for Beginners ": "TGS-2022015736",
+            "Therapeutic Watercolour Painting for Beginners": "TGS-2022015736",
             "Chinese Calligraphy Intermediate": "TGS-2022011921",
             "Chinese Calligraphy Basic": "TGS-2022011920",
             "Nagomi Pastel Art Appreciation": "TGS-2022011918",
