@@ -68,7 +68,61 @@ class ReportSection extends Component {
       this.props.closePopup1();
     }
   };
-
+  calculateTotalPriceForSelectedMonth = (selectedMonth) => {
+    const { invoiceData } = this.state;
+    console.log("Invoice Data:", invoiceData);
+  
+    // Function to parse the date string in dd/mm/yyyy format
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const [day, month, year] = dateStr.split('/');
+      return new Date(`${year}-${month}-${day}`);
+    };
+  
+    // Extract month and year from the selectedMonth string (e.g., "February 2025")
+    const [monthName, year] = selectedMonth.split(' ');
+  
+    // Mapping month name to month index (0 = January, 1 = February, ..., 11 = December)
+    const monthIndex = new Date(Date.parse(`${monthName} 1, 2025`)).getMonth();
+    
+    // Filter the invoice data based on the formatted month-year string
+    const filteredData = invoiceData.filter(item => {
+      const paymentDateString = item.official.date; // Assuming the format is 'dd/mm/yyyy'
+      const paymentDate = parseDate(paymentDateString);
+  
+      if (!paymentDate) return false; // If there's no valid date, exclude the item
+  
+      // Format the payment date as "Month Year" string (e.g., "February 2025")
+      const itemMonthName = paymentDate.toLocaleString('default', { month: 'long' }); // Get month name
+      const itemYear = paymentDate.getFullYear(); // Get the full year from the payment date
+  
+      // Create a "Month Year" string from the item date
+      const itemFormattedMonthYear = `${itemMonthName} ${itemYear}`;
+  
+      return item.official.receiptNo && itemFormattedMonthYear === selectedMonth; // Compare formatted month-year
+    });
+  
+    console.log("Filtered Data:", filteredData);
+  
+    // Calculate total price for the filtered data
+    const totalPrice = filteredData.reduce((total, item) => {
+      let price = 0;
+      if (item.official.date) {
+        const priceString = item.course?.coursePrice.replace('$', '').trim();
+        if (priceString !== "" && !isNaN(parseFloat(priceString))) {
+          price = parseFloat(priceString);
+        }
+      }
+      return total + price; // Perform numerical addition
+    }, 0);
+  
+    console.log("Filtered Total Price:", totalPrice);
+  
+    // Update the state with the total price, formatted to two decimal places
+    this.setState({ totalPrice: totalPrice.toFixed(2) });
+  };
+  
+  
   calculateTotalPriceForDateRange = (fromDate, toDate) => {
     const { invoiceData } = this.state;
     console.log("Invoice Data:", invoiceData);
@@ -97,7 +151,7 @@ class ReportSection extends Component {
       
       // Ensure there's a valid receipt number, the payment date is within the specified range,
       // and the course location is 'Tampines 253 Centre'
-      return item.official.receiptNo && paymentDate >= fromParsed && paymentDate <= toParsed && item.course.courseLocation === "Tampines 253 Centre";
+      return item.official.receiptNo && paymentDate >= fromParsed && paymentDate <= toParsed && item.course.courseLocation === "Tampines 253 Centre" && item.course.payment !== "SkillsFuture";
     });
     
   
@@ -256,16 +310,17 @@ class ReportSection extends Component {
   filterInvoiceDataByMonthYear = (selectedMonthYear) => {
     const { invoiceData } = this.state;
     console.log("Selected Value:", selectedMonthYear);
+    console.log("Invoice Data:", invoiceData);
   
     if (selectedMonthYear !== "") {
       // Filter the data based on the selected month-year
       const filteredData = invoiceData.filter(item => {
-        const registrationDateString = item.registrationDate; // Assuming the format is 'dd/mm/yyyy'
+        const registrationDateString = item.official.date || ""; // Assuming the format is 'dd/mm/yyyy'
         const [cday, cmonth, cyear] = registrationDateString.split('/');
         const monthName = new Date(`${cyear}-${cmonth}-${cday}`).toLocaleString('default', { month: 'long' });
         const monthYear = `${monthName} ${cyear}`;
         console.log("Filter:", monthYear, selectedMonthYear);
-        return monthYear === selectedMonthYear;
+        return monthYear === selectedMonthYear && item.official.receiptNo !== "";
       });
   
       // Reset the index for the filtered data starting from 1
@@ -324,7 +379,7 @@ class ReportSection extends Component {
       return total + price;
     }, 0);
   
-    const formattedTotalPrice = `$${totalPrice.toFixed(2)}`;
+    const formattedTotalPrice = `$  ${totalPrice.toFixed(2)}`;
   
     // Prepare empty and collection rows
     const emptyRow = new Array(headers.length).fill('');
@@ -444,9 +499,9 @@ class ReportSection extends Component {
   );
 
     // Format the total prices for both Cash and Paynow to 2 decimal places
-    const formattedTotalPriceCash = `$${totalPriceCash.toFixed(2)}`;
-    const formattedTotalPricePaynow = `$${totalPricePaynow.toFixed(2)}`;
-    const formattedTotalPrice = `$${(totalPricePaynow+totalPriceCash).toFixed(2)}`;
+    const formattedTotalPriceCash = `$  ${totalPriceCash.toFixed(2)}`;
+    const formattedTotalPricePaynow = `$  ${totalPricePaynow.toFixed(2)}`;
+    const formattedTotalPrice = `$  ${(totalPricePaynow+totalPriceCash).toFixed(2)}`;
 
     console.log("Formatted Total Price for Cash:", formattedTotalPriceCash);
     console.log("Formatted Total Price for Paynow:", formattedTotalPricePaynow);
