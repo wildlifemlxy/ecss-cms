@@ -294,6 +294,7 @@ class invoiceGenerator {
         course = course.trim();
         console.log("Course Name: ", course);
     
+        //Therapeutic Basic Line Work
         const courseMap = {
             "TCM – Don’t be a friend of Chronic Diseases": "TGS-2021008576",
             "Nagomi Pastel Art Basic": "TGS-2022011919",
@@ -308,8 +309,7 @@ class invoiceGenerator {
             "The Rest Note of Life – Mandarin": "TGS-2022015736",
             "TCM Diet & Therapy": "TGS-2021008570",
             "Therapeutic Basic Line Work": "TGS-2024047927",
-            "Healthy Minds, Healthy Lives – Mandarin": "",
-            "Therapeutic Basic Line Work": "TGS-2022015736"
+            "Healthy Minds, Healthy Lives – Mandarin": ""
         };
     
        // Check for exact match
