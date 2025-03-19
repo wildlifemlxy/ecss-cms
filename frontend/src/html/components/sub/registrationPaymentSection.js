@@ -1343,7 +1343,8 @@ class RegistrationPaymentSection extends Component {
               window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab              
             }
 
-            await this.sendDetails(id)
+            await this.sendDetails(id);
+            await this.refreshChild();
         }
       }
       catch (error) {
