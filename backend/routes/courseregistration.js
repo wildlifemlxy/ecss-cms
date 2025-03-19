@@ -229,6 +229,7 @@ router.post('/', async function(req, res, next)
     {
         var controller = new RegistrationController();
         var result = await controller.sendDetails(req.body.id);
+        return res.json({"result": result});
     }
 });
 

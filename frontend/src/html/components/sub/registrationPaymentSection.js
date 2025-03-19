@@ -1342,7 +1342,7 @@ class RegistrationPaymentSection extends Component {
               
               window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab              
             }
-
+            console.log("Submitted Id:", id);
             await this.sendDetails(id);
             await this.refreshChild();
         }
@@ -1350,24 +1350,6 @@ class RegistrationPaymentSection extends Component {
       catch (error) {
         console.error('Error during submission:', error);
       }
-  }
-
-  sendDetails = async (id) =>
-  {
-    try {
-      // Send the request to the backend to trigger WhatsApp automation
-      const response = await axios.post('http://localhost:3001/courseregistration', 
-      {
-        purpose: "sendDetails",
-        id,
-      });
-
-     console.log("Response:", response);
-     this.refreshChild();
-    } catch (error) {
-      console.error('Error sending WhatsApp message:', error);
-      this.setState({ status: 'Failed to send message' });
-    }
   }
 
   // Define the Master/Detail grid options
@@ -1698,7 +1680,8 @@ class RegistrationPaymentSection extends Component {
     }
   };
 
-  refreshChild = async () => {
+  refreshChild = async () => 
+  {
     const { language } = this.props;
     
     // Save scroll information before fetching data
@@ -1707,9 +1690,11 @@ class RegistrationPaymentSection extends Component {
     
     // Fetch new data
     const newData = await this.fetchCourseRegistrations(language);
+    console.log("New Data:", newData);
     
     // Map only the items that exist in current rowData
     const existingIds = new Set(this.state.rowData.map(item => item.id));
+    console.log("existingIds:", existingIds);
     
     const updatedRowData = newData
       .filter(item => existingIds.has(item._id))
@@ -1730,7 +1715,8 @@ class RegistrationPaymentSection extends Component {
         officialInfo: item.official,
         refundedDate: item.official?.refundedDate, // Fixed typo from 'offical'
         agreement: item.agreement,
-        registrationDate: item.registrationDate
+        registrationDate: item.registrationDate,
+        sendDetails: item.sendingWhatsappMessage
       }));
     
     // Update state and restore scroll position in one step
@@ -1762,6 +1748,25 @@ class RegistrationPaymentSection extends Component {
       //console.log("ComponentDidUpdate");
       // Call the filter method when relevant props change
       this.filterRegistrationDetails();
+    }
+  }
+
+  
+  sendDetails = async (id) =>
+  {
+    try {
+      // Send the request to the backend to trigger WhatsApp automation
+      const response = await axios.post('http://localhost:3001/courseregistration', 
+      {
+        purpose: "sendDetails",
+        id,
+      });
+
+      console.log("Response send Details:", response);
+
+    } catch (error) {
+      console.error('Error sending WhatsApp message:', error);
+      this.setState({ status: 'Failed to send message' });
     }
   }
 
