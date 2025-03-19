@@ -565,6 +565,7 @@ class DatabaseConnectivity {
             // Filter receipts to get only those from the current year
             const validReceipts = existingReceipts.filter(receipt => {
                 let regexPattern;
+                console.log("Centre Location:", centreLocation);
                 // Check if the location is Tampines 253 Centre
                 if (centreLocation === "Tampines 253 Centre") {
                     // Ensure "TP" appears for Tampines 253 Centre
@@ -655,10 +656,17 @@ class DatabaseConnectivity {
         } 
         else 
         {
-            nextNumber = nextNumber.toString(); // Keep original length if 3 or more digits
+            if(centreLocation === "Tampines 253 Centre")
+            {
+                nextNumber = `TP${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
+            }
+            else
+            {
+                nextNumber = nextNumber.toString().padStart(3, '0'); // Pad to 3 digits if less than 3
+            }
         }
             
-        // Return the formatted receipt number
+        // Return the formatted receipt number ok 
        return `${courseLocation}${nextNumber}/${currentYear.toString()}`;
     }
     
