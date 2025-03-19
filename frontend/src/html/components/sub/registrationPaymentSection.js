@@ -1947,7 +1947,7 @@ class RegistrationPaymentSection extends Component {
                   }
                   // Add AI-powered anomaly detection styling
                   if (this.detectAnomalies(params.data)) {
-                    return { backgroundColor: '#FFF0E0', fontWeight: 'bold' }; // Highlight anomalies
+                    return { backgroundColor: '#FFF0E0' }; // Highlight anomalies
                   }
                   
                   return {}; // Default style
