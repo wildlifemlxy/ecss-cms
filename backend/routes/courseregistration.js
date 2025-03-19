@@ -4,6 +4,7 @@ var RegistrationController = require('../Controller/Registration/RegistrationCon
 var ReceiptController = require('../Controller/Receipt/ReceiptController');
 var receiptGenerator = require('../Others/Pdf/receiptGenerator');
 var invoiceGenerator = require('../Others/Pdf/invoiceGenerator');
+var WhatsappGenerator = require('../Others/Message/WhatsappGenerator');
 
 function getCurrentDateTime() {
     // Create a Date object and adjust for Singapore Standard Time (UTC+8)
@@ -223,6 +224,11 @@ router.post('/', async function(req, res, next)
         var controller = new RegistrationController();
         var result = await controller.addRefundedDate(req.body.id, "");
         return res.json({"result": result});
+    }
+    else if(req.body.purpose === "sendDetails")
+    {
+        var controller = new RegistrationController();
+        var result = await controller.sendDetails(req.body.id);
     }
 });
 

@@ -24,7 +24,13 @@ class RegistrationPaymentSection extends Component {
         columnDefs: this.getColumnDefs(),
         rowData: [],
         expandedRowIndex: null,
-        editedRowIndex: ""
+        editedRowIndex: "",
+        aiSearchQuery: '',
+        aiSuggestions: [],
+        anomalyThreshold: 0.8,
+        phoneNumber: '',
+        message: '',
+        status: ''
       };
       this.tableRef = React.createRef();
     }
@@ -41,8 +47,6 @@ class RegistrationPaymentSection extends Component {
         currentPage: 1 // Reset to the first page when changing entries per page
       });
     }
-
-   
 
     convertToChineseDate(dateStr) {
       const monthMap = {
@@ -1017,12 +1021,14 @@ class RegistrationPaymentSection extends Component {
         headerName: "S/N",
         field: "sn",
         width: 100,
+        pinned: "left"
       },
       {
         headerName: "Name",
         field: "name",
         width: 300,
         editable: true,
+        pinned: "left"
       },
       {
         headerName: "Contact Number",
@@ -1054,6 +1060,24 @@ class RegistrationPaymentSection extends Component {
         editable: false,
         width: 500,
       },
+      {
+        headerName: "Sending Payment Details",
+        field: "sendDetails",
+        width: 300,
+        cellRenderer: (params) => {
+          const isSent = params.data?.sendDetails; // No need for !! as we handle undefined explicitly
+        
+          if (isSent === undefined) {
+            return null; // Return nothing (blank cell)
+          }
+        
+          const imageSrc = isSent
+            ? "https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png" // ✅ Green Tick
+            : "https://upload.wikimedia.org/wikipedia/commons/5/5f/Red_X.svg"; // ❌ Red Cross
+        
+          return <img src={imageSrc} alt={isSent ? "Sent" : "Not Sent"} width="20" height="20" />;
+        }        
+      },      
       {
         headerName: "Confirmation",
         field: "confirmed",
@@ -1207,7 +1231,9 @@ class RegistrationPaymentSection extends Component {
     return registerationDetails.slice(indexOfFirstCourse, indexOfLastCourse);
   }
 
-  getRowData = (registerationDetails) => {
+  getRowData = (registerationDetails) => 
+  {
+    console.log("Get Row Data:", registerationDetails);
    //const paginatedDetails = this.getPaginatedDetails();
    //console.log("Hi")
   
@@ -1221,6 +1247,7 @@ class RegistrationPaymentSection extends Component {
         course: item.course.courseEngName,  // Replace with the actual field for payment status
         courseChi: item.course.courseChiName,  // Replace with the actual field for payment status
         location: item.course.courseLocation,  // Replace with the actual field for payment status
+        sendDetails: item.course?.sendingWhatsappMessage,
         paymentMethod: item.course.payment,  // Replace with the actual field for payment method
         confirmed: item.official.confirmed,  // Replace with the actual field for receipt/invoice number
         paymentStatus: item.status,  // Replace with the actual field for payment status
@@ -1240,10 +1267,10 @@ class RegistrationPaymentSection extends Component {
     this.setState({registerationDetails: rowData, rowData });
   };
 
-
   handleValueClick = async (event) =>
   {
-    console.log("handleValueClick");
+    console.log("handleValueClick", event.data);
+    const id = event.data.id;
     const columnName = event.colDef.headerName;
     const receiptInvoice = event.data.recinvNo;
     const participantInfo = event.data.participantInfo;
@@ -1279,10 +1306,67 @@ class RegistrationPaymentSection extends Component {
             this.props.closePopup();
           }
         }
+        else if (columnName === "Contact Number")
+        {
+            console.log("Course Info:", courseInfo);
+            if(participantInfo && participantInfo.contactNumber && courseInfo.payment === "SkillsFuture")
+            {
+              const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
+              const message = `${participantInfo.name} - ${courseInfo.courseEngName} invoice for your SkillsFuture submission
+              Please ensure that the details are accurate before submission.
+              🔴 Please send us a screenshot of your submission once done.
+              More Information: https://ecss.org.sg/wp-content/uploads/2025/03/Handphone-SFC-claim-step-by-step-via-handphone.pdf`;
+
+              
+              const whatsappWebURL = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+              
+              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab              
+            }
+            else if (participantInfo && participantInfo.contactNumber && (courseInfo.payment === "PayNow" || courseInfo.payment === "Cash"))
+            {
+              const phoneNumber = participantInfo.contactNumber.replace(/\D/g, ""); // Remove non-numeric characters
+              const message = `${courseInfo.courseEngName} - ${courseInfo.courseDuration.split("–")[0]}
+                Course subsidy applies to only Singaporeans and PRs aged 50yrs and above
+                Hi ${participantInfo.name}, 
+                Thank you for signing up for the above-mentioned class. 
+                Details are as follows:
+                Price: ${courseInfo.coursePrice}
+                Payment to be made via Paynow to UEN no: T03SS0051L (En Community Services Society) 
+                Under the "reference portion", kindly insert your name as per NRIC. 
+                Once payment has gone through, take a screenshot of the payment receipt on your phone and send it over to us. 
+                Thank you.`;
+
+              
+              const whatsappWebURL = `https://web.whatsapp.com/send?phone=+65${phoneNumber}&text=${encodeURIComponent(message)}`;
+              console.log("Whatsapp Link:", whatsappWebURL)
+              
+              window.open(whatsappWebURL, "_blank"); // Opens in a new browser tab              
+            }
+
+            await this.sendDetails(id)
+        }
       }
       catch (error) {
         console.error('Error during submission:', error);
       }
+  }
+
+  sendDetails = async (id) =>
+  {
+    try {
+      // Send the request to the backend to trigger WhatsApp automation
+      const response = await axios.post('http://localhost:3001/courseregistration', 
+      {
+        purpose: "sendDetails",
+        id,
+      });
+
+     console.log("Response:", response);
+     this.refreshChild();
+    } catch (error) {
+      console.error('Error sending WhatsApp message:', error);
+      this.setState({ status: 'Failed to send message' });
+    }
   }
 
   // Define the Master/Detail grid options
@@ -1612,49 +1696,55 @@ class RegistrationPaymentSection extends Component {
       this.props.closePopup();
     }
   };
-  
+
   refreshChild = async () => {
     const { language } = this.props;
     
-    // Fetch new data
-    const data = await this.fetchCourseRegistrations(language);
-  
-    // Get the current scroll position of the grid's container element
-    const gridContainer = document.querySelector('.ag-body-viewport'); // Select the grid's scrollable container
-    
-    // Get the index of the currently edited row (replace this with your actual logic to get the row index)
-    const currentRowIndex = this.state.editedRowIndex; // Assuming you store the index of the edited row in state
-    
-    // Save the current scroll position
+    // Save scroll information before fetching data
+    const gridContainer = document.querySelector('.ag-body-viewport');
     const currentScrollTop = gridContainer ? gridContainer.scrollTop : 0;
-  
-    // Update the state with new data
-    this.setState(
-      {
-        originalData: data,
-        registerationDetails: data, // Update with fetched data
-        //rowData: data,  // Update the row data for the grid
-      },
-      () => {
-        // After state update, restore the scroll position to the edited row
-        if (gridContainer && currentRowIndex !== undefined) {
-          // Calculate the position of the row based on the index
-          const rowHeight = 40; // Assuming each row has a height of 40px (adjust as necessary)
-          const rowPosition = currentRowIndex * rowHeight;  // Get the scroll position for the row
-          
-          // Set the scroll position back to the edited row
-          gridContainer.scrollTop = rowPosition;
-        }
-  
-        // Optionally call getRowData to process the updated data
-        //this.updateRowData(this.state.rowData);
-        //this.getRefreshedRowData(data);
-        this.getRowData(data);
-
-        // Close the popup
-        this.props.closePopup();
+    
+    // Fetch new data
+    const newData = await this.fetchCourseRegistrations(language);
+    
+    // Map only the items that exist in current rowData
+    const existingIds = new Set(this.state.rowData.map(item => item.id));
+    
+    const updatedRowData = newData
+      .filter(item => existingIds.has(item._id))
+      .map((item, index) => ({
+        id: item._id,
+        sn: index + 1,
+        name: item.participant.name,
+        contactNo: item.participant.contactNumber,
+        course: item.course.courseEngName,
+        courseChi: item.course.courseChiName,
+        location: item.course.courseLocation,
+        paymentMethod: item.course.payment,
+        confirmed: item.official.confirmed,
+        paymentStatus: item.status,
+        recinvNo: item.official.receiptNo,
+        participantInfo: item.participant,
+        courseInfo: item.course,
+        officialInfo: item.official,
+        refundedDate: item.official?.refundedDate, // Fixed typo from 'offical'
+        agreement: item.agreement,
+        registrationDate: item.registrationDate
+      }));
+    
+    // Update state and restore scroll position in one step
+    this.setState({
+      originalData: newData,
+      registerationDetails: newData,
+      rowData: updatedRowData
+    }, () => {
+      // Restore scroll position directly
+      if (gridContainer) {
+        gridContainer.scrollTop = currentScrollTop;
       }
-    );
+      
+      this.props.closePopup();
+    });
   };
 
  // componentDidUpdate is called after the component has updated (re-rendered)
@@ -1682,13 +1772,13 @@ class RegistrationPaymentSection extends Component {
       const { originalData } = this.state;
 
       console.log("Original Data:", originalData);
-      console.log("Filters Applied:", { selectedLocation, selectedCourseType, searchQuery, selectedCourseName });
+      console.log("Filters Applied:", { selectedLocation, selectedCourseType, searchQuery, selectedCourseName }, !searchQuery);
 
       if (
         (selectedLocation === "All Locations" || !selectedLocation) &&
         (selectedCourseType === "All Courses Types" || !selectedCourseType) &&
         (selectedCourseName === "All Courses Name" || !selectedCourseName) &&
-        (!searchQuery)
+        (searchQuery === "" || !searchQuery)
       ) {
         const rowData = originalData.map((item, index) => ({
           id: item._id,
@@ -1705,14 +1795,16 @@ class RegistrationPaymentSection extends Component {
           participantInfo: item.participant,  // Participant details
           courseInfo: item.course,  // Course details
           officialInfo: item.official,  // Official details
-          refundedDate: item.offical?.refundedDate|| ""// Official details
+          refundedDate: item.offical?.refundedDate,// Official details*/
+          agreement: item.agreement,
+          registrationDate: item.registrationDate,
+          sendDetails: item.sendingWhatsappMessage
         }));
   
         // Update the row data with the filtered results
         this.setState({rowData});
         //this.setState({registerationDetails: rowData});
         this.updateRowData(rowData);
-        return;
       }
 
       // Normalize the search query
@@ -1776,7 +1868,10 @@ class RegistrationPaymentSection extends Component {
         participantInfo: item.participant,  // Participant details
         courseInfo: item.course,  // Course details
         officialInfo: item.official,  // Official details
-        refundedDate: item.offical?.refundedDate || ""// Official details
+        refundedDate: item.offical?.refundedDate,// Official details*/
+        agreement: item.agreement,
+        registrationDate: item.registrationDate,
+        sendDetails: item.sendingWhatsappMessage
       }));
 
       // Update the row data with the filtered results
@@ -1785,127 +1880,155 @@ class RegistrationPaymentSection extends Component {
     }
   }
 
-    render()
-    {
-      var {rowData} = this.state
-      ModuleRegistry.registerModules([AllCommunityModule]);
-      return (
-        <>
-          <div className="registration-payment-container" >
-            <div className="registration-payment-heading">
-              <h1>{this.props.language === 'zh' ? '报名与支付' : 'Registration And Payment'}</h1>
-              <div className="button-row">
-                <button className="save-btn" onClick={() => this.saveData(rowData)}>
-                  Save Data
-                </button>
-                <button className="export-btn" onClick={() => this.exportToLOP(rowData)}>
-                  Export To LOP
-                </button>
-                <button className="attendance-btn" onClick={() => this.exportAttendance(rowData)}>
-                  Course Attendance
-                </button>
-              </div>
-              <div className="grid-container">
-              <AgGridReact
-                  columnDefs={this.state.columnDefs}
-                  rowData={rowData}
-                  domLayout="normal"
-                  paginationPageSize={rowData.length}
-                  sortable={true}
-                  statusBar={false}
-                  pagination={true}
-                  defaultColDef={{
-                    resizable: true, // Make columns resizable
-                  }}
-                  onGridReady={this.onGridReady} 
-                  onCellValueChanged={this.onCellValueChanged} // Handle cell value change
-                  onCellClicked={this.handleValueClick} // Handle cell click event
-                  getRowStyle={(params) => {
-                    // Condition to change row style based on a specific value
-                    if (params.data.courseInfo.courseType === 'ILP') {
-                      return { backgroundColor: '#A8D5BA' }; // Olive green soft pastel color for ILP
-                    } else if (params.data.courseInfo.courseType === 'OtherType') {
-                      return { backgroundColor: '#FFB6C1' }; // Soft pink for other type
-                    }
-                    return {}; // Default style
-                  }}
-                />
+  detectAnomalies = (rowData) => 
+  {
+    console.log("Row Data:", rowData);
+    // Simple anomaly rules - would be more sophisticated with actual ML
+    const isRegistrationRecent = new Date(rowData.registrationDate) > new Date(Date.now() - 86400000);
+    const hasPaymentIssue = rowData.paymentStatus === 'Pending';
+    const isDuplicate = this.checkForDuplicates(rowData);
+    
+    return isRegistrationRecent && (hasPaymentIssue || isDuplicate);
+  }
 
-              </div>
-               {/* Render custom <div> below the expanded row */}
-               {this.state.expandedRowIndex !== null && (
-                <div
-                style={{
-                  padding: '10px',
-                  backgroundColor: '#F9E29B',
-                  marginLeft: '5%',
-                  width: '88vw',
-                  height: 'fit-content',
-                  borderRadius: '15px', // Make the border more rounded
-                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', // Optional: Add a subtle shadow for a floating effect
-                }}
-                  >
-                  {/* Custom content you want to display */}
-                  <p  style={{textAlign:"left"}}><h2 style={{color:'#000000'}}>More Information</h2></p>
-                  <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Participant Details</h3></p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>NRIC: </strong>{rowData[this.state.expandedRowIndex].participantInfo.nric}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Residential Status: </strong>{rowData[this.state.expandedRowIndex].participantInfo.residentialStatus}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Race: </strong>{rowData[this.state.expandedRowIndex].participantInfo.race}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Gender: </strong>{rowData[this.state.expandedRowIndex].participantInfo.gender}
-                  </p>                  <p style={{textAlign:"left"}}>
-                    <strong>Date of Birth: </strong>{rowData[this.state.expandedRowIndex].participantInfo.dateOfBirth}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Contact Number : </strong>{rowData[this.state.expandedRowIndex].participantInfo.contactNumber}
-                  </p> 
-                  <p style={{textAlign:"left"}}>
-                    <strong>Email: </strong>{rowData[this.state.expandedRowIndex].participantInfo.email}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Postal Code: </strong>{rowData[this.state.expandedRowIndex].participantInfo.postalCode}
-                  </p>                  
-                  <p style={{textAlign:"left"}}>
-                    <strong>Education Level: </strong>{rowData[this.state.expandedRowIndex].participantInfo.educationLevel}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Work Status: </strong>{rowData[this.state.expandedRowIndex].participantInfo.workStatus}
-                  </p>
-                  <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Course Details</h3></p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Type: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseType}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Price: </strong>{rowData[this.state.expandedRowIndex].courseInfo.coursePrice}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Duration: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseDuration}
-                  </p>
-                  <p style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Official Use</h3></p>
-                  <p style={{textAlign:"left"}}> 
-                    <strong>Staff Name: </strong>{rowData[this.state.expandedRowIndex].officialInfo.name}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Received Date: </strong>{rowData[this.state.expandedRowIndex].officialInfo.date}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Received Time: </strong>{rowData[this.state.expandedRowIndex].officialInfo.time}
-                  </p>
-                  <p style={{textAlign:"left"}}>
-                    <strong>Registration Date: </strong>{rowData[this.state.expandedRowIndex].registrationDate}
-                  </p>
-                </div>
-              )}
+  // Check for potential duplicate registrations
+  checkForDuplicates = (rowData) => {
+    // Count similar registrations (same person, same course, different dates)
+    const similarRegistrations = this.state.rowData.filter(row => 
+      row.id !== rowData.id && 
+      row.name === rowData.name &&
+      row.course === rowData.course
+    );
+    
+    return similarRegistrations.length > 0;
+  }
+  
+  render()
+  {
+    var {rowData} = this.state
+    ModuleRegistry.registerModules([AllCommunityModule]);
+    return (
+      <>
+        <div className="registration-payment-container" >
+          <div className="registration-payment-heading">
+            <h1>{this.props.language === 'zh' ? '报名与支付' : 'Registration And Payment'}</h1>
+            <div className="button-row">
+              <button className="save-btn" onClick={() => this.saveData(rowData)}>
+                Save Data
+              </button>
+              <button className="export-btn" onClick={() => this.exportToLOP(rowData)}>
+                Export To LOP
+              </button>
+              <button className="attendance-btn" onClick={() => this.exportAttendance(rowData)}>
+                Course Attendance
+              </button>
             </div>
+            <div className="grid-container">
+            <AgGridReact
+                columnDefs={this.state.columnDefs}
+                rowData={rowData}
+                domLayout="normal"
+                paginationPageSize={rowData.length}
+                sortable={true}
+                statusBar={false}
+                pagination={true}
+                defaultColDef={{
+                  resizable: true, // Make columns resizable
+                }}
+                onGridReady={this.onGridReady} 
+                onCellValueChanged={this.onCellValueChanged} // Handle cell value change
+                onCellClicked={this.handleValueClick} // Handle cell click event
+                getRowStyle={(params) => {
+                  // Condition to change row style based on a specific value
+                  if (params.data.courseInfo.courseType === 'ILP') {
+                    return { backgroundColor: '#A8D5BA' }; // Olive green soft pastel color for ILP
+                  } else if (params.data.courseInfo.courseType === 'OtherType') {
+                    return { backgroundColor: '#FFB6C1' }; // Soft pink for other type
+                  }
+                  // Add AI-powered anomaly detection styling
+                  if (this.detectAnomalies(params.data)) {
+                    return { backgroundColor: '#FFF0E0', fontWeight: 'bold' }; // Highlight anomalies
+                  }
+                  
+                  return {}; // Default style
+                }}
+              />
+
+            </div>
+              {/* Render custom <div> below the expanded row */}
+              {this.state.expandedRowIndex !== null && (
+              <div
+              style={{
+                padding: '10px',
+                backgroundColor: '#F9E29B',
+                marginLeft: '5%',
+                width: '88vw',
+                height: 'fit-content',
+                borderRadius: '15px', // Make the border more rounded
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', // Optional: Add a subtle shadow for a floating effect
+              }}
+                >
+                {/* Custom content you want to display */}
+                <p  style={{textAlign:"left"}}><h2 style={{color:'#000000'}}>More Information</h2></p>
+                <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Participant Details</h3></p>
+                <p style={{textAlign:"left"}}>
+                  <strong>NRIC: </strong>{rowData[this.state.expandedRowIndex].participantInfo.nric}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Residential Status: </strong>{rowData[this.state.expandedRowIndex].participantInfo.residentialStatus}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Race: </strong>{rowData[this.state.expandedRowIndex].participantInfo.race}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Gender: </strong>{rowData[this.state.expandedRowIndex].participantInfo.gender}
+                </p>                  <p style={{textAlign:"left"}}>
+                  <strong>Date of Birth: </strong>{rowData[this.state.expandedRowIndex].participantInfo.dateOfBirth}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Contact Number : </strong>{rowData[this.state.expandedRowIndex].participantInfo.contactNumber}
+                </p> 
+                <p style={{textAlign:"left"}}>
+                  <strong>Email: </strong>{rowData[this.state.expandedRowIndex].participantInfo.email}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Postal Code: </strong>{rowData[this.state.expandedRowIndex].participantInfo.postalCode}
+                </p>                  
+                <p style={{textAlign:"left"}}>
+                  <strong>Education Level: </strong>{rowData[this.state.expandedRowIndex].participantInfo.educationLevel}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Work Status: </strong>{rowData[this.state.expandedRowIndex].participantInfo.workStatus}
+                </p>
+                <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Course Details</h3></p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Type: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseType}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Price: </strong>{rowData[this.state.expandedRowIndex].courseInfo.coursePrice}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Duration: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseDuration}
+                </p>
+                <p style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Official Use</h3></p>
+                <p style={{textAlign:"left"}}> 
+                  <strong>Staff Name: </strong>{rowData[this.state.expandedRowIndex].officialInfo.name}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Received Date: </strong>{rowData[this.state.expandedRowIndex].officialInfo.date}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Received Time: </strong>{rowData[this.state.expandedRowIndex].officialInfo.time}
+                </p>
+                <p style={{textAlign:"left"}}>
+                  <strong>Registration Date: </strong>{rowData[this.state.expandedRowIndex].registrationDate}
+                </p>
+              </div>
+            )}
           </div>
-        </>
-      )
+        </div>
+      </>
+    )
   }
 }
 
