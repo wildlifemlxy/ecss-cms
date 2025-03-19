@@ -1,10 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var RegistrationController = require('../Controller/Registration/RegistrationController');
-var ReceiptController = require('../Controller/Receipt/ReceiptController');
 var receiptGenerator = require('../Others/Pdf/receiptGenerator');
 var invoiceGenerator = require('../Others/Pdf/invoiceGenerator');
-var WhatsappGenerator = require('../Others/Message/WhatsappGenerator');
 
 function getCurrentDateTime() {
     // Create a Date object and adjust for Singapore Standard Time (UTC+8)
