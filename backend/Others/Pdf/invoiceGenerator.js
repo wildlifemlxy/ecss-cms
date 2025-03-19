@@ -310,6 +310,7 @@ class invoiceGenerator {
             "TCM Diet & Therapy": "TGS-2021008570",
             "Therapeutic Basic Line Work": "TGS-2024047927",
             "Healthy Minds, Healthy Lives – Mandarin": "TGS-2023019018"
+            //Healthy Minds, Healthy Lives – Mandarin
         };
     
        // Check for exact match
