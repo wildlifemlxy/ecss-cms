@@ -35,7 +35,7 @@ class FormPage extends Component {
     };
   }
 
-  componentDidMount() {
+  /*(componentDidMount() {
     window.scrollTo(0, 0);
     const queryParams = new URLSearchParams(window.location.search);
     console.log("QueryParams:", queryParams);
@@ -72,6 +72,102 @@ class FormPage extends Component {
         duration
       }
     }));
+  }*/
+
+    componentDidMount = async () => {
+      window.scrollTo(0, 0);
+      const queryParams = new URLSearchParams(window.location.search);
+      console.log("QueryParams:", queryParams);
+  
+      // Setting background color based on course type
+      const type = queryParams.get('type')?.trim() || '';
+      if (type === 'ILP') {
+          this.setState({ bgColor: '#006400' }); // Dark green for ILP
+      } else if (type === 'NSA') {
+          this.setState({ bgColor: '#003366' }); // Dark blue for NSA
+      }
+  
+      const duration = queryParams.get('courseDuration')?.trim() || '';
+      const englishName = queryParams.get('engName')?.trim() || '';
+      const chineseName = queryParams.get('chiName') || '';
+      const location = queryParams.get('location')?.trim() || '';
+  
+      // Constructing selected course name
+      const selectedCourse = `${chineseName} ${englishName} (${location})`;
+  
+      // Fetching courses
+      var courseType = "";
+      var allCourses = await this.fetchCourses(courseType);
+      console.log("All Courses:", allCourses);
+  
+      // Function to find the course by name
+      function findCourseByName(courseList, courseName) {
+          return courseList.find(course => {
+              // Splitting the course name by <br /> or <br/>
+              const courseParts = course.name.split(/<br\s*\/?>/).map(part => part.trim()).join(' ');
+              console.log("Course Part:", courseParts);
+              
+              // Direct comparison with selectedCourse
+              return courseParts === selectedCourse;
+          });
+      }
+  
+      // Find the matching course
+      var matchedCourse = findCourseByName(allCourses, selectedCourse);
+      console.log("Matched Course:", matchedCourse);
+  
+      if (matchedCourse) {
+          console.log("Selected Course Details:", matchedCourse.name.split(/<br\s*\/?>/));
+          console.log("Selected Course Price:", matchedCourse.price);
+          console.log("Selected Course Duration:", duration);
+  
+          // Destructuring the split course name into parts
+          const courseParts = matchedCourse.name.split(/<br\s*\/?>/).map(part => part.trim());
+          const formattedPrice = matchedCourse.price ? `$${parseFloat(matchedCourse.price).toFixed(2)}` : "$0.00";
+  
+          // Setting state based on the course parts
+          if (courseParts.length === 3) {
+              // If we have three parts (Chinese, English, Location)
+              this.setState((prevState) => ({
+                  formData: {
+                      ...prevState.formData,
+                      chineseName: courseParts[0],  // Chinese name
+                      englishName: courseParts[1],   // English name
+                      location: courseParts[2]?.replace(/\s?\(.*\)/, '').trim(),      // Location
+                      price: formattedPrice,
+                      type,
+                      duration
+                  }
+              }));
+          } else if (courseParts.length === 2) {
+              // If we have two parts (Chinese, English)
+              this.setState((prevState) => ({
+                  formData: {
+                      ...prevState.formData,
+                      chineseName: courseParts[0],  // Chinese name
+                      englishName: courseParts[1]?.replace(/\s?\(.*\)/, '').trim(),   // English name
+                      price: formattedPrice,
+                      type,
+                      duration
+                  }
+              }));
+          }
+      } else {
+          console.log('Course not found.');
+      }
+  }
+  
+  
+  async fetchCourses(courseType) {
+    try {
+      var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/courses/`, {courseType});
+      var courses = response.data.courses;
+      return courses;
+    }
+    catch(error)
+    {
+      console.error("Error:", error)
+    }
   }
 
   handleDataChange = (newData) => {
