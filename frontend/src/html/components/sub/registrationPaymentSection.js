@@ -662,16 +662,26 @@ class RegistrationPaymentSection extends Component {
       this.props.showEditPopup(item)
     }
 
+    convertDateFormat(dateString) {
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0'); // Ensure two-digit day
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Ensure two-digit month (0-based index)
+      const year = date.getFullYear();
+      
+      return `${day}/${month}/${year}`;
+    }
+
     exportToLOP = async (paginatedDetails) => {
       try {
-        const filePath = '/external/List of Eligible Participants_revised 240401.xlsx';
+        // Fetch the Excel file from public folder (adjust the path if necessary)
+        const filePath = '/external/List of Eligible Participants_revised 240401.xlsx';  // Path relative to the public folder
         const response = await fetch(filePath);
     
         if (!response.ok) {
           return this.props.warningPopUpMessage("Error fetching the Excel file.");
         }
     
-        const data = await response.arrayBuffer();
+        const data = await response.arrayBuffer(); // Convert file to ArrayBuffer
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(data);
     
@@ -680,96 +690,103 @@ class RegistrationPaymentSection extends Component {
           return this.props.warningPopUpMessage("Sheet 'LOP' not found!");
         }
     
-        const originalRow = sourceSheet.getRow(9);
+        const originalRow = sourceSheet.getRow(9); // Row 9 is the template row to copy
         const startRow = 9;
+        var courseName = "";
     
         console.log("Paginated Details :", paginatedDetails, paginatedDetails.length);
     
-        let sortedDetails = paginatedDetails
-          .filter(detail => detail.courseInfo.courseType === "NSA") // Case insensitive filter
-          .sort((a, b) => a.participantInfo.name.trim().toLowerCase().localeCompare(b.participantInfo.name.trim().toLowerCase())); // Case insensitive sorting
+        paginatedDetails.forEach((detail, index) => {
+          console.log("Paginated Detail1",  detail);
+         // console.log("Date Of Birth:", detail.participantInfo.dateOfBirth);
+          if (detail.courseInfo.courseType === "NSA") {
+            const rowIndex = startRow + index;
+            const newDataRow = sourceSheet.getRow(rowIndex);
+            newDataRow.height = originalRow.height;
     
-        let courseLocation = "";
-        let courseName = "";  // This is the outer variable that needs to be used
+            // Populate cells with data from `detail`
+            sourceSheet.getCell(`A${rowIndex}`).value = rowIndex - startRow + 1;
+            sourceSheet.getCell(`B${rowIndex}`).value = detail.participantInfo.name;
+            sourceSheet.getCell(`C${rowIndex}`).value = detail.participantInfo.nric;
+            sourceSheet.getCell(`D${rowIndex}`).value = detail.participantInfo.residentialStatus.substring(0, 2);
     
-        sortedDetails.forEach((detail, index) => {
-          const rowIndex = startRow + index;
-          const newDataRow = sourceSheet.getRow(rowIndex);
-          newDataRow.height = originalRow.height;
+            //console.log("Date of birth:", detail.participantInfo.name, detail?.participantInfo?.dateOfBirth.split("/"));
+            const dob = detail?.participantInfo?.dateOfBirth;
+
+            if (dob) {
+                const [day, month, year] = dob.split("/");
+                sourceSheet.getCell(`E${rowIndex}`).value = day.trim();
+              sourceSheet.getCell(`F${rowIndex}`).value = month.trim();
+              sourceSheet.getCell(`G${rowIndex}`).value = year.trim()
+            }
     
-          sourceSheet.getCell(`B${rowIndex}`).value = (detail.participantInfo.name || '').trim();
-          sourceSheet.getCell(`A${rowIndex}`).value = index + 1;
-          sourceSheet.getCell(`C${rowIndex}`).value = (detail.participantInfo.nric || '').trim();
-          sourceSheet.getCell(`D${rowIndex}`).value = (detail.participantInfo.residentialStatus || '').substring(0, 2).trim();
+            sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.gender.split(" ")[0];
+            sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.race.split(" ")[0];
+            sourceSheet.getCell(`J${rowIndex}`).value = detail.participantInfo.contactNumber;
+            sourceSheet.getCell(`K${rowIndex}`).value = detail.participantInfo.email;
+            sourceSheet.getCell(`L${rowIndex}`).value = detail.participantInfo.postalCode;
     
-          const dob = detail?.participantInfo?.dateOfBirth;
-          if (dob) {
-            const [day, month, year] = dob.split("/");
-            sourceSheet.getCell(`E${rowIndex}`).value = day.trim();
-            sourceSheet.getCell(`F${rowIndex}`).value = month.trim();
-            sourceSheet.getCell(`G${rowIndex}`).value = year.trim();
+            const educationParts = detail.participantInfo.educationLevel.split(" ");
+            sourceSheet.getCell(`M${rowIndex}`).value = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
+    
+            const workParts = detail.participantInfo.workStatus.split(" ");
+            sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
+    
+            let courseName = detail.courseInfo.courseEngName;
+            let languages = courseName.split("–").pop().trim();
+            if (!((languages === "English") || (languages === "Mandarin"))) {
+              // If "English" or "Mandarin" is not in the course name, don't split
+              sourceSheet.getCell(`O${rowIndex}`).value = courseName.trim();
+            } else {
+              // Otherwise, split by "–" and assign the first part
+              sourceSheet.getCell(`O${rowIndex}`).value = courseName.split("–")[0].trim();
+            }
+            
+    
+            const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
+            sourceSheet.getCell(`P${rowIndex}`).value = this.convertDateFormat1(startDate);
+            sourceSheet.getCell(`Q${rowIndex}`).value = this.convertDateFormat1(endDate);
+    
+            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;
+            sourceSheet.getCell(`S${rowIndex}`).value = detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment;
+            sourceSheet.getCell(`V${rowIndex}`).value = detail.officialInfo.receiptNo;
+    
+            // Copy styles from the original row
+            originalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+              const newCell = newDataRow.getCell(colNumber);
+              newCell.style = cell.style;
+            });
           }
-    
-          sourceSheet.getCell(`H${rowIndex}`).value = (detail.participantInfo.gender || '').split(" ")[0].trim();
-          sourceSheet.getCell(`I${rowIndex}`).value = (detail.participantInfo.race || '').split(" ")[0].trim();
-          sourceSheet.getCell(`J${rowIndex}`).value = (detail.participantInfo.contactNumber || '').trim();
-          sourceSheet.getCell(`K${rowIndex}`).value = (detail.participantInfo.email || '').trim();
-          sourceSheet.getCell(`L${rowIndex}`).value = (detail.participantInfo.postalCode || '');
-    
-          const educationParts = (detail.participantInfo.educationLevel || '').split(" ");
-          sourceSheet.getCell(`M${rowIndex}`).value = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
-    
-          const workParts = (detail.participantInfo.workStatus || '').split(" ");
-          sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
-    
-          // Use the outer courseName variable here, without redefining it
-          courseName = (detail.courseInfo.courseEngName || '').trim();
-          let languages = (courseName.split("–").pop() || '').trim();
-          sourceSheet.getCell(`O${rowIndex}`).value = (languages === "english" || languages === "mandarin") ? courseName.split("–")[0].trim() : courseName;
-    
-          const [startDate, endDate] = (detail.courseInfo.courseDuration || '').split(" - ");
-          sourceSheet.getCell(`P${rowIndex}`).value = this.convertDateFormat1(startDate.trim());
-          sourceSheet.getCell(`Q${rowIndex}`).value = this.convertDateFormat1(endDate.trim());
-    
-          sourceSheet.getCell(`R${rowIndex}`).value = (detail.courseInfo.coursePrice || '').trim();
-          sourceSheet.getCell(`S${rowIndex}`).value = (detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment).trim();
-          sourceSheet.getCell(`V${rowIndex}`).value = (detail.officialInfo.receiptNo || '').trim();
-    
-          if (index === 0) {
-            courseLocation = detail.courseInfo.courseLocation; // Use the first courseLocation as a reference
-          }
-    
-          originalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-            const newCell = newDataRow.getCell(colNumber);
-            newCell.style = cell.style;
-          });
         });
     
-        const originalFileName = `List of Eligible Participants as of ${this.getCurrentDateTime()} for ${courseName} ${courseLocation}.xlsx`;
+       // Create new file name and sav
+        const originalFileName = `List of Eligible Participants for ${courseName} as of ${this.getCurrentDateTime()}.xlsx`
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
     
+        // Trigger download
         saveAs(blob, originalFileName);
       } catch (error) {
         console.error("Error exporting LOP:", error);
         this.props.warningPopUpMessage("An error occurred during export.");
       }
     };
-     
+
     exportAttendance = async (paginatedDetails) => {
       var { selectedCourseName, selectedLocation } = this.props;
     
       try {
-        const filePath = '/external/Attendance.xlsx';
+        // Fetch the Excel file from public folder (adjust the path if necessary)
+        const filePath = '/external/Attendance.xlsx';  // Path relative to the public folder
         const response = await fetch(filePath);
     
         if (!response.ok) {
           return this.props.warningPopUpMessage("Error fetching the Excel file.");
         }
     
-        const data = await response.arrayBuffer();
+        const data = await response.arrayBuffer(); // Convert file to ArrayBuffer
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(data);
     
@@ -778,23 +795,26 @@ class RegistrationPaymentSection extends Component {
           return this.props.warningPopUpMessage("Sheet 'Sheet1' not found!");
         }
     
+        // Set Course Title in A1
         const cellA1 = sourceSheet.getCell('A1');
-        cellA1.value = `Course Title: ${selectedCourseName.trim()}`; // Trim spaces before and after
+        cellA1.value = `Course Title: ${selectedCourseName}`;
         cellA1.font = { name: 'Calibri', size: 18, bold: true };
     
+        // Set Course Commencement Date in A2
         let courseCommencementDate = '';
         for (let i = 0; i < paginatedDetails.length; i++) {
           const item = paginatedDetails[i];
           if (item.course === selectedCourseName) {
-            courseCommencementDate = item.courseInfo.courseDuration.split("-")[0].trim(); // Trim spaces before and after
+            courseCommencementDate = item.courseInfo.courseDuration.split("-")[0].trim();
             break;
           }
         }
     
         const cellA2 = sourceSheet.getCell('A2');
-        cellA2.value = `Course Commencement Date: ${courseCommencementDate.trim()}`; // Trim spaces before and after
+        cellA2.value = `Course Commencement Date: ${courseCommencementDate}`;
         cellA2.font = { name: 'Calibri', size: 18, bold: true };
     
+        // Set Venue in A3 based on selected location
         const cellA3 = sourceSheet.getCell('A3');
         if (selectedLocation === "Tampines 253 Centre") {
           cellA3.value = `Venue: Blk 253 Tampines St 21 #01-406 Singapore 521253`;
@@ -807,83 +827,91 @@ class RegistrationPaymentSection extends Component {
         }
         cellA3.font = { name: 'Calibri', size: 18, bold: true };
     
-        // Sort participants alphabetically (case-insensitive) and keep internal spaces intact
-        const sortedParticipants = paginatedDetails
-          .filter(item => item.course === selectedCourseName && item.courseInfo.courseLocation === selectedLocation)
-          .sort((a, b) => {
-            const nameA = (a.participantInfo.name || "").trim().toLowerCase(); // Trim spaces before and after
-            const nameB = (b.participantInfo.name || "").trim().toLowerCase(); // Trim spaces before and after
-            return nameA.localeCompare(nameB);
-          });
+        // Loop for S/N and Name starting from row 6 in Columns A and B
+        let rowIndex = 6; // Start from row 6 for S/N and Name
+        let participantIndex = 1;  // Initialize participant index for S/N
+        for (let i = 0; i < paginatedDetails.length; i++) {
+          const item = paginatedDetails[i];
+          if (item.course === selectedCourseName && item.courseInfo.courseLocation === selectedLocation) {
+            const cellA = sourceSheet.getCell(`A${rowIndex}`);
+            const cellB = sourceSheet.getCell(`B${rowIndex}`);
     
-        let rowIndex = 6;
-        let participantIndex = 1;
+            cellA.value = participantIndex;  // Set S/N dynamically
+            cellB.value = item.participantInfo.name;
     
-        sortedParticipants.forEach(item => {
-          const cellA = sourceSheet.getCell(`A${rowIndex}`);
-          const cellB = sourceSheet.getCell(`B${rowIndex}`);
+            // Apply font styling
+            cellA.font = { name: 'Calibri', size: 18, bold: true };
+            cellB.font = { name: 'Calibri', size: 18, bold: true };
     
-          cellA.value = participantIndex;
-          cellB.value = item.participantInfo.name.trim(); // Trim spaces before and after
-    
-          cellA.font = { name: 'Calibri', size: 18, bold: true };
-          cellB.font = { name: 'Calibri', size: 18, bold: true };
-    
-          rowIndex++;
-          participantIndex++;
-        });
-    
-        const courseDuration = paginatedDetails[0]?.courseInfo?.courseDuration || '';
-        const [startDate, endDate] = courseDuration.split(" - ");
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-    
-        let weekIndex = 1;
-        let currentDate = new Date(start);
-        const row = sourceSheet.getRow(4);
-        let lessonColumns = [];
-    
-        for (let col = 4; col <= 42; col += 2) {
-          if (currentDate <= end) {
-            const lessonLabel = `L${weekIndex}: ${formatDateToDDMMYYYY(currentDate)}`;
-            const cell = row.getCell(col);
-    
-            cell.value = lessonLabel;
-            cell.font = { name: 'Calibri', size: 16, bold: true };
-    
-            lessonColumns.push(col);
-            currentDate.setDate(currentDate.getDate() + 7);
-            weekIndex++;
+            rowIndex++;
+            participantIndex++; // Increment participant index for S/N
           }
         }
     
+        // Set Weekly labels in row 4 (D4 onwards)
+        const courseDuration = paginatedDetails[0]?.courseInfo?.courseDuration || '';
+        const [startDate, endDate] = courseDuration.split(" - ");  // Split course duration into start and end dates
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+    
+        // Calculate weeks
+        let weekIndex = 1;
+        let currentDate = new Date(start);
+    
+        const row = sourceSheet.getRow(4); // Row 4 for weekly labels
+    
+        let lessonColumns = [];  // To store columns that will contain lessons
+    
+        // Loop for lessons (L1, L2, L3, etc.)
+        for (let col = 4; col <= 42; col += 2) {  // Every 2 columns will represent 1 lesson
+          if (currentDate <= end) {
+            const lessonLabel = `L${weekIndex}: ${formatDateToDDMMYYYY(currentDate)}`;
+            const cell = row.getCell(col);  // Get the cell in the specific column of row 4
+    
+            // Set the value for the lesson
+            cell.value = lessonLabel;
+            cell.font = { name: 'Calibri', size: 16, bold: true };
+    
+            // Store the column index for lesson
+            lessonColumns.push(col);
+    
+            // Move to the next week
+            currentDate.setDate(currentDate.getDate() + 7);  // Move 1 week ahead
+            weekIndex++; // Increment the week number
+          }
+        }
+    
+        // Helper function to format a date to dd/mm/yyyy
         function formatDateToDDMMYYYY(date) {
           const day = String(date.getDate()).padStart(2, '0');
-          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
           const year = date.getFullYear();
           return `${day}/${month}/${year}`;
         }
-    
+
+        // Helper function to format a date to dd/mm/yyyy
         function formatDateToDDMMYYYY1(date) {
           const day = String(date.getDate()).padStart(2, '0');
-          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
           const year = date.getFullYear();
           return `${day}${month}${year}`;
         }
+          
     
+        // Create a new file and trigger download
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
     
-        saveAs(blob, `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${selectedCourseName.trim()} ${selectedLocation.trim()}.xlsx`);
+        // Trigger the file download with a new name
+        saveAs(blob, `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${selectedCourseName}.xlsx`);
       } catch (error) {
         console.error("Error exporting LOP:", error);
         this.props.warningPopUpMessage("An error occurred during export.");
       }
     };
     
-
     getCurrentDateTime = () => {
       const now = new Date();
       const day = String(now.getDate()).padStart(2, '0');
