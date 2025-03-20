@@ -6,7 +6,6 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
-import PaymentMethod from '../dropdownBox/paymentMethod'; 
 
 class RegistrationPaymentSection extends Component {
     constructor(props) {
