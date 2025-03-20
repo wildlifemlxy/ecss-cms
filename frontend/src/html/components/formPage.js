@@ -12,6 +12,7 @@ class FormPage extends Component {
     super(props);
     this.state = {
       currentSection: 0,
+      loading: false,
       formData: {
         englishName: '',
         chineseName: '',
@@ -26,7 +27,6 @@ class FormPage extends Component {
         postalCode: '',
         eDUCATION: '',
         wORKING: '',
-        courseName: '',
         courseDate: '',
         agreement: '',  // Corrected key from 'argeement' to 'agreement'
         bgColor: '',
@@ -35,46 +35,7 @@ class FormPage extends Component {
     };
   }
 
-  /*(componentDidMount() {
-    window.scrollTo(0, 0);
-    const queryParams = new URLSearchParams(window.location.search);
-    console.log("QueryParams:", queryParams);
-    const englishName = queryParams.get('engName')?.trim() || '';
-    const chineseName = (() => {
-      const param = queryParams.get('chiName') || '';
-  
-      if (param.includes(':')) {
-          return param.split(':')[1].trim();
-      } else {
-          return param.trim();
-      }
-  })();
-    const location = queryParams.get('location')?.trim() || '';
-    const price = queryParams.get('price')?.trim() || '';
-    const type = queryParams.get('type')?.trim() || '';
-    if (type === 'ILP') {
-      this.setState({ bgColor: '#006400' }); // Dark green for ILP
-    } else if (type === 'NSA') {
-      this.setState({ bgColor: '#003366' }); // Dark blue for NSA
-    } 
-    const duration = queryParams.get('courseDuration')?.trim() || '';
-
-    console.log(englishName, chineseName, "Location:", location, price, duration);
-
-    this.setState((prevState) => ({
-      formData: {
-        ...prevState.formData,
-        englishName,
-        chineseName,
-        location, 
-        price, 
-        type,
-        duration
-      }
-    }));
-  }*/
-
-    componentDidMount = async () => {
+  componentDidMount = async () => {
       window.scrollTo(0, 0);
       const queryParams = new URLSearchParams(window.location.search);
       console.log("QueryParams:", queryParams);
@@ -101,7 +62,7 @@ class FormPage extends Component {
       console.log("All Courses:", allCourses);
   
       // Function to find the course by name
-      function findCourseByName(courseList, courseName) {
+      function findCourseByName(courseList) {
           return courseList.find(course => {
               // Splitting the course name by <br /> or <br/>
               const courseParts = course.name.split(/<br\s*\/?>/).map(part => part.trim()).join(' ');
@@ -115,15 +76,18 @@ class FormPage extends Component {
       // Find the matching course
       var matchedCourse = findCourseByName(allCourses, selectedCourse);
       console.log("Matched Course:", matchedCourse);
-  
+
       if (matchedCourse) {
           console.log("Selected Course Details:", matchedCourse.name.split(/<br\s*\/?>/));
+          let selectedLocation = matchedCourse.name.split(/<br\s*\/?>/)[2];
+          console.log("Selected Course Location:", location.slice(1, location.length - 1));
           console.log("Selected Course Price:", matchedCourse.price);
           console.log("Selected Course Duration:", duration);
   
           // Destructuring the split course name into parts
           const courseParts = matchedCourse.name.split(/<br\s*\/?>/).map(part => part.trim());
           const formattedPrice = matchedCourse.price ? `$${parseFloat(matchedCourse.price).toFixed(2)}` : "$0.00";
+          selectedLocation = selectedLocation.slice(1, selectedLocation.length - 1);
   
           // Setting state based on the course parts
           if (courseParts.length === 3) {
@@ -133,11 +97,12 @@ class FormPage extends Component {
                       ...prevState.formData,
                       chineseName: courseParts[0],  // Chinese name
                       englishName: courseParts[1],   // English name
-                      location: courseParts[2]?.replace(/\s?\(.*\)/, '').trim(),      // Location
+                      location: selectedLocation,      // Location
                       price: formattedPrice,
                       type,
-                      duration
-                  }
+                      courseDuration:duration
+                  },
+                  loading: true
               }));
           } else if (courseParts.length === 2) {
               // If we have two parts (Chinese, English)
@@ -145,16 +110,15 @@ class FormPage extends Component {
                   formData: {
                       ...prevState.formData,
                       chineseName: courseParts[0],  // Chinese name
-                      englishName: courseParts[1]?.replace(/\s?\(.*\)/, '').trim(),   // English name
+                      location: selectedLocation,   // English name
                       price: formattedPrice,
                       type,
-                      duration
-                  }
+                      courseDuration:duration
+                  },
+                  loading: true
               }));
           }
-      } else {
-          console.log('Course not found.');
-      }
+      } 
   }
   
   
@@ -203,7 +167,7 @@ class FormPage extends Component {
     console.log("Pressed Next");
     const errors = this.validateForm();
     const { currentSection } = this.state;
-    console.log(currentSection);
+    console.log("Current Section:", currentSection);
   
     if (currentSection === 2) {
       if (this.props.type === "NSA" && !this.courseDetailsRef.state.selectedPayment) {
@@ -269,7 +233,7 @@ class FormPage extends Component {
     var courseChiName = this.decodeHtmlEntities(formData.chineseName);
     var courseLocation = formData.location;
     var coursePrice = formData.price; 
-    var courseDuration = formData.duration;
+    var courseDuration = formData.courseDuration;
     var payment = formData.payment;
 
     // Agreement
@@ -482,45 +446,68 @@ class FormPage extends Component {
   };
 
   render() {
-    const { currentSection, formData, validationErrors, bgColor } = this.state;
-
+    const { currentSection, formData, validationErrors, bgColor, loading } = this.state;
+  
+    // Render the loading spinner or content depending on loading state
+    if (loading === false) {
+      return (
+        <div className="loading-spinner" style={{ textAlign: 'center', marginTop: '20px' }}>
+          <div className="spinner"></div>
+          <p style={{ fontSize: '18px', color: '#333', fontWeight: '600', marginTop: '10px' }}>Loading...</p>
+        </div>
+      );
+    }    
+  
     return (
       <div className="formwholepage" style={{ backgroundColor: bgColor }}>
         <div className="form-page">
           <div className="form-container">
-            {currentSection === 0 && <FormDetails  courseType={formData.type}/>}
+            {currentSection === 0 && <FormDetails courseType={formData.type} />}
             {currentSection === 1 && (
-              <PersonalInfo data={formData} onChange={this.handleDataChange} errors={validationErrors} />
+              <PersonalInfo
+                data={formData}
+                onChange={this.handleDataChange}
+                errors={validationErrors}
+              />
             )}
-            {currentSection === 2 && 
-              <CourseDetails 
-                ref={(ref) => this.courseDetailsRef = ref} 
-                courseEnglishName={formData.englishName} 
-                courseChineseName={formData.chineseName} 
-                courseLocation={formData.location} 
-                coursePrice={formData.price} 
+            {currentSection === 2 && (
+              <CourseDetails
+                ref={(ref) => (this.courseDetailsRef = ref)}
+                courseEnglishName={formData.englishName}
+                courseChineseName={formData.chineseName}
+                courseLocation={formData.location}
+                coursePrice={formData.price}
                 courseType={formData.type}
-                courseDuration={formData.duration}
+                courseDuration={formData.courseDuration}
                 payment={formData.payment}
                 onChange={this.handleDataChange}
               />
-            }
-            {currentSection === 3 && <AgreementDetailsSection ref={(ref) => this.agreementDetailsRef = ref} agreement={formData.agreement} onChange={this.handleDataChange} errors={validationErrors}/>}
+            )}
+            {currentSection === 3 && (
+              <AgreementDetailsSection
+                ref={(ref) => (this.agreementDetailsRef = ref)}
+                agreement={formData.agreement}
+                onChange={this.handleDataChange}
+                errors={validationErrors}
+              />
+            )}
             {currentSection === 4 && <SubmitDetailsSection />}
           </div>
-        </div>   
-          {/* Conditionally render the button container */}
-          {currentSection < 4 && (
-            <div className="button-container">
-              <button onClick={this.handleBack} disabled={currentSection === 0}>Back 返回</button>
-              <button onClick={this.handleNext}>
-                {currentSection === 4 ? 'Submit 提交' : 'Next 下一步'}
-              </button>
-            </div>
-          )}
+        </div>
+        {/* Conditionally render the button container */}
+        {currentSection < 4 && (
+          <div className="button-container">
+            <button onClick={this.handleBack} disabled={currentSection === 0}>
+              Back 返回
+            </button>
+            <button onClick={this.handleNext}>
+              {currentSection === 4 ? 'Submit 提交' : 'Next 下一步'}
+            </button>
+          </div>
+        )}
       </div>
     );
-  }
+  }  
 }
 
 export default FormPage;
