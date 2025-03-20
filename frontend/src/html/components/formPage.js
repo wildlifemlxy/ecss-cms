@@ -40,22 +40,7 @@ class FormPage extends Component {
       const queryParams = new URLSearchParams(window.location.search);
       console.log("QueryParams:", queryParams);
   
-      // Setting background color based on course type
-      const type = queryParams.get('type')?.trim() || '';
-      if (type === 'ILP') {
-          this.setState({ bgColor: '#006400' }); // Dark green for ILP
-      } else if (type === 'NSA') {
-          this.setState({ bgColor: '#003366' }); // Dark blue for NSA
-      }
-  
-      const duration = queryParams.get('courseDuration')?.trim() || '';
-      const englishName = queryParams.get('engName')?.trim() || '';
-      const chineseName = queryParams.get('chiName') || '';
-      const location = queryParams.get('location')?.trim() || '';
-  
-      // Constructing selected course name
-      const selectedCourse = `${chineseName} ${englishName} (${location})`;
-  
+      const link = queryParams.get('link')?.trim() || '';
       // Fetching courses
       var courseType = "";
       var allCourses = await this.fetchCourses(courseType);
@@ -63,31 +48,56 @@ class FormPage extends Component {
   
       // Function to find the course by name
       function findCourseByName(courseList) {
-          return courseList.find(course => {
-              // Splitting the course name by <br /> or <br/>
-              const courseParts = course.name.split(/<br\s*\/?>/).map(part => part.trim()).join(' ');
-              console.log("Course Part:", courseParts);
-              
-              // Direct comparison with selectedCourse
-              return courseParts === selectedCourse;
-          });
+        return courseList.find(course => {
+            // Direct comparison without spaces
+            console.log("Actual Link:", link);
+            console.log("Woocommerce Link:", decodeURIComponent(course.permalink));
+            return decodeURIComponent(course.permalink) === link;
+        });
       }
-  
+
       // Find the matching course
-      var matchedCourse = findCourseByName(allCourses, selectedCourse);
+      var matchedCourse = findCourseByName(allCourses);
       console.log("Matched Course:", matchedCourse);
 
       if (matchedCourse) {
+         const type = matchedCourse.categories[1].name.split(":")[1].trim();
+          // Setting background color based on course type
+          if (type === 'ILP') {
+              this.setState({ bgColor: '#006400' }); // Dark green for ILP
+          } else if (type === 'NSA') {
+              this.setState({ bgColor: '#003366' }); // Dark blue for NSA
+          }
+          let selectedLocation = matchedCourse.attributes[1].options[0];
+          selectedLocation = selectedLocation === 'CT Hub' ? 'CT Hub' :
+                             selectedLocation === '恩 Project@253' ? 'Tampines 253 Centre' :
+                             selectedLocation === 'Pasir Ris West' ? 'Pasir Ris West Wellness Centre' :
+                             selectedLocation === 'Tampines North CC' ? 'Tampines North Community Centre' :
+                             selectedLocation; // Default if no match
           console.log("Selected Course Details:", matchedCourse.name.split(/<br\s*\/?>/));
-          let selectedLocation = matchedCourse.name.split(/<br\s*\/?>/)[2];
-          console.log("Selected Course Location:", location.slice(1, location.length - 1));
           console.log("Selected Course Price:", matchedCourse.price);
-          console.log("Selected Course Duration:", duration);
+          const shortDescription = matchedCourse.short_description;
+
+          // Split the string by "<p>" to separate paragraph elements
+          const paragraphs = shortDescription.split("<p>");
+          
+          // Get the last paragraph for Start Date (index -1) and second-to-last for End Date (index -2)
+          const startDateParagraph = paragraphs[paragraphs.length - 2]; // second-to-last element
+          const endDateParagraph = paragraphs[paragraphs.length - 1];  // last element
+          
+          // Clean the paragraphs by removing the <strong> and </strong> tags and </p> tag
+          const cleanedStartDate = startDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
+          const cleanedEndDate = endDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
+          
+          // Output the results
+          console.log("Start Date:", cleanedStartDate);
+          console.log("End Date:", cleanedEndDate);   
+          const courseDuration = `${cleanedStartDate.replace(/\n/g, "")} - ${cleanedEndDate.replace(/\n/g, "")}`;    
+
   
           // Destructuring the split course name into parts
           const courseParts = matchedCourse.name.split(/<br\s*\/?>/).map(part => part.trim());
           const formattedPrice = matchedCourse.price ? `$${parseFloat(matchedCourse.price).toFixed(2)}` : "$0.00";
-          selectedLocation = selectedLocation.slice(1, selectedLocation.length - 1);
   
           // Setting state based on the course parts
           if (courseParts.length === 3) {
@@ -100,7 +110,7 @@ class FormPage extends Component {
                       location: selectedLocation,      // Location
                       price: formattedPrice,
                       type,
-                      courseDuration:duration
+                      courseDuration
                   },
                   loading: true
               }));
@@ -113,7 +123,7 @@ class FormPage extends Component {
                       location: selectedLocation,   // English name
                       price: formattedPrice,
                       type,
-                      courseDuration:duration
+                      courseDuration
                   },
                   loading: true
               }));
@@ -456,7 +466,7 @@ class FormPage extends Component {
           <p style={{ fontSize: '18px', color: '#333', fontWeight: '600', marginTop: '10px' }}>Loading...</p>
         </div>
       );
-    }    
+    }     
   
     return (
       <div className="formwholepage" style={{ backgroundColor: bgColor }}>
