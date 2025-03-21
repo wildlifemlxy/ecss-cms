@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = 'Nagomi Pastel Art Appreciation - CT Hub.jpg'; 
+            const filename = 'Company Website - Contact Us.jpg'; 
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator('https://ecss.org.sg/product/%e6%97%a5%e6%9c%ac%e5%92%8c%e8%b0%90%e7%b2%89%e5%bd%a9%e4%bd%93%e9%aa%8c%e7%8f%adnagomi-pastel-art-appreciation-ct-hub/');
+const qrCodeGenerator = new QRCodeGenerator('https://ecss.org.sg/contact-us/');
 qrCodeGenerator.generate();
