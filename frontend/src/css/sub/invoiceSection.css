@@ -163,45 +163,50 @@
   width: 90vw;
 }
 
-#month-year-dropdown, .dropdown-list {
-  position: relative;
-  display: flex;
-  margin-right: auto;
+/* Centers the input inside the container */
+.dropdown-container1 input {
+  width: 100%; /* Ensures the input takes up the full width of the container */
+  padding: 0.5rem; /* Adds padding inside the input */
+  box-sizing: border-box; /* Ensures padding is included in the width */
+  border-radius: 4px; /* Rounded corners */
+  border: 1px solid #ccc; /* Border for the input */
+  display: block; /* Makes the input block-level */
+}
+
+.dropdown-container1
+{
+  width: 20vw;
   margin-left: auto;
+  margin-right: auto;
 }
 
-.dropdown-list {
-  width: 18vw; /* Adjust the width as needed */
-  display: flex;
-  flex-direction: column; /* Stack the items vertically */
-  top: 100%; /* Position it directly below the input field */
-  left: 0;
-  background-color: white;
-  border: 1px solid #ccc;
-  z-index: 100; /* Make sure it appears above other elements */
-  list-style-type: none;
-  padding: 0;
-  text-align: left;
+/* Dropdown list style */
+.dropdown-list1 {
+  position: absolute; /* Positions the dropdown below the input */
+  width: 20vw; /* Ensures the dropdown matches the input width */
+  background: white; /* Background color */
+  border-bottom: 1px solid #ccc; /* Border around the dropdown */
+  border-left: 1px solid #ccc; /* Border around the dropdown */
+  border-right: 1px solid #ccc; /* Border around the dropdown */
+  border-radius: 4px; /* Rounded corners */
+  box-sizing: border-box; /* Ensures padding is inside the width */
+  z-index: 10; /* Ensures the dropdown is above other elements */
+  max-height: 200px; /* Optional: Limits the height of the dropdown */
+  overflow-y: auto; /* Allows vertical scrolling if content overflows */
+  margin: 0; /* Removes margin */
+  padding: 0; /* Removes padding */
+  list-style: none; /* Removes list item styles */
 }
 
-.dropdown-list li {
-  padding: 8px;
-  cursor: pointer;
+/* Dropdown item styling */
+.dropdown-list1 li {
+  padding: 0.5rem; /* Adds padding inside each dropdown item */
+  cursor: pointer; /* Changes cursor to pointer on hover */
 }
 
-.dropdown-list li:hover {
-  background-color: #f0f0f0;
+.dropdown-list1 li:hover {
+  background-color: #f0f0f0; /* Changes background on hover */
 }
-
-.dropdown-icon{
-  right: 0.5rem; /* Adjust as needed */
-  top: 50%; /* Center vertically */
-  transform: translateY(-50%); /* Center vertically */
-  pointer-events: none; /* Prevents the icon from blocking clicks */
-  font-size: 1rem; /* Adjust size as needed */
-  color: #000; /* Set color of the dropdown icon to black */
-}
-
 
 
 /* Responsive Design */

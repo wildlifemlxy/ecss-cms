@@ -622,7 +622,7 @@ class ReportSection extends Component {
   
   render() 
   {
-    var {showMonthYearDropdown, filteredMonthYearOptions, monthYearOptions} = this.state;
+    var {showMonthYearDropdown, filteredMonthYearOptions,} = this.state;
     ModuleRegistry.registerModules([AllCommunityModule]);
     return (
       <>
@@ -631,14 +631,13 @@ class ReportSection extends Component {
             {/* Title for Monthly Report */}
             <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Monthly Report</h1>
             <div
-              id="month-year-selector"
-              name="monthYearSelector"
-              className={`dropdown-container ${showMonthYearDropdown ? 'open' : ''}`}
-              ref={this.accountTypeDropdownRef}
+              id="month-year-selector1"
+              name="monthYearSelector1"
+              className={`dropdown-container1 ${showMonthYearDropdown ? 'open' : ''}`}
             >
               <input
                 type="text"
-                id="month-year-dropdown"
+                id="month-year-dropdown1"
                 name="selectedMonthYear"
                 value={this.state.selectedMonthYear}
                 onChange={this.handleChange}
@@ -647,7 +646,7 @@ class ReportSection extends Component {
                 autoComplete="off"
               />
               {showMonthYearDropdown && (
-                <ul className="dropdown-list">
+                <ul className="dropdown-list1">
                   {filteredMonthYearOptions.map((monthYear, index) => (
                     <li
                       key={index}
