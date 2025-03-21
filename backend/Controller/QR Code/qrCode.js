@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = 'Company Website - Contact Us.jpg'; 
+            const filename = 'Company Website - NSA Courses.jpg'; 
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator('https://ecss.org.sg/contact-us/');
+const qrCodeGenerator = new QRCodeGenerator('https://ecss.org.sg/product-category/courses/tri-love-elderly-nsa/');
 qrCodeGenerator.generate();

@@ -263,7 +263,7 @@ class Popup extends Component {
       .then((response) => {
         console.log("Deleted Participants:", response);
         this.props.closePopupMessage();
-        this.props.closePopup2();
+        //this.props.closePopup2();
       })
     .catch((error) => {
       console.error('Error submitting form:', error);
@@ -275,7 +275,7 @@ class Popup extends Component {
       axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: "sendDetails", id })
         .then((response) => {
           this.props.closePopupMessage();
-          this.props.closePopup2();
+          //this.props.closePopup2();
         })
       .catch((error) => {
         console.error('Error submitting form:', error);
@@ -335,7 +335,7 @@ class Popup extends Component {
     }
   };
 
-  handlePortOver = async (id, participantInfo, courseInfo, status) => {
+  handlePortOver = async (id, participantInfo, courseInfo, status, signal) => {
     try {
       console.log("Registration Id1:", id, participantInfo, courseInfo, status);
       const { selectedLocation } = this.state;
@@ -374,7 +374,6 @@ class Popup extends Component {
   
         // Close popup after all tasks are completed
         this.props.closePopupMessage();  
-        this.props.closePopup3();
       }
   
     } catch (error) {
