@@ -26,6 +26,7 @@ class ReportSection extends Component {
       ], 
       rowData: [],  // The actual data for the grid
       monthYearOptions: [], // List of month-year combinations
+      filteredMonthYearOptions: [], // List of month-year combinations
       selectedMonthYear: '', // Selected month-year from the dropdown
       showTable: false, // Control whether the table and export button are visible
       status: "",
@@ -35,7 +36,8 @@ class ReportSection extends Component {
       showReport: false,
       dateRange: "", 
       totalCash: 0,
-      totalPayNow: 0
+      totalPayNow: 0,
+      showMonthYearDropdown: false
     };
   }
 
@@ -57,19 +59,19 @@ class ReportSection extends Component {
   // Fetch invoice data when the component mounts
   componentDidMount = async () => 
   {
-    if(this.props.reportType === "Monthly Report")
-    {
       this.props.loadingPopup1();
       await this.fetchInvoiceDetails();
       this.props.closePopup1();
-    }
-    else if(this.props.reportType === "Payment Report")
-    {
-      this.props.loadingPopup1();
-      await this.fetchInvoiceDetails();
-      this.props.closePopup1();
+  };
+
+  componentDidUpdate = async (prevProps) => {
+    if (prevProps.reportType !== this.props.reportType) {
+        this.props.loadingPopup1();
+        await this.fetchInvoiceDetails();
+        this.props.closePopup1();
     }
   };
+  
 
   calculateTotalPriceForSelectedMonth = (selectedMonth) => {
     const { invoiceData } = this.state;
@@ -205,7 +207,6 @@ class ReportSection extends Component {
     });
   };  
   
-  
   // Function to fetch invoice details and populate the AG-Grid
   fetchInvoiceDetails = async () => {
     try {
@@ -228,14 +229,20 @@ class ReportSection extends Component {
         rowData: mappedData, // Set the original data
         updatedInvoiceData: mappedData, // Set the filtered data initially to the full data
         monthYearOptions, 
-        status: "Collection by Lee Chin" 
+        filteredMonthYearOptions: monthYearOptions,
+        status: "Collection by Lee Chin",
+        showReport: false,
+        showTable: false,
+        fromDate: "",
+        toDate: "",
+        selectedMonthYear: ""
       });
 
     } catch (error) {
       console.error('Error fetching invoice details:', error);
     }
   };
-
+  
   fetchSiteICDetails = async (fromDate, toDate) => {
     try {
       this.props.loadingPopup1();
@@ -329,9 +336,10 @@ class ReportSection extends Component {
     return Array.from(monthYearSet);
   };
 
-  handleMonthYearChange = (event) => {
-    const selectedMonthYear = event.target.value;
-    this.setState({ selectedMonthYear });
+  handleMonthYearChange = (selectedMonthYear) => 
+  {
+    console.log("Selected Month Year:", selectedMonthYear);
+    this.setState({ selectedMonthYear, showMonthYearDropdown: false });
       // Recalculate total price and apply filter after selecting month-year
     this.calculateTotalPriceForSelectedMonth(selectedMonthYear);
     this.filterInvoiceDataByMonthYear(selectedMonthYear);
@@ -581,10 +589,40 @@ class ReportSection extends Component {
     XLSX.writeFile(wb, `Invoice Report - ${dateRange}.xlsx`);
   };  
 
+  handleChange = (event) => {
+    const { name, value } = event.target;
+    console.log("handleChange", name, event);
+  
+    this.setState({ [name]: value }, () => {
+      if (name === 'selectedMonthYear') {
+        // Filtering locations based on the input value
+        const filteredMonthYearOptions = this.state.monthYearOptions.filter(monthYear =>
+          monthYear.toLowerCase().includes(value.toLowerCase())
+        );
+  
+        // Updating the state with the filtered locations and selected value
+        this.setState({
+          filteredMonthYearOptions,
+          selectedMonthYear: value, // Assuming you want the name to be centrelocation
+        });
+      }
+    });
+  };
 
+  handleDropdownToggle = (dropdown) =>
+  {
+    console.log("Dropdown:", dropdown);
+    if(dropdown === 'showMonthYearDropdown')
+    {
+      this.setState({
+        showMonthYearDropdown: true
+      });
+    }
+  }
+  
   render() 
   {
-    var {status, totalPrice} = this.state;
+    var {showMonthYearDropdown, filteredMonthYearOptions, monthYearOptions} = this.state;
     ModuleRegistry.registerModules([AllCommunityModule]);
     return (
       <>
@@ -592,20 +630,34 @@ class ReportSection extends Component {
           <>
             {/* Title for Monthly Report */}
             <h1 style={{ textAlign: 'center', marginBottom: '20px' }}>Monthly Report</h1>
-            
-            {/* Dropdown for selecting month-year */}
-            <div id="month-year-selector" name="monthYearSelector" style={{ marginTop: '20px', textAlign: 'center' }}>
-              <select
+            <div
+              id="month-year-selector"
+              name="monthYearSelector"
+              className={`dropdown-container ${showMonthYearDropdown ? 'open' : ''}`}
+              ref={this.accountTypeDropdownRef}
+            >
+              <input
+                type="text"
                 id="month-year-dropdown"
-                name="monthYearDropdown"
-                onChange={this.handleMonthYearChange}
+                name="selectedMonthYear"
                 value={this.state.selectedMonthYear}
-              >
-                <option value="">Select Month Year</option>
-                {this.state.monthYearOptions.map((option, index) => (
-                  <option key={index} value={option}>{option}</option>
-                ))}
-              </select>
+                onChange={this.handleChange}
+                onClick={() => this.handleDropdownToggle('showMonthYearDropdown')}
+                placeholder={this.props.language === 'zh' ? '' : 'Click to select the month year'}
+                autoComplete="off"
+              />
+              {showMonthYearDropdown && (
+                <ul className="dropdown-list">
+                  {filteredMonthYearOptions.map((monthYear, index) => (
+                    <li
+                      key={index}
+                      onClick={() => this.handleMonthYearChange(monthYear)}
+                    >
+                      {monthYear}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
       
             {/* Only display the table and export button if a month-year is selected */}

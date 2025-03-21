@@ -21,7 +21,11 @@
 #month-year-selector {
   margin-top: 20px;
   text-align: center;
+  width: 18vw;
+  margin-left: auto;
+  margin-right: auto;
 }
+
 
 #month-year-dropdown {
   padding: 10px 15px;
@@ -146,10 +150,6 @@
   background-color: #e0e0e0;
 }
 
-.generate-btn:active{
-
-}
-
 .generate-btn 
 {
   color: #FFA500;  /* Orange color */
@@ -162,6 +162,47 @@
   margin-right: auto;
   width: 90vw;
 }
+
+#month-year-dropdown, .dropdown-list {
+  position: relative;
+  display: flex;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.dropdown-list {
+  width: 18vw; /* Adjust the width as needed */
+  display: flex;
+  flex-direction: column; /* Stack the items vertically */
+  top: 100%; /* Position it directly below the input field */
+  left: 0;
+  background-color: white;
+  border: 1px solid #ccc;
+  z-index: 100; /* Make sure it appears above other elements */
+  list-style-type: none;
+  padding: 0;
+  text-align: left;
+}
+
+.dropdown-list li {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.dropdown-list li:hover {
+  background-color: #f0f0f0;
+}
+
+.dropdown-icon{
+  right: 0.5rem; /* Adjust as needed */
+  top: 50%; /* Center vertically */
+  transform: translateY(-50%); /* Center vertically */
+  pointer-events: none; /* Prevents the icon from blocking clicks */
+  font-size: 1rem; /* Adjust size as needed */
+  color: #000; /* Set color of the dropdown icon to black */
+}
+
+
 
 /* Responsive Design */
 @media (max-width: 768px) {
