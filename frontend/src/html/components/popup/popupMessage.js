@@ -272,14 +272,14 @@ class Popup extends Component {
 
   handleSendOver = async(id) =>
   {
-      axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: "sendDetails", id })
+     /* axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: "sendDetails", id })
         .then((response) => {
           this.props.closePopupMessage();
           //this.props.closePopup2();
         })
       .catch((error) => {
         console.error('Error submitting form:', error);
-      });
+      });*/
   }
 
   updateWooCommerceForPortOver = async (chi, eng, location, updatedStatus) => 
@@ -941,7 +941,7 @@ class Popup extends Component {
             <div className="confirmation-message">
               <p>{message}</p>
               <div className="confirmation-buttons">
-                <button onClick={() => this. handleSendOver(this.props.id)} className="confirm-btn">Confirm</button>
+                <button onClick={() => this.handleSendOver(this.props.id)} className="confirm-btn">Confirm</button>
                 <button onClick={this.cancel} className="cancel-btn">Cancel</button>
               </div>
             </div>
