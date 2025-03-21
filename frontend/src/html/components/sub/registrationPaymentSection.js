@@ -1246,7 +1246,7 @@ class RegistrationPaymentSection extends Component {
         course: item.course.courseEngName,  // Replace with the actual field for payment status
         courseChi: item.course.courseChiName,  // Replace with the actual field for payment status
         location: item.course.courseLocation,  // Replace with the actual field for payment status
-        sendDetails: item.course?.sendingWhatsappMessage,
+        sendDetails: item.sendingWhatsappMessage,
         paymentMethod: item.course.payment,  // Replace with the actual field for payment method
         confirmed: item.official.confirmed,  // Replace with the actual field for receipt/invoice number
         paymentStatus: item.status,  // Replace with the actual field for payment status
@@ -1753,6 +1753,7 @@ class RegistrationPaymentSection extends Component {
   
   sendDetails = async (id) =>
   {
+    await this.props.generateSendDetailsConfirmationPopup(id);
     try {
       // Send the request to the backend to trigger WhatsApp automation
       const response = await axios.post('http://localhost:3001/courseregistration', 
@@ -1885,29 +1886,6 @@ class RegistrationPaymentSection extends Component {
     }
   }
 
-  detectAnomalies = (rowData) => 
-  {
-    console.log("Row Data:", rowData);
-    // Simple anomaly rules - would be more sophisticated with actual ML
-    const isRegistrationRecent = new Date(rowData.registrationDate) > new Date(Date.now() - 86400000);
-    const hasPaymentIssue = rowData.paymentStatus === 'Pending';
-    const isDuplicate = this.checkForDuplicates(rowData);
-    
-    return isRegistrationRecent && (hasPaymentIssue || isDuplicate);
-  }
-
-  // Check for potential duplicate registrations
-  checkForDuplicates = (rowData) => {
-    // Count similar registrations (same person, same course, different dates)
-    const similarRegistrations = this.state.rowData.filter(row => 
-      row.id !== rowData.id && 
-      row.name === rowData.name &&
-      row.course === rowData.course
-    );
-    
-    return similarRegistrations.length > 0;
-  }
-  
   render()
   {
     var {rowData} = this.state
@@ -1940,24 +1918,34 @@ class RegistrationPaymentSection extends Component {
                 defaultColDef={{
                   resizable: true, // Make columns resizable
                 }}
-                onGridReady={this.onGridReady} 
+                onGridReady={this.onGridReady}
                 onCellValueChanged={this.onCellValueChanged} // Handle cell value change
                 onCellClicked={this.handleValueClick} // Handle cell click event
                 getRowStyle={(params) => {
-                  // Condition to change row style based on a specific value
+                  // Log the value for debugging
+                  console.log(params.data.courseInfo.courseType);
+
+                  // Initialize rowStyle
+                  let rowStyle = {};
+
+                  // Apply courseType based background colors
                   if (params.data.courseInfo.courseType === 'ILP') {
-                    return { backgroundColor: '#A8D5BA' }; // Olive green soft pastel color for ILP
+                    rowStyle = { backgroundColor: '#A8D5BA' }; // Olive green soft pastel color for ILP
                   } else if (params.data.courseInfo.courseType === 'OtherType') {
-                    return { backgroundColor: '#FFB6C1' }; // Soft pink for other type
+                    rowStyle = { backgroundColor: '#FFB6C1' }; // Soft pink for other type
                   }
-                  // Add AI-powered anomaly detection styling
-                  if (this.detectAnomalies(params.data)) {
-                    return { backgroundColor: '#FFF0E0' }; // Highlight anomalies
-                  }
-                  
-                  return {}; // Default style
+
+                 /* // Check for anomalies and apply error styles
+                  const anomalies = this.detectAnomalies([params.data]);
+                  if (anomalies.length > 0) {
+                    params.data.errorMessage = anomalies[0].errors.join(', '); // Set error messages
+                    rowStyle = { ...rowStyle, backgroundColor: '#FFF0E0' }; // Light yellow for errors (keep previous style)
+                  }*/
+
+                  return rowStyle; // Return the row style
                 }}
               />
+
 
             </div>
               {/* Render custom <div> below the expanded row */}

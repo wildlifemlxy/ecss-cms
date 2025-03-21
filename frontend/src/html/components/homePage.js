@@ -447,6 +447,17 @@
       });
     };
 
+    generateSendDetailsConfirmationPopup = (id) => 
+    {
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: `Are you sure you have send this participant the payment advice?`, // You can customize this based on your data
+          popupType: "sendOver", // You can use this to style it differently if needed
+          deleteId: id
+        });
+    };
+
+    
     
     generatePortOverConfirmationPopup = (id, participantInfo, courseInfo, status) => {
       console.log("ID deleted:", id);
@@ -981,6 +992,7 @@
                         closePopupMessage = {this.closePopupMessage}
                         generateDeleteConfirmationPopup = {this.generateDeleteConfirmationPopup}
                         generatePortOverConfirmationPopup = {this.generatePortOverConfirmationPopup}
+                        generateSendDetailsConfirmationPopup = {this.generateSendDetailsConfirmationPopup}
                     />
                     </div>
                   </>}                 
