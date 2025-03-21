@@ -263,6 +263,7 @@ class Popup extends Component {
       .then((response) => {
         console.log("Deleted Participants:", response);
         this.props.closePopupMessage();
+        this.props.closePopup2();
       })
     .catch((error) => {
       console.error('Error submitting form:', error);
@@ -274,6 +275,7 @@ class Popup extends Component {
       axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: "sendDetails", id })
         .then((response) => {
           this.props.closePopupMessage();
+          this.props.closePopup2();
         })
       .catch((error) => {
         console.error('Error submitting form:', error);
@@ -372,6 +374,7 @@ class Popup extends Component {
   
         // Close popup after all tasks are completed
         this.props.closePopupMessage();  
+        this.props.closePopup3();
       }
   
     } catch (error) {
@@ -939,7 +942,7 @@ class Popup extends Component {
             <div className="confirmation-message">
               <p>{message}</p>
               <div className="confirmation-buttons">
-                <button onClick={() => this.sendOver(this.props.id)} className="confirm-btn">Confirm</button>
+                <button onClick={() => this.handleSendOver(this.props.id)} className="confirm-btn">Confirm</button>
                 <button onClick={this.cancel} className="cancel-btn">Cancel</button>
               </div>
             </div>

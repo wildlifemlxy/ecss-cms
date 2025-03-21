@@ -436,6 +436,23 @@
       }, 5000);  // 15 mins
     };
 
+    closePopup3 = () => {
+      // Open the popup with success message
+      this.setState({
+        isPopupOpen: true,  // Set popup to open
+        popupMessage: "You have updated the entry successfully",  // Success message
+        popupType: "success-message"  // Type of popup message
+      });
+
+      // Set timeout to close the popup after 5 seconds
+      setTimeout(() => {
+        this.setState({ 
+          isPopupOpen: false  // Close the popup
+        });
+      }, 5000);  // 15 mins
+    };
+
+
 
     generateDeleteConfirmationPopup = (id) => {
       console.log("ID deleted:", id);
@@ -457,8 +474,7 @@
         });
     };
 
-    
-    
+
     generatePortOverConfirmationPopup = (id, participantInfo, courseInfo, status) => {
       console.log("ID deleted:", id);
       console.log("Course Info:", courseInfo);
