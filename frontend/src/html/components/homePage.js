@@ -440,7 +440,7 @@
       // Open the popup with success message
       this.setState({
         isPopupOpen: true,  // Set popup to open
-        popupMessage: "You have updated the entry successfully",  // Success message
+        popupMessage: "You have deleted the entry successfully",  // Success message
         popupType: "success-message"  // Type of popup message
       });
 
@@ -452,7 +452,37 @@
       }, 5000);  // 15 mins
     };
 
+    closePopup4 = () => {
+      // Open the popup with success message
+      this.setState({
+        isPopupOpen: true,  // Set popup to open
+        popupMessage: "You have send the payment advice message successfully",  // Success message
+        popupType: "success-message"  // Type of popup message
+      });
 
+      // Set timeout to close the popup after 5 seconds
+      setTimeout(() => {
+        this.setState({ 
+          isPopupOpen: false  // Close the popup
+        });
+      }, 5000);  // 15 mins
+    };
+
+    closePopup5 = () => {
+      // Open the popup with success message
+      this.setState({
+        isPopupOpen: true,  // Set popup to open
+        popupMessage: "You have port over the participants successfully",  // Success message
+        popupType: "success-message"  // Type of popup message
+      });
+
+      // Set timeout to close the popup after 5 seconds
+      setTimeout(() => {
+        this.setState({ 
+          isPopupOpen: false  // Close the popup
+        });
+      }, 5000);  // 15 mins
+    };
 
     generateDeleteConfirmationPopup = (id) => {
       console.log("ID deleted:", id);

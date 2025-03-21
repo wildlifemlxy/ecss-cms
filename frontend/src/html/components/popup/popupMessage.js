@@ -1,7 +1,6 @@
 import React, { Component } from "react";
 import '../../../css/popup/popup.css'; // Import CSS for popup styles
 import axios from 'axios';
-
 class Popup extends Component {
   constructor(props) {
     super(props);
@@ -263,7 +262,7 @@ class Popup extends Component {
       .then((response) => {
         console.log("Deleted Participants:", response);
         this.props.closePopupMessage();
-        //this.props.closePopup2();
+        this.props.closePopup3();
       })
     .catch((error) => {
       console.error('Error submitting form:', error);
@@ -275,7 +274,7 @@ class Popup extends Component {
     axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: "sendDetails", id })
         .then((response) => {
           this.props.closePopupMessage();
-          //this.props.closePopup2();
+          this.props.closePopup4();
         })
       .catch((error) => {
         console.error('Error submitting form:', error);
@@ -349,7 +348,7 @@ class Popup extends Component {
   
       if (response.data.result === true) {
         // Execute each function one by one
-        await this.updateWooCommerceForPortOver(
+        await this.updateWooCommerceForUpdate(
           courseInfo.courseChiName, 
           courseInfo.courseEngName, 
           selectedLocation, 
@@ -374,6 +373,7 @@ class Popup extends Component {
   
         // Close popup after all tasks are completed
         this.props.closePopupMessage();  
+        this.props.closePopup5();
       }
   
     } catch (error) {

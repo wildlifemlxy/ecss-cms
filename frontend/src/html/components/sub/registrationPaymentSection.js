@@ -1343,7 +1343,7 @@ class RegistrationPaymentSection extends Component {
             }
             console.log("Submitted Id:", id);
             await this.sendDetails(id);
-            await this.refreshChild();
+            //await this.refreshChild();
         }
       }
       catch (error) {
