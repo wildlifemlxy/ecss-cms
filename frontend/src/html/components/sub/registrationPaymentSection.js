@@ -1754,20 +1754,6 @@ class RegistrationPaymentSection extends Component {
   sendDetails = async (id) =>
   {
     await this.props.generateSendDetailsConfirmationPopup(id);
-    try {
-      // Send the request to the backend to trigger WhatsApp automation
-      const response = await axios.post('http://localhost:3001/courseregistration', 
-      {
-        purpose: "sendDetails",
-        id,
-      });
-
-      console.log("Response send Details:", response);
-
-    } catch (error) {
-      console.error('Error sending WhatsApp message:', error);
-      this.setState({ status: 'Failed to send message' });
-    }
   }
 
   filterRegistrationDetails() {
