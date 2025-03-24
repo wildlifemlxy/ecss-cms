@@ -164,7 +164,7 @@ handleDropdownToggle = (dropdown) =>
 }
 
 handleOptionSelect = (value, dropdown) => {
-  console.log("Selected value:", value);
+  console.log("Selected value for filtered:", value, dropdown);
   const isMandarin = this.props.language === "zh"; 
   let updatedState = {};
 
@@ -208,10 +208,10 @@ handleOptionSelect = (value, dropdown) => {
         showCourseDropdown: false
       };
     }
-      else if(dropdown === 'showCourseDropdown')
+    else if(dropdown === 'showCourseDropdown')
     {
       updatedState =({
-          course: value,
+          courseName: value,
           showLocationDropdown: false,
           showLanguageDropdown: false,
           showTypeDropdown: false,
@@ -459,6 +459,37 @@ render()
       {section === "registration" &&  ( // Content for "registration"
         <>
         <div className="form-group">
+              <label htmlFor="courseType">{this.props.language === 'zh' ? '' : 'Type'}</label>
+              <div
+                className={`dropdown-container ${showTypeDropdown ? 'open' : ''}`}
+                ref={this.typeDropdownRef}
+              >
+                <input
+                  type="text"
+                  id="courseType"
+                  name="courseType"
+                  value={courseType}
+                  onChange={this.handleChange}
+                  onClick={() => this.handleDropdownToggle('showTypeDropdown')}
+                  placeholder={this.props.language === 'zh' ? '' : 'Filter by type'}
+                  autoComplete="off"
+                />
+                {showTypeDropdown && (
+                  <ul className="dropdown-list">
+                    {filteredTypes.map((type, index) => (
+                      <li
+                        key={index}
+                        onClick={() => this.handleOptionSelect(type, 'showTypeDropdown')}
+                      >
+                        {type}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <i className="fas fa-angle-down dropdown-icon"></i>
+              </div>
+            </div>
+        <div className="form-group">
             <label htmlFor="centreLocation">{this.props.language === 'zh' ? '中心位置' : 'Locations'}</label>
             <div
               className={`dropdown-container ${showLocationDropdown ? 'open' : ''}`}
@@ -490,37 +521,6 @@ render()
             </div>
           </div>
             <div className="form-group">
-              <label htmlFor="courseType">{this.props.language === 'zh' ? '' : 'Type'}</label>
-              <div
-                className={`dropdown-container ${showTypeDropdown ? 'open' : ''}`}
-                ref={this.typeDropdownRef}
-              >
-                <input
-                  type="text"
-                  id="courseType"
-                  name="courseType"
-                  value={courseType}
-                  onChange={this.handleChange}
-                  onClick={() => this.handleDropdownToggle('showTypeDropdown')}
-                  placeholder={this.props.language === 'zh' ? '' : 'Filter by type'}
-                  autoComplete="off"
-                />
-                {showTypeDropdown && (
-                  <ul className="dropdown-list">
-                    {filteredTypes.map((type, index) => (
-                      <li
-                        key={index}
-                        onClick={() => this.handleOptionSelect(type, 'showTypeDropdown')}
-                      >
-                        {type}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <i className="fas fa-angle-down dropdown-icon"></i>
-              </div>
-            </div>
-            <div className="form-group">
             <label htmlFor="course">{this.props.language === 'zh' ? '': 'Course'}</label>
             <div
               className={`dropdown-container ${showCourseDropdown ? 'open' : ''}`}
@@ -536,16 +536,14 @@ render()
               placeholder={this.props.language === 'zh' ? '' : 'Filter by course'}
               autoComplete="off"
             />
-
-
               {showCourseDropdown && (
                 <ul className="dropdown-list">
-                  {filteredCoursesName.map((courseName, index) => (
+                  {filteredCoursesName.map((name, index) => (
                     <li
                       key={index}
-                      onClick={() => this.handleOptionSelect(courseName, 'showCourseDropdown')}
+                      onClick={() => this.handleOptionSelect(name, 'showCourseDropdown')}
                     >
-                      {courseName}
+                      {name}
                     </li>
                   ))}
                 </ul>

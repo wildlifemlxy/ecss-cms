@@ -170,11 +170,11 @@
           selectedCourseType: updateState.courseType
         });
       }
-      else if(updateState.course)
+      else if(updateState.courseName)
       {
         console.log("Hello");
         this.setState({
-          selectedCourseName: updateState.course
+          selectedCourseName: updateState.courseName
         });
       }
     }
