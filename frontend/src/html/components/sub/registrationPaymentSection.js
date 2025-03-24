@@ -1765,6 +1765,8 @@ class RegistrationPaymentSection extends Component {
 
       console.log("Original Data:", originalData);
       console.log("Filters Applied:", { selectedLocation, selectedCourseType, searchQuery, selectedCourseName }, !searchQuery);
+      console.log("Result:", selectedCourseName, !selectedCourseName); 
+
 
       if (
         (selectedLocation === "All Locations" || !selectedLocation) &&
@@ -1826,7 +1828,6 @@ class RegistrationPaymentSection extends Component {
     if (filters.courseName) {
       filteredDetails = filteredDetails.filter(data => data.course?.courseEngName === filters.courseName);
     }
-
 
 
     // Apply search query filter

@@ -245,8 +245,8 @@ handleClickOutside = (event) => {
       showLocationDropdown: false,
       showLanguageDropdown: false,
       showTypeDropdown: false,
-      showCourseDropdown: false,
       showAccountTypeDropdown: false,
+      showCourseDropdown: false
     });
   }
 };
@@ -268,8 +268,8 @@ componentDidMount() {
         showLocationDropdown: false,
         showLanguageDropdown: false,
         showTypeDropdown: false,
-        showCourseDropdown: false,
-        showAccountTypeDropdown: false
+        showAccountTypeDropdown: false,
+        showCourseDropdown: false
       });
     }
   
