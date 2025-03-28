@@ -1,0 +1,156 @@
+/* Sidebar container */
+.filter-sidebar {
+  background-color: #f8f9fa;  /* Light background for the sidebar */
+  padding: 2rem 1rem;  /* Increased padding for a more spacious feel */
+  width: 250px;  /* Fixed width for the sidebar */
+  left: 0;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);  /* Slight shadow for separation */
+  transition: all 0.3s ease;  /* Smooth transition */
+  font-family: 'Arial', sans-serif; /* Readable font */
+}
+
+/* Filter section style */
+.filter-section1 {
+  margin-bottom: 2rem;  /* Increased space between sections for clarity */
+}
+
+/* Heading for each filter section */
+.filter-heading {
+  font-size: 1.5rem;  /* Larger font for readability */
+  font-weight: bold;
+  margin-bottom: 1rem;  /* Increased space below the heading */
+  color: #333;  /* Darker color for the heading */
+}
+
+/* Filter list style */
+.filter-list {
+  list-style-type: none;  /* Remove default list bullets */
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;  /* Ensure filter items stack vertically */
+  gap: 12px;  /* Increased gap for readability */
+}
+
+/* Style for each filter item */
+.filter-item1 {
+  padding: 1rem;  /* Increased padding for larger clickable area */
+  cursor: pointer;
+  transition: background-color 0.3s ease, opacity 0.3s ease, text-decoration 0.3s ease;  /* Smooth hover and opacity change */
+  border-radius: 8px;  /* Optional: adds rounded corners for a more polished look */
+  opacity: 0.6;  /* Default opacity when not selected */
+  font-weight: normal;  /* Remove bold text */
+}
+
+/* Hover effect for filter items */
+.filter-item1:hover { 
+  opacity: 1;  /* Full opacity on hover */
+}
+
+/* Style for selected filter items */
+.filter-item1.selected {
+  opacity: 1;  /* Full opacity when selected */
+  font-weight: bold;
+}
+
+.search-bar {
+  display: flex;  /* Use flexbox for alignment */
+  align-items: center;  /* Vertically center content */
+  border-radius: 8px;  /* Rounded corners for a clean look */
+  transition: all 0.3s ease;  /* Smooth transition */
+  font-family: 'Arial', sans-serif;  /* Same font as the sidebar */
+  margin-bottom: 2rem;  /* Space below the search bar */
+}
+
+
+/* Input field for the search bar */
+.search-bar input {
+  padding: 1rem;  /* Larger padding for easier clicking */
+  font-size: 1.25rem;  /* Larger font size for readability */
+  border: 1px solid #ccc;  /* Border for the input */
+  border-radius: 4px;  /* Slight rounding for the input */
+  box-sizing: border-box;  /* Include padding and border in width calculation */
+  width: 100%;  /* Ensure input takes up full width of container */
+}
+
+/* Search bar input on focus */
+.search-bar input:focus {
+  border-color: #007bff;  /* Highlight with blue border on focus */
+  outline: none;  /* Remove default outline */
+}
+
+/* Media query for smaller screens */
+@media (max-width: 1440px) 
+{
+  /* Keeping sidebar width fixed */
+  .filter-sidebar {
+    /* Sidebar width remains unchanged */
+    width: 40%;
+  }
+  
+  .search-bar input
+  {
+    font-size: 2rem;
+  }
+
+  .filter-heading {
+    font-size: 2rem;  /* Larger font size for better readability */
+  }
+
+  .filter-item1 {
+    font-size: 2rem;  
+    padding: 1.1rem;  /* Slightly larger padding for easier clicking */
+  }
+}
+
+/* Media query for smaller screens (tablet and below) */
+@media (max-width: 768px) {
+  /* Keeping sidebar width fixed */
+  .filter-sidebar {
+    /* Sidebar width remains unchanged */
+    width: 250px;
+  }
+
+  .filter-list {
+    gap: 8px;  /* Slightly smaller gap between items */
+  }
+
+  .filter-item1 {
+    padding: 1rem;  /* Larger padding for easier clicking */
+    font-size: 1.3rem;  /* Larger text for easier reading on small screens */
+  }
+
+  .search-bar input {
+    font-size: 1.25rem;  /* Larger font size for better readability */
+    padding: 1.25rem;  /* Slightly larger padding for easy tapping */
+  }
+}
+
+/* Media query for very small screens (mobile) */
+@media (max-width: 480px) {
+  /* Keeping sidebar width fixed */
+  .filter-sidebar {
+    /* Sidebar width remains unchanged */
+    width: 60%;
+    height: auto;  /* Allow the height to adjust */
+    position: relative;  /* Move sidebar under content */
+  }
+
+  .filter-item1 {
+    padding: 1rem;  /* Larger padding on mobile */
+    font-size: 1.4rem;  /* Larger text for readability */
+  }
+
+  .filter-heading {
+    font-size: 1.5rem;  /* Slightly larger heading */
+  }
+
+  .search-bar input {
+    font-size: 1.5rem;  /* Increase font size on mobile for ease of use */
+    padding: 1.5rem;  /* Increase padding for touch accessibility */
+  }
+
+  .search-bar .logo {
+    width: 50px;  /* Increase logo size for visibility */
+  }
+}

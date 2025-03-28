@@ -1,40 +1,148 @@
+/* Base Styles */
 .submit-details-section {
-  padding: 1rem; /* Adjust padding as necessary */
-  border: 1px solid #ccc; /* Optional: adds a border around the section */
-  border-radius: 0.5rem; /* Optional: rounds the corners */
-  margin-bottom: 1rem; /* Space between sections */
-  background-color: #f9f9f9; /* Light background for better visibility */
-  box-sizing: border-box; /* Ensure padding does not affect overall width */
+  width: 100%;
+  max-width: 1200px;
+  margin: auto;
   height: 100vh;
 }
 
-.input-group {
-  margin-bottom: 1rem; /* Space between input groups */
+.input-group1 {
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  height: 90vh;
+  margin-right: auto;
+  margin-left: auto;
+  width: 90%;
 }
 
-.input-group label {
-  font-weight: bold; /* Make labels bold */
-  display: block; /* Ensures the label takes the full width */
-  margin-bottom: 0.5rem; /* Space below the label */
-  font-size: 1.2em; /* Adjust font size for better readability on mobile */
+/* Header Styling */
+.submit-detail-header {
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 15px;
+  line-height: 1.3;
+  letter-spacing: 0.5px;
+  font-size: 5rem;
 }
 
+/* Sub-header Styling */
+.submit-detail-sub-header {
+  color: #34495e;
+  text-align: center;
+  display: block;
+  margin-bottom: 20px;
+  font-weight: 500;
+  line-height: 1.4;
+  font-size: 2.5rem;
+}
+
+/* Text Content Styling */
 .submit-detail-text {
-  font-size: 2em; /* Adjust font size for larger screens */
-  color: #333; /* Dark text color for readability */
+  color: #000000;
+  text-align: left;
+  display: block;
+  line-height: 1.6;
+  font-size: 1.5rem;
 }
 
-@media (max-width: 768px) {
-  /* Adjust styles for mobile devices */
-  .submit-detail-text {
-      font-size: 1.5em; /* Smaller font size on mobile */
+/* Desktop Screens (1024px to 1439px) */
+@media (max-width: 1440px) {
+  .submit-details-section {
+    max-width: 900px;
   }
   
-  .input-group label {
-      font-size: 1.1em; /* Slightly smaller font size for labels */
+  .input-group1 {
+    padding: 25px 40px;
   }
+  
+  .submit-detail-header {
+    font-size: 36px; /* Increased from 28px */
+  }
+  
+  .submit-detail-sub-header {
+    font-size: 28px; /* Increased from 22px */
+  }
+  
+  .submit-detail-text {
+    font-size: 24px; /* Increased from 20px */
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
 
+/* Tablet Screens (768px to 1023px) */
+@media (max-width: 1024px) {
   .submit-details-section {
-      padding: 0.8rem; /* Slightly reduced padding on smaller screens */
+    max-width: 700px;
+  }
+  
+  .input-group1 {
+    padding: 20px 30px;
+  }
+  
+  .submit-detail-header {
+    font-size: 32px; /* Increased from 24px */
+  }
+  
+  .submit-detail-sub-header {
+    font-size: 26px; /* Increased from 20px */
+  }
+  
+  .submit-detail-text {
+    font-size: 22px; /* Increased from 18px */
+    max-width: 650px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Mobile Screens (480px to 767px) */
+@media (max-width: 768px) {
+  .submit-details-section {
+  }
+  
+  .input-group1 {
+    padding: 15px 20px;
+    border-radius: 8px;
+  }
+  
+  .submit-detail-header {
+    font-size: 28px; /* Increased from 22px */
+  }
+  
+  .submit-detail-sub-header {
+    font-size: 24px; /* Increased from 18px */
+  }
+  
+  .submit-detail-text {
+    font-size: 20px; /* Increased from 16px */
+    line-height: 1.5;
+  }
+}
+
+/* Small Mobile Screens (Less than 480px) */
+@media (max-width: 480px) {
+  .submit-details-section {
+  }
+  
+  .input-group1 {
+    padding: 10px 15px;
+    border-radius: 6px;
+  }
+  
+  .submit-detail-header {
+    font-size: 26px; /* Increased from 20px */
+  }
+  
+  .submit-detail-sub-header {
+    font-size: 22px; /* Increased from 16px */
+  }
+  
+  .submit-detail-text {
+    font-size: 18px; /* Increased from 14px */
+    line-height: 1.4;
   }
 }

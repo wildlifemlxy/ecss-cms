@@ -1,0 +1,138 @@
+/* General popup container */
+.course-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  margin: 0; /* Ensure no default margin */
+}
+
+/* Overlay to dim the background */
+.popup-overlay1 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6); /* Semi-transparent background */
+  z-index: 999; /* Positioned below the popup content */
+}
+
+/* Popup content */
+.popup-content1
+{
+  background-color: white;
+  padding: 2rem; /* Reduced padding for smaller size */
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  max-width: 600px; /* Reduced max width for smaller popup */
+  width: 80%; /* Width reduced to make the popup smaller */
+  text-align: left;
+  position: relative;
+  z-index: 1010;
+  margin: 0 auto; /* Center the content */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow-y: auto; /* Enable vertical scrolling if content overflows */
+  max-height: 80vh; /* Limit the maximum height */
+}
+
+/* Course header for displaying image and info in the same row */
+.course-header1 {
+  display: flex; /* Flex container to align items in a row */
+  align-items: center; /* Vertically center the items */
+  width: auto; /* Ensure it takes full width */
+  margin-right: auto;
+  margin-left: auto;
+}
+
+/* Course image */
+.popup-course-image {
+  max-width: 150px; /* Adjust width of the image */
+  height: auto;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-right: 1.5rem; /* Add some space between the image and text */
+}
+
+/* Course name and description container */
+.course-info {
+  display: flex;
+  flex-direction: column; /* Stack name and description vertically */
+  justify-content: center; /* Vertically center the text */
+}
+
+/* Course name */
+.course-name {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+  
+}
+
+.course-description {
+  font-size: 1rem;
+  color: #555;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+/* Price and Add to Cart button */
+.price-and-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+}
+
+.course-price {
+  font-size: 1.2rem; /* Slightly smaller font size */
+  color: #007bff;
+  font-weight: bold;
+}
+
+
+/* Course details section */
+.course-details-section {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.course-details-section h3 {
+  font-size: 1.5rem;
+  color: #333;
+  font-weight: bold;
+}
+
+.course-details-section p {
+  font-size: 1rem;
+  color: #555;
+  margin-top: 0.5rem;
+}
+
+/* Course reviews section */
+.course-reviews {
+  margin-top: 2rem;
+}
+
+.review {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: #f1f1f1;
+  border-radius: 8px;
+}
+
+.review p {
+  font-size: 1rem;
+  color: #333;
+}
+
+.review strong {
+  color: #007bff;
+}

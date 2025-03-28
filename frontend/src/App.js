@@ -4,8 +4,9 @@ import LoginPage from './html/components/loginPage';
 import NewCustomersPage from './html/components/newCustomers';
 import HomePage from './html/components/homePage';
 import FormPage from './html/components/formPage';
-import SingpassPage from './html/components/singpassPage';
 import MassImportPage from './html/components/massImportPage';
+import CourseSelectionPage from './html/components/courseSelectionPage';
+import SingpassPage from './html/components/singpassPage';
 import MyInfoRedirectPage from './html/components/MyInfoRedirectPage';
 import MyInfoResultsPage from './html/components/MyInfoResultsPage';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -26,9 +27,10 @@ class App extends Component
           <Route path="/form" component={FormPage} />
           <Route path="/new" component={NewCustomersPage} />
           <Route path="/mass" component={MassImportPage} />
-          <Route exact path="/singpass" component={SingpassPage} />
+          <Route path="/coursesSelection" component={CourseSelectionPage}/>
+          {/*<Route exact path="/singpass" component={SingpassPage} />
           <Route path="/myinfo-redirect" component={MyInfoRedirectPage} />
-          <Route path="/myinfo-results" component={MyInfoResultsPage} />
+          <Route path="/myinfo-results" component={MyInfoResultsPage} />*/}
           <Route component={ErrorPage} />
         </Switch>
       </Router>

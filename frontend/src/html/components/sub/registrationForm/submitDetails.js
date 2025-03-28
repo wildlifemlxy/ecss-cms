@@ -6,6 +6,8 @@ class SubmitDetailsSection extends React.Component {
     return (
       <div className="submit-details-section">
         <div className="input-group1">
+          <h2 className="submit-detail-header">Registration Confirmation</h2>
+          <span className="submit-detail-sub-header">Application Processing</span>
           <span className="submit-detail-text">
             Thank you for registration! It is currently under review, and we will contact you shortly.
           </span>
