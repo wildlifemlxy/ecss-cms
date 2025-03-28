@@ -11,7 +11,7 @@ class FormPage extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      currentSection: 0,
+      currentSection: 0 ,
       loading: false,
       formData: {
         englishName: '',
