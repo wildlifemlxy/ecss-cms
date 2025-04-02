@@ -1,4 +1,7 @@
 const DatabaseConnectivity = require("../../database/databaseConnectivity"); // Import the class
+const fs = require('fs');
+const path = require('path');
+const XlsxPopulate = require('xlsx-populate');
 
 class RegistrationController {
     constructor() {
@@ -384,7 +387,6 @@ class RegistrationController {
             await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
     }
-    
 }
 
 module.exports = RegistrationController;

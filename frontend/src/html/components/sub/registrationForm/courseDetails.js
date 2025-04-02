@@ -10,13 +10,6 @@ class CourseDetailsSection extends Component {
     };
   }
 
-  /*handlePaymentChange = (event) => {
-    this.setState({ 
-      selectedPayment: event.target.value,
-      paymentTouched: true, // Update when user interacts with the payment option
-    });
-  };*/
-
    // Handle payment selection and call onChange prop
    handlePaymentChange = (event) => {
     const selectedPayment = event.target.value;

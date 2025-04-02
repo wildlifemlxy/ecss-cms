@@ -42,6 +42,7 @@
         courseSearchQuery: '',
         selectedRegPaymentLanguage: '',
         selectedRegPaymentLocation: '',
+        selectedQuarter: '',
         regPaymentSearchQuery: '',
         resetSearch: false,
         currentPage: 1,
@@ -66,7 +67,8 @@
         dashboard: false,
         deleteId: "",
         reportVisibility: false,
-        reportType: ""
+        reportType: "",
+        quarters: []
       };
   
       // Set the initial state
@@ -87,7 +89,7 @@
     }
 
     // Function to handle data passed from the child
-    handleDataFromChild = async (filter1, filter2, filter3) =>
+    handleDataFromChild = async (filter1, filter2, filter3, filter4) =>
     {
       var {section} = this.state;
       console.log("Current Sections:", section);  
@@ -106,11 +108,13 @@
       const filterLocations = new Set(filter1);
       const filterType = new Set(filter2);
       const filterCourse = new Set(filter3);
+      const filterQuarters = new Set(filter4);
       console.log("Filter Course:", filterCourse);
       this.setState({
         locations: Array.from(filterLocations),
         types: Array.from(filterType),
-        names: Array.from(filterCourse)
+        names: Array.from(filterCourse),
+        quarters: Array.from(filterQuarters)
       });
      }
      else if(section === "accounts")
@@ -156,7 +160,8 @@
     }
 
     // Handle selection for registration payments
-    handleRegPaymentSelectFromChild = async (updateState, dropdown) => {
+    handleRegPaymentSelectFromChild = async (updateState, dropdown) => 
+    {
       console.log("Selected Data (Registration Payment):", updateState, dropdown);
       if(updateState.centreLocation)
       {
@@ -175,6 +180,13 @@
         console.log("Hello");
         this.setState({
           selectedCourseName: updateState.courseName
+        });
+      }
+      else if(updateState.quarter)
+      {
+        console.log("Hello");
+        this.setState({
+          selectedQuarter: updateState.quarter
         });
       }
     }
@@ -857,7 +869,7 @@
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const { reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo} = this.state;
+      const { reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters} = this.state;
 
       return (
         <>
@@ -1003,6 +1015,7 @@
                         locations={locations}
                         types={types}
                         courses={names}
+                        quarters={quarters}
                         resetSearch={resetSearch}
                         section={section}
                         passSelectedValueToParent={this.handleRegPaymentSelectFromChild}
@@ -1018,6 +1031,7 @@
                         selectedLocation={selectedLocation}
                         selectedCourseType={selectedCourseType}
                         selectedCourseName={selectedCourseName}
+                        selectedQuarter = {selectedQuarter}
                         searchQuery={searchQuery}
                         resetSearch={resetSearch}
                         getTotalNumberofDetails={this.getTotalNumberofDetails}

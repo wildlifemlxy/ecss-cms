@@ -136,7 +136,8 @@ class RegistrationPaymentSection extends Component {
       var locations = await this.getAllLocations(data);
       var types = await this.getAllTypes(data);
       var names = await this.getAllNames(data);
-      this.props.passDataToParent(locations, types, names);
+      var quarters = await this.getAllQuarters(data);
+      this.props.passDataToParent(locations, types, names, quarters);
 
       const statuses = data.map(item => item.status); // Extract statuses
       console.log('Statuses:', statuses); // Log the array of statuses
@@ -209,15 +210,48 @@ class RegistrationPaymentSection extends Component {
       }
     };
 
-      // Method to get all locations
-      getAllLocations = async (datas) => {
-        return [...new Set(datas.map(data => {
-          //console.log(data.course)
-          return data.course.courseLocation;
-        }))];
-      }
+    // Method to get all locations
+    getAllLocations = async (datas) => {
+      return [...new Set(datas.map(data => {
+        //console.log(data.course)
+        return data.course.courseLocation;
+      }))];
+    }
 
-      
+    getAllQuarters = async (datas) => {
+      const quarters = datas.map(data => {
+        if (!data?.course?.courseDuration) return null; // Handle missing data
+    
+        const firstDate = data.course.courseDuration.split(' - ')[0]; // Extract "2 May 2025"
+        const [day, monthStr, year] = firstDate.split(' '); // Split into components
+    
+        // Convert month string to a number
+        const monthMap = {
+          "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+          "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+        };
+    
+        const month = monthMap[monthStr];
+        if (!month || !year) return null; // Skip if month or year is missing
+    
+        // Determine the quarter
+        let quarter = "";
+        if (month >= 1 && month <= 3) quarter = `Q1 ${year}`;
+        if (month >= 4 && month <= 6) quarter = `Q2 ${year}`;
+        if (month >= 7 && month <= 9) quarter = `Q3 ${year}`;
+        if (month >= 10 && month <= 12) quarter = `Q4 ${year}`;
+    
+        return quarter;
+      });
+    
+      // Remove null values and sort chronologically
+      return [...new Set(quarters.filter(Boolean))].sort((a, b) => {
+        const [qA, yearA] = a.split(" ");
+        const [qB, yearB] = b.split(" ");
+        return yearA - yearB || qA.localeCompare(qB); // Sort by year first, then by quarter
+      });
+    };      
+
       // Method to get all locations
       getAllTypes = async (datas) => {
         return [...new Set(datas.map(data => {
@@ -683,7 +717,7 @@ class RegistrationPaymentSection extends Component {
     
         const data = await response.arrayBuffer(); // Convert file to ArrayBuffer
         const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(data);
+       await workbook.xlsx.load(data);
     
         const sourceSheet = workbook.getWorksheet('LOP');
         if (!sourceSheet) {
@@ -695,6 +729,12 @@ class RegistrationPaymentSection extends Component {
         var courseName = "";
     
         console.log("Paginated Details :", paginatedDetails, paginatedDetails.length);
+
+        paginatedDetails.sort((a, b) => {
+          const nameA = a.participantInfo.name.trim().toLowerCase();
+          const nameB = b.participantInfo.name.trim().toLowerCase();
+          return nameA.localeCompare(nameB); // Compare names alphabetically
+        });
     
         paginatedDetails.forEach((detail, index) => {
           console.log("Paginated Detail1",  detail);
@@ -772,7 +812,7 @@ class RegistrationPaymentSection extends Component {
         console.error("Error exporting LOP:", error);
         this.props.warningPopUpMessage("An error occurred during export.");
       }
-    };
+    };  
 
     exportAttendance = async (paginatedDetails) => {
       var { selectedCourseName, selectedLocation } = this.props;
@@ -826,12 +866,17 @@ class RegistrationPaymentSection extends Component {
           cellA3.value = `Venue: Pasir Ris West Wellness Centre Blk 605 Elias Road #01-200 Singapore 510605`;
         }
         cellA3.font = { name: 'Calibri', size: 18, bold: true };
-    
+
+        // Sort participants alphabetically by name (trim spaces)
+        let sortedParticipants = paginatedDetails
+                                  .filter(item => item.course === selectedCourseName && item.courseInfo.courseLocation === selectedLocation)
+                                  .sort((a, b) => a.participantInfo.name.trim().toLowerCase().localeCompare(b.participantInfo.name.trim().toLowerCase()));
+
         // Loop for S/N and Name starting from row 6 in Columns A and B
         let rowIndex = 6; // Start from row 6 for S/N and Name
         let participantIndex = 1;  // Initialize participant index for S/N
-        for (let i = 0; i < paginatedDetails.length; i++) {
-          const item = paginatedDetails[i];
+        for (let i = 0; i < sortedParticipants.length; i++) {
+          const item = sortedParticipants[i];
           if (item.course === selectedCourseName && item.courseInfo.courseLocation === selectedLocation) {
             const cellA = sourceSheet.getCell(`A${rowIndex}`);
             const cellB = sourceSheet.getCell(`B${rowIndex}`);
@@ -1735,13 +1780,14 @@ class RegistrationPaymentSection extends Component {
 
  // componentDidUpdate is called after the component has updated (re-rendered)
   componentDidUpdate(prevProps, prevState) {
-    const { selectedLocation, selectedCourseType, searchQuery, selectedCourseName} = this.props;
-    console.log("This Props:", selectedCourseName);
+    const { selectedLocation, selectedCourseType, searchQuery, selectedCourseName, selectedQuarter} = this.props;
+    console.log("This Props Current:", selectedQuarter);
     // Check if the relevant props have changed
     if (
       selectedLocation !== prevProps.selectedLocation ||
       selectedCourseType !== prevProps.selectedCourseType ||
       selectedCourseName !== prevProps.selectedCourseName ||
+      selectedQuarter !== prevProps.selectedQuarter ||
       searchQuery !== prevProps.searchQuery
     ) {
       //console.log("ComponentDidUpdate");
@@ -1757,7 +1803,7 @@ class RegistrationPaymentSection extends Component {
   }
 
   filterRegistrationDetails() {
-    const { section, selectedLocation, selectedCourseType, selectedCourseName, searchQuery } = this.props;
+    const { section, selectedLocation, selectedCourseType, selectedCourseName, searchQuery, selectedQuarter } = this.props;
     console.log("Section:", section);
 
     if (section === "registration") {
@@ -1772,6 +1818,7 @@ class RegistrationPaymentSection extends Component {
         (selectedLocation === "All Locations" || !selectedLocation) &&
         (selectedCourseType === "All Courses Types" || !selectedCourseType) &&
         (selectedCourseName === "All Courses Name" || !selectedCourseName) &&
+        (selectedQuarter === "All Quarters" || !selectedQuarter) &&
         (searchQuery === "" || !searchQuery)
       ) {
         const rowData = originalData.map((item, index) => ({
@@ -1809,6 +1856,7 @@ class RegistrationPaymentSection extends Component {
         location: selectedLocation !== "All Locations" ? selectedLocation : null,
         courseType: selectedCourseType !== "All Courses Types" ? selectedCourseType : null,
         courseName: selectedCourseName !== "All Courses Name" ? selectedCourseName : null,
+        quarter: selectedQuarter !== "All Quarters" ? selectedQuarter : null,
         searchQuery: normalizedSearchQuery || null,
       };
 
@@ -1824,11 +1872,38 @@ class RegistrationPaymentSection extends Component {
     if (filters.courseType) {
       filteredDetails = filteredDetails.filter(data => data.course?.courseType === filters.courseType);
     }
-
+    
     if (filters.courseName) {
       filteredDetails = filteredDetails.filter(data => data.course?.courseEngName === filters.courseName);
     }
 
+    if (filters.quarter) {
+      filteredDetails = filteredDetails.filter(data => {
+        const courseDuration = data.course?.courseDuration;
+        if (!courseDuration) return false; // Skip if courseDuration is missing
+    
+        const firstDate = courseDuration.split(' - ')[0]; // Extract "2 May 2025"
+        const [day, monthStr, year] = firstDate.split(' '); // Split into components
+    
+        // Convert month string to a number
+        const monthMap = {
+          "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+          "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+        };        
+    
+        const month = monthMap[monthStr];
+        if (!month || !year) return false; // Skip invalid entries
+    
+        // Determine the quarter
+        let quarter = "";
+        if (month >= 1 && month <= 3) quarter = `Q1 ${year}`;
+        if (month >= 4 && month <= 6) quarter = `Q2 ${year}`;
+        if (month >= 7 && month <= 9) quarter = `Q3 ${year}`;
+        if (month >= 10 && month <= 12) quarter = `Q4 ${year}`;
+    
+        return quarter === filters.quarter; // Check if it matches the filter
+      });
+    }    
 
     // Apply search query filter
     if (filters.searchQuery) {
@@ -1838,6 +1913,7 @@ class RegistrationPaymentSection extends Component {
           (data.course?.courseLocation || "").toLowerCase(),
           (data.course?.courseType || "").toLowerCase(),
           (data.course?.courseEngName || "").toLowerCase(),
+          (data.course?.courseDuration || "").toLowerCase(),
         ].some(field => field.includes(filters.searchQuery));
       });
     }
