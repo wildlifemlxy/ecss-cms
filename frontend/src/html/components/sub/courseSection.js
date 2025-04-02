@@ -265,13 +265,15 @@ class CoursesSection extends Component {
     }
 
         
-    const startDateTime = new Date(year, month, day);
+    const startDateTime = new Date(year, (month-1), day);
+    console.log("Start Date Course:", year, month, day, startDateTime)
     const { hours: startHours, minutes: startMinutes } = this.convertTo24HourWithHrs(startTime);
     startDateTime.setHours(startHours);
     startDateTime.setMinutes(startMinutes);
     startDateTime.setSeconds(0);
+    console.log("Start Time Course12:", startTime, startHours, startMinutes)
     
-    const endDateTime = new Date(year1, month1, day1);
+    const endDateTime = new Date(year1, (month1-1), day1);
     const { hours: endHours, minutes: endMinutes } = this.convertTo24HourWithHrs(endTime);
     endDateTime.setHours(endHours);
     endDateTime.setMinutes(endMinutes);
@@ -283,6 +285,7 @@ class CoursesSection extends Component {
   
     var status;
     var currentDate = new Date();
+    console.log("Courses Date11:", currentDate, startDate, startDateTime)
   
     // If no vacancies, the course is "Full" regardless of the date
     if (vacancy === 0) {
@@ -301,7 +304,8 @@ class CoursesSection extends Component {
       }
     }
   
-    console.log("Status:", status);
+    console.log("Start Date Courses111:", startDate, year, month, day, startTime, startHours, status);
+  
     startDate = this.shorternMonth(startDate);
     endDate = this.shorternMonth(endDate);
   
@@ -501,17 +505,25 @@ class CoursesSection extends Component {
   }
 
   convertTo24HourWithHrs(time12) {
-    const [time, modifier] = time12.split(/(am|pm)/i); // Split by 'am' or 'pm'
-    let [hours, minutes] = time.split(":").map(Number);
+    // Match hours, optional separator (: or .), minutes, and AM/PM
+    const match = time12.match(/(\d{1,2})[:.]?(\d{2})?\s?(am|pm)/i);
+    if (!match) return { hours: null, minutes: null }; // Return null if invalid format
+  
+    let [, hours, minutes, modifier] = match;
+    hours = parseInt(hours, 10);
+    minutes = minutes ? parseInt(minutes, 10) : 0; // Default minutes to 0 if not provided
+  
     if (modifier.toLowerCase() === "pm" && hours < 12) {
       hours += 12; // Convert PM hours
     } else if (modifier.toLowerCase() === "am" && hours === 12) {
       hours = 0; // Midnight case
     }
-    console.log("24 hr Format:", hours);
-    // Return formatted time as "HHmm hrs"
-    return { hours, minutes }; // Return hours and minutes as an object
+  
+    console.log("24 hr Format11:", hours, "Minutes11:", minutes);
+    return { hours, minutes };
   }
+  
+  
   
   shorternMonth(dateString)
   {
