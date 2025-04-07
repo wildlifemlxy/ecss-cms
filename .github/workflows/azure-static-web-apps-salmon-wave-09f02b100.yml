@@ -1,4 +1,4 @@
-name: ECSS Frontend React
+name: ECSS Frontend React + Vite
 
 on:
   push:
