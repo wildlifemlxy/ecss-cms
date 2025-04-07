@@ -23,7 +23,9 @@ jobs:
           submodules: true
           lfs: false
       - name: Install Dependencies
-        run: npm install
+        run: |
+          cd frontend  # Add this to navigate to the frontend directory
+          npm install
       - name: Install OIDC Client from Core Package
         run: npm install @actions/core@1.6.0 @actions/http-client
       - name: Get Id Token
