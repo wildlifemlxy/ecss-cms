@@ -85,19 +85,33 @@ class LoginPage extends Component {
 
     try {
       // Replace with your API endpoint and payload
-      const response = await axios.post(`${window.location.hostname === "localhost" ? 
+      /*const response = await axios.post(`${window.location.hostname === "localhost" ? 
                         "http://localhost:3001" : 
-                        "https://ecss-backend-node.azurewebsites.net"}/login`, { email, password });
+                        "https://ecss-backend-node.azurewebsites.net"}/login`, { email, password });*/
 
-      console.log(response.data.message)
+        const axiosInstance = axios.create({
+          baseURL: `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}`,
+          timeout: 5000, // Set a reasonable timeout to avoid waiting too long
+          headers: { 'Content-Type': 'application/json' },
+        });
 
-      if (response.data?.message?.message === "Login successful") {
+        const [loginResponse] = await axios.all([
+          axiosInstance.post('/login', { email, password })
+        ]);
+
+      const response = loginResponse?.data?.message?.message;
+      
+      console.log("Login Response:", response);
+
+      if (response === "Login successful")
+      {
+        console.log("Im Here");
         // Set the authentication state
         auth.login(); // Call login from the context
 
         this.setState({
           isPopupOpen: true,
-          popupMessage: response.data.message.message,
+          popupMessage: loginResponse.data.message.message,
           popupType: "success-message",
         });
 
@@ -105,14 +119,14 @@ class LoginPage extends Component {
         // Redirect or perform other actions...
         setTimeout(() => {
           this.setState({ isPopupOpen: false });
-          if(response.data.message.details.first_time_log_in === "Yes")
+          if(loginResponse.data.message.details.first_time_log_in === "Yes")
             {
               this.setState({
                 isPopupOpen: true,
-                popupMessage: response.data.message.message,
+                popupMessage: loginResponse.data.message.message,
                 popupType: "change-password",
-                accountId: response.data.message.details._id,
-                name: response.data.message.details.name
+                accountId: loginResponse.data.message.details._id,
+                name: loginResponse.data.message.details.name
               });
             }
             else
@@ -125,7 +139,7 @@ class LoginPage extends Component {
                 name: ""
               });
               //console.log(response.data.message.details.site, response.data.message.details.role);
-              this.props.history.push({ pathname: '/home', state: { accountId: response.data.message.details._id, name: response.data.message.details.name, role: response.data.message.details.role, siteIC: response.data.message.details.site}}); 
+              this.props.history.push({ pathname: '/home', state: { accountId: loginResponse.data.message.details._id, name: loginResponse.data.message.details.name, role: loginResponse.data.message.details.role, siteIC: loginResponse.data.message.details.site}}); 
             }
         }, 5000);
       } else {
