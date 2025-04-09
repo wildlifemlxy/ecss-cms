@@ -210,8 +210,8 @@ class RegistrationPaymentSection extends Component {
             prev.courseInfo.courseEngName === courseName &&
             prev.courseInfo.courseLocation === location
           ) {
-            styles[index] = { backgroundColor: '#f7d7f1' };
-            styles[i] = { backgroundColor: '#f7d7f1' };
+            styles[index] = { backgroundColor: '	#87CEEB' };
+            styles[i] = { backgroundColor: '	#87CEEB' };
     
             // Alert with the anomaly details (name, course name, and locations)
             //alert(`Anomaly detected! Name: ${name}, Course: ${courseName}, Locations: ${prev.courseInfo.courseLocation} and ${location}`);
