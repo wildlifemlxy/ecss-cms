@@ -30,7 +30,8 @@ class RegistrationPaymentSection extends Component {
         anomalyThreshold: 0.8,
         phoneNumber: '',
         message: '',
-        status: ''
+        status: '',
+        isAlertShown: false,
       };
       this.tableRef = React.createRef();
     }
@@ -66,11 +67,12 @@ class RegistrationPaymentSection extends Component {
         var {siteIC, role} = this.props;  
         console.log("Role", role, "SiteIC", siteIC);
         const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC });
-
+        const response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role: "admin", siteIC: "" });
         console.log("Course Registration:", response);
     
-        const array = this.languageDatabase(response.data.result, language);
-        return array;
+        const data = this.languageDatabase(response.data.result, language);
+        const data1 = this.languageDatabase(response1.data.result, language);
+        return {data, data1};
     
       } catch (error) {
         console.error('Error fetching course registrations:', error);
@@ -132,8 +134,9 @@ class RegistrationPaymentSection extends Component {
     async componentDidMount() { 
      // this.props.onResetSearch();
       const { language, siteIC, role } = this.props;
-      const data = await this.fetchCourseRegistrations(language);
-      console.log('All Courses Registration:  ', data);
+      const {data, data1} = await this.fetchCourseRegistrations(language);
+      //.log('All Courses Registration:  ', data);
+      // Call anomaliesAlert only once
       var locations = await this.getAllLocations(data);
       var types = await this.getAllTypes(data);
       var names = await this.getAllNames(data);
@@ -155,7 +158,7 @@ class RegistrationPaymentSection extends Component {
       data.forEach((item, index) => {
         inputValues1[index] = item.official.remarks; // Use item.status or default to "Pending"
         console.log("Current Remarks: ", item.official.remarks)
-      });
+      });    
 
       this.setState({
         originalData: data,
@@ -167,10 +170,84 @@ class RegistrationPaymentSection extends Component {
         names: names,
         //rowData: data
       });
-      this.getRowData(data);
+      await this.getRowData(data);
+      if (!this.state.isAlertShown) {
+       await this.anomalitiesAlert(data1);
+        // Use a callback to set the state after the alert has been shown
+        this.setState({ isAlertShown: true });
+      }
+    
       this.props.closePopup();
     }
 
+    getAnomalyRowStyles = (data) => {
+      const styles = {};
+      const seen = [];
+    
+      for (let index = 0; index < data.length; index++) {
+        const item = data[index];
+        const name = item.participantInfo.name;
+        const courseName = item.courseInfo.courseEngName;
+        const location = item.courseInfo.courseLocation;
+    
+        for (let i = 0; i < index; i++) {
+          const prev = data[i];
+    
+          // Check for anomalies where the same person is registered for the same course but at different locations
+          if (
+            prev.participantInfo.name === name &&
+            prev.courseInfo.courseEngName === courseName &&
+            prev.courseInfo.courseLocation !== location
+          ) {
+            styles[index] = { backgroundColor: '#FFDDC1' };
+            styles[i] = { backgroundColor: '#FFDDC1' };
+    
+            // Alert with the anomaly details (name, course name, and locations)
+            //alert(`Anomaly detected! Name: ${name}, Course: ${courseName}, Locations: ${prev.courseInfo.courseLocation} and ${location}`);
+          }
+        }
+      }
+    
+      return styles;
+    };
+
+    anomalitiesAlert = (data) => {
+      const anomalies = []; // Collect anomalies
+    
+      // Loop through your data to find anomalies and collect them
+      for (let index = 0; index < data.length; index++) {
+        const item = data[index];
+        const name = item.participant.name;
+        const courseName = item.course.courseEngName;
+        const location = item.course.courseLocation;
+    
+        for (let i = 0; i < index; i++) {
+          const prev = data[i];
+    
+          if (
+            prev.participant.name === name &&
+            prev.course.courseEngName === courseName &&
+            prev.course.courseLocation !== location
+          ) {
+            anomalies.push(`Name: ${name}, Course: ${courseName}, Locations: ${prev.course.courseLocation} and ${location} (Person registered same course in different locations)`);
+          }
+          else if(prev.participant.name === name &&
+            prev.course.courseEngName === courseName &&
+            prev.course.courseLocation === location
+          )
+            {
+              anomalies.push(`Name: ${name}, Course: ${courseName}, Locations: ${prev.course.courseLocation} and ${location} (Person registered same course in same location)`);
+            }
+        }
+      }
+    
+      // Show alert only once with unique anomalies
+      if (anomalies.length > 0) {
+        const uniqueAnomalies = [...new Set(anomalies)];
+        alert(`Anomalies detected:\n\n${uniqueAnomalies.join('\n')}`);
+      }
+    };
+    
     updateRowData(paginatedDetails) {
      // this.props.onResetSearch();
       // Update the state with the newly formatted rowData
@@ -1373,10 +1450,11 @@ class RegistrationPaymentSection extends Component {
       };
     });
     console.log("All Rows Data:", rowData);
-  
     // Set the state with the new row data
+  
     this.setState({registerationDetails: rowData, rowData });
   };
+
 
   handleValueClick = async (event) =>
   {
@@ -1817,14 +1895,14 @@ class RegistrationPaymentSection extends Component {
     const currentScrollTop = gridContainer ? gridContainer.scrollTop : 0;
     
     // Fetch new data
-    const newData = await this.fetchCourseRegistrations(language);
-    console.log("New Data:", newData);
+    const {data, data1} = await this.fetchCourseRegistrations(language);
+    //console.log("New Data:", newData);
     
     // Map only the items that exist in current rowData
     const existingIds = new Set(this.state.rowData.map(item => item.id));
     console.log("existingIds:", existingIds);
     
-    const updatedRowData = newData
+    const updatedRowData = data
       .filter(item => existingIds.has(item._id))
       .map((item, index) => ({
         id: item._id,
@@ -1847,11 +1925,18 @@ class RegistrationPaymentSection extends Component {
         registrationDate: item.registrationDate,
         sendDetails: item.sendingWhatsappMessage
       }));
+
+      /*if (!this.state.isAlertShown) {
+        await this.anomalitiesAlert(data1);
+         // Use a callback to set the state after the alert has been shown
+         this.setState({ isAlertShown: true });
+       }*/
+     
     
     // Update state and restore scroll position in one step
     this.setState({
-      originalData: newData,
-      registerationDetails: newData,
+      originalData: data,
+      registerationDetails: ndata,
       rowData: updatedRowData
     }, () => {
       // Restore scroll position directly
@@ -1863,7 +1948,7 @@ class RegistrationPaymentSection extends Component {
     });
   };
 
- // componentDidUpdate is called after the component has updated (re-rendered)
+ // MUpdate is called after the component has updated (re-rendered)
   componentDidUpdate(prevProps, prevState) {
     const { selectedLocation, selectedCourseType, searchQuery, selectedCourseName, selectedQuarter} = this.props;
     console.log("This Props Current:", selectedQuarter);
@@ -2036,10 +2121,13 @@ class RegistrationPaymentSection extends Component {
     }
   }
 
+  
   render()
   {
-    var {rowData} = this.state
+    var {rowData, registerationDetails} = this.state;
     ModuleRegistry.registerModules([AllCommunityModule]);
+    const anomalyStyles = this.getAnomalyRowStyles(rowData);
+
     return (
       <>
         <div className="registration-payment-container" >
@@ -2072,27 +2160,24 @@ class RegistrationPaymentSection extends Component {
                 onCellValueChanged={this.onCellValueChanged} // Handle cell value change
                 onCellClicked={this.handleValueClick} // Handle cell click event
                 getRowStyle={(params) => {
-                  // Log the value for debugging
-                  console.log(params.data.courseInfo.courseType);
-
-                  // Initialize rowStyle
+                  const rowIndex = params.node.rowIndex;
+                  const courseType = params.data.courseInfo.courseType;
+                
                   let rowStyle = {};
-
-                  // Apply courseType based background colors
-                  if (params.data.courseInfo.courseType === 'ILP') {
-                    rowStyle = { backgroundColor: '#A8D5BA' }; // Olive green soft pastel color for ILP
-                  } else if (params.data.courseInfo.courseType === 'OtherType') {
-                    rowStyle = { backgroundColor: '#FFB6C1' }; // Soft pink for other type
+                
+                  // First apply courseType style
+                  if (courseType === 'ILP') {
+                    rowStyle.backgroundColor = '#A8D5BA';
+                  } else if (courseType === 'OtherType') {
+                    rowStyle.backgroundColor = '#FFB6C1';
                   }
-
-                 /* // Check for anomalies and apply error styles
-                  const anomalies = this.detectAnomalies([params.data]);
-                  if (anomalies.length > 0) {
-                    params.data.errorMessage = anomalies[0].errors.join(', '); // Set error messages
-                    rowStyle = { ...rowStyle, backgroundColor: '#FFF0E0' }; // Light yellow for errors (keep previous style)
-                  }*/
-
-                  return rowStyle; // Return the row style
+                
+                  // Then override with anomaly style if needed
+                  if (anomalyStyles[rowIndex]) {
+                    rowStyle.backgroundColor = '#FFDDC1'; // anomaly wins
+                  }
+                
+                  return rowStyle;
                 }}
               />
 
