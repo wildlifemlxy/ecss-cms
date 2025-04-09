@@ -42,7 +42,7 @@
   },
   "scripts": {
     "start": "vite dev",
-    "build": "CI=false vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "test": "vite test",
     "eject": "vite eject"
