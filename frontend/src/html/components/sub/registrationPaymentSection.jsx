@@ -186,8 +186,7 @@ class RegistrationPaymentSection extends Component {
     }
     
           
-    updateWooCommerceForRegistrationPayment = async (chi, eng, location, updatedStatus) => {
-      console.log("NOWWWW");  
+    updateWooCommerceForRegistrationPayment = async (chi, eng, location, updatedStatus) => { 
       try {
         // Check if the value is "Paid" or "Generate SkillsFuture Invoice"
         if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled" || updatedStatus === "Confirmed") {
@@ -1251,8 +1250,18 @@ class RegistrationPaymentSection extends Component {
         field: "recinvNo",
         width: 300,
       },
+      {
+        headerName: "Remarks",
+        field: "remarks",
+        width: 300,
+        editable: (params) => {
+          // Disable editing if the paymentStatus is "Cancelled" or "Refunded"
+          return params.data.paymentStatus === 'Cancelled' || params.data.paymentStatus === 'Refunded';
+        }
+      }
     ];
-  
+
+
     // Add the "Delete" button column conditionally
     if (!["Site in-charge", "Finance"].includes(role)) {
       columnDefs.push({
@@ -1306,6 +1315,7 @@ class RegistrationPaymentSection extends Component {
     return columnDefs;
   };
   
+  
   handleDelete = async(id) =>
   {
     //console.log("Registration Id:", id);
@@ -1358,7 +1368,8 @@ class RegistrationPaymentSection extends Component {
         agreement: item.agreement,
         status: item.status,
         registrationDate: item.registrationDate,
-        refundedDate: item.official?.refundedDate || ""
+        refundedDate: item.official?.refundedDate || "",
+        remarks: item.official?.remarks || ""
       };
     });
     console.log("All Rows Data:", rowData);
@@ -1759,6 +1770,24 @@ class RegistrationPaymentSection extends Component {
             }
           }
         }
+        else if (columnName === "Remarks")
+        {
+          console.log("Now editing remarks", newValue);
+          if(newValue !== "")
+          {
+            const response = await axios.post(
+              `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+              {
+                purpose: 'addCancelRemarks',
+                id: id,
+                editedValue: newValue
+              });
+          }
+          else
+          {
+            alert("No remarks added");
+          }
+        }
         else
         {
           console.log("Updated Particulars:", event.colDef.field, newValue);
@@ -1770,8 +1799,7 @@ class RegistrationPaymentSection extends Component {
               field: event.colDef.field,
               editedValue: newValue
             }
-          );
-          
+          )  
         }
         this.refreshChild(); 
     } catch (error) {
@@ -1815,6 +1843,7 @@ class RegistrationPaymentSection extends Component {
         officialInfo: item.official,
         refundedDate: item.official?.refundedDate, // Fixed typo from 'offical'
         agreement: item.agreement,
+        remarks: item.official?.remarks,
         registrationDate: item.registrationDate,
         sendDetails: item.sendingWhatsappMessage
       }));
@@ -1895,6 +1924,7 @@ class RegistrationPaymentSection extends Component {
           refundedDate: item.offical?.refundedDate,// Official details*/
           agreement: item.agreement,
           registrationDate: item.registrationDate,
+          remarks: item.official.remarks,
           sendDetails: item.sendingWhatsappMessage
         }));
   
@@ -1996,7 +2026,8 @@ class RegistrationPaymentSection extends Component {
         refundedDate: item.offical?.refundedDate,// Official details*/
         agreement: item.agreement,
         registrationDate: item.registrationDate,
-        sendDetails: item.sendingWhatsappMessage
+        sendDetails: item.sendingWhatsappMessage,
+        remarks: item.official.remarks
       }));
 
       // Update the row data with the filtered results

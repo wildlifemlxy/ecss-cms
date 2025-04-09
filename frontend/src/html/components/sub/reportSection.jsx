@@ -23,7 +23,7 @@ class ReportSection extends Component {
         { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true },
         { headerName: "Course Location", field: "course.courseLocation", width: 200, sortable: true },
         { headerName: "Misc", field: "misc", width: 250, sortable: true },
-        { headerName: "Remarks", field: "remarks", width: 250, sortable: true },
+        { headerName: "Remarks", field: "official.remarks", width: 250, sortable: true },
       ], 
       rowData: [],  // The actual data for the grid
       monthYearOptions: [], // List of month-year combinations

@@ -994,6 +994,28 @@ class DatabaseConnectivity {
             throw error;
         }
     }
+
+          
+    async addCancellationRemarks(databaseName, collectionName, id, remarks) 
+    {
+        //console.log("Database:::", databaseName, collectionName, id, date);
+        try {
+            const db = this.client.db(databaseName);
+            const table = db.collection(collectionName);
+    
+            const result = await table.updateOne(
+                { _id: new ObjectId(id) }, // Convert `id` to ObjectId
+                { $set: { "official.remarks": remarks } } // Add `official.refundedDate`
+            );
+    
+            console.log("Update Result:", result);
+            return result;
+        } catch (error) {
+            console.error("Error updating refunded date:", error);
+            throw error;
+        }
+    }
+    
     
 
     async updateAccessRight(databaseName, collectionName, id1, updateAccessRight) {

@@ -229,7 +229,14 @@ router.post('/', async function(req, res, next)
         var result = await controller.sendDetails(req.body.id);
         return res.json({"result": result});
     }
+    else if(req.body.purpose === "addCancelRemarks")
+    {
+        //console.log(req.body);
+        var controller = new RegistrationController();
+        var result = await controller.addCancellationRemarks(req.body.id, req.body.editedValue);
+        return res.json({"result": result});
+    }
 });
 
-module.exports = router;
+module.exports = router
 
