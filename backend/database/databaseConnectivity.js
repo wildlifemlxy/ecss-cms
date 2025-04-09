@@ -384,10 +384,8 @@ class DatabaseConnectivity {
                     update = {
                         $set: {
                             "status": status,
-                            "official.receiptNo": "",
                             "official.date": "",
                             "official.time": "",
-                            "official.receiptNo": "",
                             "official.confirmed": false
                         }
                     };

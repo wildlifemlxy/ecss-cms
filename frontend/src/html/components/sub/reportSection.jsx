@@ -19,6 +19,7 @@ class ReportSection extends Component {
         { headerName: "Received From", field: "participant.name", width: 200, sortable: true },
         { headerName: "Payment Method", field: "course.payment", width: 150, sortable: true },
         { headerName: "Price", field: "course.coursePrice", width: 150, sortable: true },
+        { headerName: "Payment Status", field: "status", width: 200, sortable: true },
         { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true },
         { headerName: "Course Location", field: "course.courseLocation", width: 200, sortable: true },
         { headerName: "Misc", field: "misc", width: 250, sortable: true },
@@ -52,8 +53,8 @@ class ReportSection extends Component {
   generateReportButton = async () => {
       //await this.fetchInvoiceDetails();
       this.setState({ showReport: true, dateRange: `${this.state.fromDate} - ${this.state.toDate}` });
-      this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
-      this.calculateTotalPriceForDateRange(this.state.fromDate, this.state.toDate);
+      await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
+      await this.calculateTotalPriceForDateRange(this.state.fromDate, this.state.toDate);
   };
   
   // Fetch invoice data when the component mounts
@@ -128,43 +129,12 @@ class ReportSection extends Component {
   };
   
   
-  calculateTotalPriceForDateRange = (fromDate, toDate) => {
-    const { invoiceData } = this.state;
-    console.log("Invoice Data:", invoiceData);
-  
-    // Function to parse the date string in dd/mm/yyyy format
-    const parseDate = (dateStr) => {
-      if (!dateStr) return null;
-      const [day, month, year] = dateStr.split('/');
-      return new Date(`${year}-${month}-${day}`);
-    };
-  
-    // Validate if fromDate and toDate are valid
-    const fromParsed = parseDate(fromDate);
-    const toParsed = parseDate(toDate);
-  
-    // If either fromDate or toDate is invalid, exit the function
-    if (!fromParsed || !toParsed || fromParsed > toParsed) {
-      console.error("Invalid date range:", fromDate, toDate);
-      return;
-    }
-  
-    // Filter the invoice data based on the date range (fromDate, toDate)
-    const filteredData = invoiceData.filter(item => {
-      const paymentDateString = item.official.date; // Assuming the format is 'dd/mm/yyyy'
-      const paymentDate = parseDate(paymentDateString);
-  
-      // Ensure there's a valid receipt number, the payment date is within the specified range,
-      // and the course location is 'Tampines 253 Centre'
-      return item.official.receiptNo && paymentDate >= fromParsed && paymentDate <= toParsed && item.course.courseLocation === "Tampines 253 Centre" && item.official.date !== "" && item.official.receiptNo !== "" && item.course.payment !== "SkillsFuture";
-    });
-  
-    console.log("Filtered Data:", filteredData);
-  
-    // Calculate total price for Cash, PayNow, and Total
-    const totalCash = filteredData.reduce((total, item) => {
+  calculateTotalPriceForDateRange = () => {
+    console.log("Updated Invoice Data:", this.state.updatedInvoiceData)
+   // Calculate total price for Cash, PayNow, and Total
+    const totalCash = this.state.updatedInvoiceData.reduce((total, item) => {
       let price = 0;
-      if (item.official.date && item.course.payment === "Cash") {
+      if (item.course.payment === "Cash" && item.status === "Paid") {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -173,9 +143,9 @@ class ReportSection extends Component {
       return total + price;
     }, 0);
   
-    const totalPayNow = filteredData.reduce((total, item) => {
+    const totalPayNow = this.state.updatedInvoiceData.reduce((total, item) => {
       let price = 0;
-      if (item.official.date && item.course.payment === "PayNow") {
+      if (item.course.payment === "PayNow" && item.status === "Paid") {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -184,9 +154,9 @@ class ReportSection extends Component {
       return total + price;
     }, 0);
   
-    const totalPrice = filteredData.reduce((total, item) => {
+    const totalPrice = this.state.updatedInvoiceData.reduce((total, item) => {
       let price = 0;
-      if (item.official.date) {
+      if (item.status === "Paid") {
         const priceString = item.course?.coursePrice.replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
@@ -246,7 +216,7 @@ class ReportSection extends Component {
   fetchSiteICDetails = async (fromDate, toDate) => {
     try {
       this.props.loadingPopup1();
-      
+  
       // Function to parse the date string in dd/mm/yyyy format
       const parseDate = (dateStr) => {
         if (!dateStr) return null;
@@ -275,10 +245,11 @@ class ReportSection extends Component {
   
       // Filter and map the data to ensure the index always starts from 1 after each filter
       let customIndex = 1; // Always start the index from 1
+      console.log("Original Invoice Data:", this.state.invoiceData);
   
       // Filter the data based on date range and location
       const filteredData = this.state.invoiceData.filter((item) => {
-        const itemDate = item.official.date; // assuming item.official.date is the date field in your data
+        const itemDate = item.registrationDate; // assuming item.registrationDate is the date field in your data
         const date = parseDate(itemDate); // Parse the item date
         const courseLocation = item.course.courseLocation; // Get the courseLocation from the item
         const targetLocation = "Tampines 253 Centre"; // This is your target location
@@ -287,13 +258,11 @@ class ReportSection extends Component {
         if (date) {
           // If both fromDate and toDate are valid, filter based on date range and location
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
-            return date >= fromParsed && date <= toParsed && courseLocation === targetLocation && item.official.receiptNo !== "" && item.official.date !== "" && item.course.payment !== "SkillsFuture";
+            return date >= fromParsed && date <= toParsed && courseLocation === targetLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
           } else if (!fromParsed && !toParsed) {
             // If no date range, just filter by courseLocation
-            return false;
+            return courseLocation === targetLocation && item.course.payment !== "SkillsFuture";
           }
-          // If one of the dates is invalid, just filter by location
-          return false;
         }
   
         return false; // If no valid date is available, exclude this item
@@ -320,8 +289,7 @@ class ReportSection extends Component {
     } catch (error) {
       console.error('Error fetching invoice details:', error);
     }
-  };
-
+  };  
   
   // Function to extract unique month-year combinations in full month name format (mmmm yyyy)
   getMonthYearOptions = (data) => {
@@ -461,121 +429,101 @@ class ReportSection extends Component {
   };  
 
   generatePaymentReport = () => {
-    const { updatedInvoiceData, dateRange, fromDate, toDate } = this.state;
+    const { updatedInvoiceData, dateRange } = this.state;
   
     const headers = [
-      'S/N',
-      'Registration Date',
-      'Payment Date',
-      'Receipt Number',
-      'Received From',
-      'Payment Method',
-      'Price',
-      'Course Name',
-      'Course Location',
-      'Misc',
-      'Remarks'
+      'S/N', 'Registration Date', 'Payment Date', 'Receipt Number', 
+      'Received From', 'Payment Method', 'Price', 'Course Name', 
+      'Course Location', 'Status', 'Misc', 'Remarks'
     ];
   
-    // Prepare the rows from the filtered data
-    const rows = updatedInvoiceData.map((item, index) => [
-      index + 1, // Serial number (S/N)
-      item.registrationDate || '', // Registration Date
-      item.official.date || '', // Payment Date
-      item.official?.receiptNo || '', // Receipt Number
-      item.participant?.name || '', // Received From
-      item.course?.payment || '', // Payment Method
-      item.course?.coursePrice || '', // Price
-      item.course?.courseEngName || '', // Course Name
-      item.course?.courseLocation || '', // Course Location
-    ]);
-  
-  // Parse the fromDate and toDate to JavaScript Date objects
-  const parseDate = (dateStr) => {
-    if (!dateStr) return null;
-    const [day, month, year] = dateStr.split('/');
-    return new Date(`${year}-${month}-${day}`);
-  };
-
-  const fromParsed = parseDate(fromDate);
-  const toParsed = parseDate(toDate);
-
-  // Filter the data based on the date range
-  const filteredData = updatedInvoiceData.filter(item => {
-    const paymentDateString = item.official.date; // Assuming the format is 'dd/mm/yyyy'
-    const paymentDate = parseDate(paymentDateString);
-
-    // Only include items where the payment date is within the range
-    return paymentDate >= fromParsed && paymentDate <= toParsed;
-  });
-
-  // Calculate total price for the filtered data, separately for Cash and Paynow
-  const { totalPriceCash, totalPricePaynow } = filteredData.reduce(
-    (acc, item) => {
-      let price = 0;
-
-      // Check if the item has a valid official date
-      if (item.official.date) {
-        // Clean the course price string and parse as a number
-        const priceString = item.course?.coursePrice.replace('$', '').trim();
-        if (priceString !== "" && !isNaN(parseFloat(priceString))) {
-          price = parseFloat(priceString);
-        }
+    // Group by receiptNo (the first part before the "-")
+    const groupedByReceipt = updatedInvoiceData.reduce((acc, item) => {
+      const receiptNo = item.official?.receiptNo || '';
+      const receiptPrefix = receiptNo.split(' - ')[0]; // e.g., "Tampines 253 Centre"
+      if (!acc[receiptPrefix]) {
+        acc[receiptPrefix] = [];
       }
-
-      // Check the payment method and add the price to the respective total
-      const paymentMethod = item.course?.payment;
-      if (paymentMethod === 'Cash') {
-        acc.totalPriceCash += price; // Add price to Cash total
-      } else if (paymentMethod === 'PayNow') {
-        acc.totalPricePaynow += price; // Add price to Paynow total
-      }
-
+      acc[receiptPrefix].push(item);
       return acc;
-    },
-    { totalPriceCash: 0, totalPricePaynow: 0 }
-  );
-
-    // Format the total prices for both Cash and Paynow to 2 decimal places
-    const formattedTotalPriceCash = `$  ${totalPriceCash.toFixed(2)}`;
-    const formattedTotalPricePaynow = `$  ${totalPricePaynow.toFixed(2)}`;
-    const formattedTotalPrice = `$  ${(totalPricePaynow+totalPriceCash).toFixed(2)}`;
-
-    console.log("Formatted Total Price for Cash:", formattedTotalPriceCash);
-    console.log("Formatted Total Price for Paynow:", formattedTotalPricePaynow);
-
-    // Prepare empty and collection rows
+    }, {});
+  
+    // Now, sort each group by the number part of receiptNo (after the "-")
+    const sortedGroupedData = Object.keys(groupedByReceipt).map(receiptPrefix => {
+      const group = groupedByReceipt[receiptPrefix].sort((a, b) => {
+        const receiptNoA = a.official?.receiptNo.split(" - ")[1];
+        const receiptNoB = b.official?.receiptNo.split(" - ")[1];
+        return receiptNoA && receiptNoB ? parseInt(receiptNoA) - parseInt(receiptNoB) : 0;
+      });
+  
+      return {
+        receiptPrefix,
+        data: group
+      };
+    });
+  
+    // Prepare the rows from the sorted and grouped data
+    const rows = [];
+    sortedGroupedData.forEach(group => {
+      group.data.forEach((item, index) => {
+        rows.push([
+          rows.length + 1, // Serial number (S/N)
+          item.registrationDate || '', // Registration Date
+          item.official.date || '', // Payment Date
+          item.official?.receiptNo || '', // Receipt Number
+          item.participant?.name || '', // Received From
+          item.course?.payment || '', // Payment Method
+          item.course?.coursePrice || '', // Price
+          item.course?.courseEngName || '', // Course Name
+          item.course?.courseLocation || '', // Course Location
+          item.status || '' // Status
+        ]);
+      });
+    });
+  
+    // Calculate total price for the filtered data
+    const { totalPriceCash, totalPricePaynow } = updatedInvoiceData.reduce((acc, item) => {
+      let price = parseFloat(item.course?.coursePrice.replace('$', '').trim()) || 0;
+      if (item.course?.payment === 'Cash') acc.totalPriceCash += price;
+      if (item.course?.payment === 'PayNow') acc.totalPricePaynow += price;
+      return acc;
+    }, { totalPriceCash: 0, totalPricePaynow: 0 });
+  
+    const formattedTotalPriceCash = `$ ${totalPriceCash.toFixed(2)}`;
+    const formattedTotalPricePaynow = `$ ${totalPricePaynow.toFixed(2)}`;
+    const formattedTotalPrice = `$ ${(totalPricePaynow + totalPriceCash).toFixed(2)}`;
+  
+    // Empty and collection rows
     const emptyRow = new Array(headers.length).fill('');
     const collectionRow = new Array(headers.length).fill('');
     collectionRow[2] = 'dd-mm-yy'; 
-    collectionRow[3] = `Collection by ${this.props.userName}`; 
-
-    // Add the total row at the end of the report
+    collectionRow[3] = `Collection by ${this.props.userName}`;
+  
+    // Total rows
     const cashRow = new Array(headers.length).fill('');
     cashRow[6] = `Total (Cash): ${formattedTotalPriceCash}`;
     const payNowRow = new Array(headers.length).fill('');
     payNowRow[6] = `Total (PayNow): ${formattedTotalPricePaynow}`;
     const totalRow = new Array(headers.length).fill('');
     totalRow[6] = `Total: ${formattedTotalPrice}`;
-
+  
     // Create the sheet
-    const sheetData = [headers, ...rows, emptyRow, collectionRow, emptyRow, cashRow, payNowRow,totalRow];
+    const sheetData = [headers, ...rows, emptyRow, collectionRow, emptyRow, cashRow, payNowRow, totalRow];
   
     // Determine column widths based on the longest content in each column
     const colWidths = headers.map((_, colIndex) => {
-      let maxLength = headers[colIndex].length; // Start with the header length
+      let maxLength = headers[colIndex].length;
       sheetData.forEach(row => {
-        if (row[colIndex] && row[colIndex].toString().length > maxLength) {
-          maxLength = row[colIndex].toString().length;
+        const cellValue = row[colIndex]?.toString() || '';
+        if (cellValue.length > maxLength) {
+          maxLength = cellValue.length;
         }
       });
-      return { wch: maxLength + 2 }; // Add some padding to the width
+      return { wch: maxLength + 2 }; // Add padding to the width
     });
   
-    // Create a worksheet
+    // Create worksheet and workbook, then export as Excel file
     const ws = XLSX.utils.aoa_to_sheet(sheetData);
-  
-    // Set column widths dynamically
     ws['!cols'] = colWidths;
   
     // Apply bold font for headers and collection row
@@ -583,11 +531,11 @@ class ReportSection extends Component {
       ws[`${String.fromCharCode(65 + col)}1`].s = { font: { bold: true } };
     }
   
-    // Create a workbook and export it as an Excel file
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Invoice Report');
     XLSX.writeFile(wb, `Invoice Report - ${dateRange}.xlsx`);
-  };  
+  };
+  
 
   handleChange = (event) => {
     const { name, value } = event.target;
