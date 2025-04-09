@@ -105,7 +105,6 @@ class LoginPage extends Component {
 
       if (response === "Login successful")
       {
-        console.log("Im Here");
         // Set the authentication state
         auth.login(); // Call login from the context
 

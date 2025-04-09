@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = 'Smart Social – FaceBook (CT Hub).jpg'; 
+            const filename = '自杀预防意识 Suicide Prevention Awareness (CT Hub).jpg'; 
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator('https://ecss.org.sg/product/%e6%99%ba%e8%83%bd%e7%a4%be%e4%ba%a4-%e7%a4%be%e4%ba%a4%e5%b9%b3%e5%8f%b0smart-social-facebookct-hub/');
+const qrCodeGenerator = new QRCodeGenerator('https://ecss.org.sg/product/%e8%87%aa%e6%9d%80%e9%a2%84%e9%98%b2%e6%84%8f%e8%af%86suicide-prevention-awarenessct-hub/');
 qrCodeGenerator.generate();

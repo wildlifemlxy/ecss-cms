@@ -123,9 +123,6 @@ class CoursesSection extends Component {
       return columns;
     };
     
-    
-  
-    
     // Method to get all languages
     getAllLanguages= async(courses)  =>  {
       return [...new Set(courses.map(course => {

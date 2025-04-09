@@ -6,6 +6,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
+import JSZip from 'jszip';
 
 class RegistrationPaymentSection extends Component {
     constructor(props) {
@@ -704,11 +705,10 @@ class RegistrationPaymentSection extends Component {
       
       return `${day}/${month}/${year}`;
     }
-
     exportToLOP = async (paginatedDetails) => {
       try {
         // Fetch the Excel file from public folder (adjust the path if necessary)
-        const filePath = '/external/List of Eligible Participants_revised 240401.xlsx';  // Path relative to the public folder
+        const filePath = '/external/OSG NSA List of participants (20250401).xlsx';  // Path relative to the public folder
         const response = await fetch(filePath);
     
         if (!response.ok) {
@@ -761,7 +761,7 @@ class RegistrationPaymentSection extends Component {
             }
     
             sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.gender.split(" ")[0];
-            sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.race.split(" ")[0];
+            sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.race.split(" ")[0][0];
             sourceSheet.getCell(`J${rowIndex}`).value = detail.participantInfo.contactNumber;
             sourceSheet.getCell(`K${rowIndex}`).value = detail.participantInfo.email;
             sourceSheet.getCell(`L${rowIndex}`).value = detail.participantInfo.postalCode;
@@ -773,23 +773,33 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
     
             let courseName = detail.courseInfo.courseEngName;
+            sourceSheet.getCell(`O${rowIndex}`).value = this.courseReferenceCode(courseName.trim());
             let languages = courseName.split("–").pop().trim();
             if (!((languages === "English") || (languages === "Mandarin"))) {
               // If "English" or "Mandarin" is not in the course name, don't split
-              sourceSheet.getCell(`O${rowIndex}`).value = courseName.trim();
+              sourceSheet.getCell(`P${rowIndex}`).value = courseName.trim();
             } else {
               // Otherwise, split by "–" and assign the first part
-              sourceSheet.getCell(`O${rowIndex}`).value = courseName.split("–")[0].trim();
+              sourceSheet.getCell(`P${rowIndex}`).value = courseName.split("–")[0].trim();
             }
+            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;  
+            let priceStr = detail.courseInfo.coursePrice; // e.g., "$12.34"
+            let numericValue = parseFloat(priceStr.replace('$', ''))// Step 2: Multiply by 5
+            let multiplied = numericValue * 5;
+            let formattedPrice = `$${multiplied.toFixed(2)}`;
+            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;
+          
             
     
             const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
-            sourceSheet.getCell(`P${rowIndex}`).value = this.convertDateFormat1(startDate);
-            sourceSheet.getCell(`Q${rowIndex}`).value = this.convertDateFormat1(endDate);
+            sourceSheet.getCell(`S${rowIndex}`).value = this.convertDateFormat1(startDate);
+            sourceSheet.getCell(`T${rowIndex}`).value = this.convertDateFormat1(endDate);
+            sourceSheet.getCell(`U${rowIndex}`).value = detail.courseInfo.courseMode === "Face-to-Face" ? "F2F" : detail.courseInfo.courseMode;
     
-            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;
-            sourceSheet.getCell(`S${rowIndex}`).value = detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment;
-            sourceSheet.getCell(`V${rowIndex}`).value = detail.officialInfo.receiptNo;
+            sourceSheet.getCell(`W${rowIndex}`).value = detail.courseInfo.coursePrice;
+            sourceSheet.getCell(`X${rowIndex}`).value = detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment;
+            sourceSheet.getCell(`AD${rowIndex}`).value = detail.officialInfo.receiptNo;
+            sourceSheet.getCell(`V${rowIndex}`).value = detail.courseInfo.courseLocation === "Pasir Ris West Wellness Centre" ? "S510112" : "";
     
             // Copy styles from the original row
             originalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -798,9 +808,21 @@ class RegistrationPaymentSection extends Component {
             });
           }
         });
-    
+
+        let total = paginatedDetails.reduce((sum, item) => {
+          let priceStr = item?.courseInfo?.coursePrice || "$0";
+          let numeric = parseFloat(priceStr.replace('$', ''));
+        
+          // If parseFloat fails and returns NaN, fallback to 0
+          return sum + (isNaN(numeric) ? 0 : numeric);
+        }, 0);
+        
+        let formattedTotal = `$${total.toFixed(2)}`;
+        
+        sourceSheet.getCell(`R5`).value = formattedTotal;
+
        // Create new file name and sav
-        const originalFileName = `List of Eligible Participants for ${courseName} as of ${this.getCurrentDateTime()}.xlsx`
+        const originalFileName = `OSG NSA List of participants (20350401) as of ${this.getCurrentDateTime()}.xlsx`
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -813,6 +835,40 @@ class RegistrationPaymentSection extends Component {
         this.props.warningPopUpMessage("An error occurred during export.");
       }
     };  
+
+
+    courseReferenceCode(course) {
+        //The Rest Note of Life – Mandarin 14-Feb
+        course = course.trim();
+        console.log("Course Name: ", course);
+    
+        //Therapeutic Basic Line Work
+        const courseMap = {
+            "TCM – Don’t be a friend of Chronic Diseases": "TGS-2021008576",
+            "Nagomi Pastel Art Basic": "TGS-2022011919",
+            "Therapeutic Watercolour Painting for Beginners": "TGS-2022015737",
+            "Chinese Calligraphy Intermediate": "TGS-2022011921",
+            "Chinese Calligraphy Basic": "TGS-2022011920",
+            "Nagomi Pastel Art Appreciation": "TGS-2022011918",
+            "Community Ukulele – Mandarin": "TGS-2021008564",
+            "Community Singing – Mandarin": "TGS-2021008563",
+            "Self-Care TCM Wellness – Mandarin": "TGS-2021008561",
+            "Hanyu Pinyin for Beginners": "TGS-2021008571",
+            "The Rest Note of Life – Mandarin": "TGS-2022015736",
+            "TCM Diet & Therapy": "TGS-2021008570",
+            "Therapeutic Basic Line Work": "TGS-2024047927",
+            "Healthy Minds, Healthy Lives – Mandarin": "TGS-2023019018"
+            //Healthy Minds, Healthy Lives – Mandarin
+        };
+
+        // Check for exact match
+        if (courseMap[course]) {
+            return courseMap[course];
+        }
+    
+        // If no match, return a default value
+        return "";
+      }
 
     exportAttendance = async (paginatedDetails) => {
       var { selectedCourseName, selectedLocation } = this.props;
