@@ -205,6 +205,17 @@ class RegistrationPaymentSection extends Component {
             // Alert with the anomaly details (name, course name, and locations)
             //alert(`Anomaly detected! Name: ${name}, Course: ${courseName}, Locations: ${prev.courseInfo.courseLocation} and ${location}`);
           }
+          else if (
+            prev.participantInfo.name === name &&
+            prev.courseInfo.courseEngName === courseName &&
+            prev.courseInfo.courseLocation === location
+          ) {
+            styles[index] = { backgroundColor: '#FFDDC2' };
+            styles[i] = { backgroundColor: '#FFDDC2' };
+    
+            // Alert with the anomaly details (name, course name, and locations)
+            //alert(`Anomaly detected! Name: ${name}, Course: ${courseName}, Locations: ${prev.courseInfo.courseLocation} and ${location}`);
+          }
         }
       }
     
