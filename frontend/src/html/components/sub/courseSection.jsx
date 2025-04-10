@@ -44,6 +44,11 @@ class CoursesSection extends Component {
           width: 150,
         },
         {
+          headerName: "Course Mode",
+          field: "courseMode",
+          width: 150,
+        },
+        {
           headerName: "Current",
           field: "current",
           width: 100,
@@ -136,7 +141,7 @@ class CoursesSection extends Component {
         this.setState({ loading: true });
         var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/courses/`, { courseType });
         var courses = response.data.courses;
-        //console.log("From Django:", response);
+        console.log("From Django:", response);
         
 
         // Extract locations and languages
@@ -189,6 +194,7 @@ class CoursesSection extends Component {
         courseId: item.id,
         courseName: splitName.length === 3 ? splitName[1] : (splitName.length === 2 ? splitName[0] : item.name),
         centreLocation: splitName.length === 3 ? locationMap[splitName[2].replace(/[()]/g, '').trim()] || splitName[2].replace(/[()]/g, '').trim() : splitName.length === 2 ? locationMap[splitName[1].replace(/[()]/g, '').trim()] || splitName[1].replace(/[()]/g, '').trim(): '',
+        courseMode: item?.attributes?.[2]?.options?.[0] === "Face-to-Face" ? "F2F" : item?.attributes?.[2]?.options?.[0],
         current: item.stock_quantity,
         projected: displayedDetails.vacancies,
         maximum: Math.ceil(parseInt(displayedDetails.vacancies) * 1.5),
@@ -392,6 +398,7 @@ class CoursesSection extends Component {
           courseId: item.courseId,
           courseName: item.courseName,
           centreLocation: item.centreLocation,  // Only display the code like "T-253"
+          courseMode: item?.attributes?.[2]?.options?.[0] === "Face-to-Face" ? "F2F" : item?.attributes?.[2]?.options?.[0],
           noLesson: item.noLesson,
           current: item.current,
           projected: item.projected,

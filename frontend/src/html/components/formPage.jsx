@@ -30,6 +30,7 @@ class FormPage extends Component {
         courseDate: '',
         agreement: '',  // Corrected key from 'argeement' to 'agreement'
         bgColor: '',
+        courseMode: ''
       },
       validationErrors: {}
     };
@@ -78,6 +79,8 @@ class FormPage extends Component {
           console.log("Selected Course Price:", matchedCourse.price);
           const shortDescription = matchedCourse.short_description;
 
+          var courseMode = matchedCourse?.attributes?.[2]?.options?.[0];
+
           // Split the string by "<p>" to separate paragraph elements
           const paragraphs = shortDescription.split("<p>");
           
@@ -110,7 +113,8 @@ class FormPage extends Component {
                       location: selectedLocation,      // Location
                       price: formattedPrice,
                       type,
-                      courseDuration
+                      courseDuration,
+                      courseMode
                   },
                   loading: true
               }));
@@ -119,11 +123,12 @@ class FormPage extends Component {
               this.setState((prevState) => ({
                   formData: {
                       ...prevState.formData,
-                      chineseName: courseParts[0],  // Chinese name
+                      englishName: courseParts[0],  // Chinese name
                       location: selectedLocation,   // English name
                       price: formattedPrice,
                       type,
-                      courseDuration
+                      courseDuration,
+                      courseMode
                   },
                   loading: true
               }));
@@ -244,6 +249,7 @@ class FormPage extends Component {
     var courseLocation = formData.location;
     var coursePrice = formData.price; 
     var courseDuration = formData.courseDuration;
+    var courseMode = formData.courseMode;
     var payment = formData.payment;
 
     // Agreement
@@ -270,6 +276,7 @@ class FormPage extends Component {
           courseLocation: courseLocation,
           coursePrice: coursePrice,
           courseDuration: courseDuration,
+          courseMode: courseMode,
           payment: payment
       },
       agreement: agreement,
@@ -489,6 +496,7 @@ class FormPage extends Component {
                 coursePrice={formData.price}
                 courseType={formData.type}
                 courseDuration={formData.courseDuration}
+                courseMode = {formData.courseMode}
                 payment={formData.payment}
                 onChange={this.handleDataChange}
               />

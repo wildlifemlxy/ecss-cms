@@ -66,12 +66,21 @@ class CourseDetailsSection extends Component {
             {this.props.coursePrice}
           </span>
         </div>)}
+
         <div className="input-group1">
           <label htmlFor="courseDuration">Course Duration 课程时长</label>
           <span className="course-detail-text" id="courseDuration">
             {this.props.courseDuration}
           </span>
         </div>
+
+        {this.props.courseType === 'NSA' && (  
+        <div className="input-group1">
+          <label htmlFor="courseMode">Course Mode 课程模式</label>
+          <span className="course-detail-text" id="courseMode">
+            {this.props.courseMode}
+          </span>
+        </div>)}
   
         {this.props.courseType === 'NSA' && (  
           // Payment Options Section

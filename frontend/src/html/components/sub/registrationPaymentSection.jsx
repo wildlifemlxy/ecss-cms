@@ -1238,6 +1238,11 @@ class RegistrationPaymentSection extends Component {
         },
       },
       {
+        headerName: "Course Mode",
+        field: "courseMode",
+        width: 150,
+      },
+      {
         headerName: "Payment Method",
         field: "paymentMethod",
         cellRenderer: (params) => {
@@ -1445,6 +1450,7 @@ class RegistrationPaymentSection extends Component {
         course: item.course.courseEngName,  // Replace with the actual field for payment status
         courseChi: item.course.courseChiName,  // Replace with the actual field for payment status
         location: item.course.courseLocation,  // Replace with the actual field for payment status
+        courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course.courseMode,
         sendDetails: item.sendingWhatsappMessage,
         paymentMethod: item.course.payment,  // Replace with the actual field for payment method
         confirmed: item.official.confirmed,  // Replace with the actual field for receipt/invoice number
@@ -1923,6 +1929,7 @@ class RegistrationPaymentSection extends Component {
         course: item.course.courseEngName,
         courseChi: item.course.courseChiName,
         location: item.course.courseLocation,
+        courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course.courseMode,
         paymentMethod: item.course.payment,
         confirmed: item.official.confirmed,
         paymentStatus: item.status,
@@ -2009,6 +2016,7 @@ class RegistrationPaymentSection extends Component {
           contactNo: item.participant.contactNumber,  // Contact number
           course: item.course.courseEngName,  // Course English name
           courseChi: item.course.courseChiName,  // Course Chinese name
+          courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course.courseMode,
           location: item.course.courseLocation,  // Course location
           paymentMethod: item.course.payment,  // Payment method
           confirmed: item.official.confirmed,  // Confirmation status
@@ -2112,6 +2120,7 @@ class RegistrationPaymentSection extends Component {
         course: item.course.courseEngName,  // Course English name
         courseChi: item.course.courseChiName,  // Course Chinese name
         location: item.course.courseLocation,  // Course location
+        courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course.courseMode,
         paymentMethod: item.course.payment,  // Payment method
         confirmed: item.official.confirmed,  // Confirmation status
         paymentStatus: item.status,  // Payment status
