@@ -886,7 +886,7 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`W${rowIndex}`).value = detail.courseInfo.coursePrice;
             sourceSheet.getCell(`X${rowIndex}`).value = detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment;
             sourceSheet.getCell(`AD${rowIndex}`).value = detail.officialInfo.receiptNo;
-            sourceSheet.getCell(`V${rowIndex}`).value = detail.courseInfo.courseLocation === "Pasir Ris West Wellness Centre" ? "S510112" : "";
+            sourceSheet.getCell(`V${rowIndex}`).value = detail.courseInfo.courseLocation === "Pasir Ris West Wellness Centre" ? "510605" : "";
     
             // Copy styles from the original row
             originalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
