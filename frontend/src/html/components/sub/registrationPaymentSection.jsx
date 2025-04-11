@@ -965,6 +965,7 @@ class RegistrationPaymentSection extends Component {
     exportAttendance = async () => {
       var { selectedCourseName, selectedLocation } = this.props;
       var {selectedRows} = this.state;
+      console.log("Export To Attendance:", selectedRows);
     
       try {
         // Fetch the Excel file from public folder (adjust the path if necessary)
@@ -998,7 +999,9 @@ class RegistrationPaymentSection extends Component {
             break;
           }
         }
-    
+      
+        console.log("Course Commerce Date:", courseCommencementDate);
+
         const cellA2 = sourceSheet.getCell('A2');
         cellA2.value = `Course Commencement Date: ${courseCommencementDate}`;
         cellA2.font = { name: 'Calibri', size: 18, bold: true };
@@ -1020,8 +1023,9 @@ class RegistrationPaymentSection extends Component {
         let sortedParticipants = selectedRows
                                   .filter(item => item.course === selectedCourseName && item.courseInfo.courseLocation === selectedLocation)
                                   .sort((a, b) => a.participantInfo.name.trim().toLowerCase().localeCompare(b.participantInfo.name.trim().toLowerCase()));
+        console.log("Sorted Participants:", sortedParticipants);
 
-        // Loop for S/N and Name starting from row 6 in Columns A and B
+       // Loop for S/N and Name starting from row 6 in Columns A and B
         let rowIndex = 6; // Start from row 6 for S/N and Name
         let participantIndex = 1;  // Initialize participant index for S/N
         for (let i = 0; i < sortedParticipants.length; i++) {
@@ -2202,6 +2206,7 @@ class RegistrationPaymentSection extends Component {
               onCellValueChanged={this.onCellValueChanged}
               onCellClicked={this.handleValueClick}
               onSelectionChanged={this.onSelectionChanged}
+              suppressRowClickSelection={true} // prevents cell click from selecting
               getRowStyle={(params) => {
                 const rowIndex = params.node.rowIndex;
                 const courseType = params.data.courseInfo.courseType;
