@@ -32,6 +32,7 @@ class RegistrationPaymentSection extends Component {
         message: '',
         status: '',
         isAlertShown: false,
+        selectedRows: []
       };
       this.tableRef = React.createRef();
     }
@@ -792,8 +793,12 @@ class RegistrationPaymentSection extends Component {
       
       return `${day}/${month}/${year}`;
     }
-    exportToLOP = async (paginatedDetails) => {
+
+    exportToLOP = async () => 
+    {
       try {
+        console.log("Selected Row:", this.state.selectedRows);
+        var {selectedRows} = this.state;      
         // Fetch the Excel file from public folder (adjust the path if necessary)
         const filePath = '/external/OSG NSA List of participants (20250401).xlsx';  // Path relative to the public folder
         const response = await fetch(filePath);
@@ -804,7 +809,7 @@ class RegistrationPaymentSection extends Component {
     
         const data = await response.arrayBuffer(); // Convert file to ArrayBuffer
         const workbook = new ExcelJS.Workbook();
-       await workbook.xlsx.load(data);
+        await workbook.xlsx.load(data);
     
         const sourceSheet = workbook.getWorksheet('LOP');
         if (!sourceSheet) {
@@ -815,15 +820,15 @@ class RegistrationPaymentSection extends Component {
         const startRow = 9;
         var courseName = "";
     
-        console.log("Paginated Details :", paginatedDetails, paginatedDetails.length);
+        console.log("Paginated Details :", selectedRows, selectedRows.length);
 
-        paginatedDetails.sort((a, b) => {
+        selectedRows.sort((a, b) => {
           const nameA = a.participantInfo.name.trim().toLowerCase();
           const nameB = b.participantInfo.name.trim().toLowerCase();
           return nameA.localeCompare(nameB); // Compare names alphabetically
         });
     
-        paginatedDetails.forEach((detail, index) => {
+        selectedRows.forEach((detail, index) => {
           console.log("Paginated Detail1",  detail);
          // console.log("Date Of Birth:", detail.participantInfo.dateOfBirth);
           if (detail.courseInfo.courseType === "NSA") {
@@ -886,7 +891,7 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`W${rowIndex}`).value = detail.courseInfo.coursePrice;
             sourceSheet.getCell(`X${rowIndex}`).value = detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment;
             sourceSheet.getCell(`AD${rowIndex}`).value = detail.officialInfo.receiptNo;
-            sourceSheet.getCell(`V${rowIndex}`).value = detail.courseInfo.courseLocation === "Pasir Ris West Wellness Centre" ? "510605" : "";
+            sourceSheet.getCell(`V${rowIndex}`).value = detail.courseInfo.courseLocation === "Pasir Ris West Wellness Centre" ? "510605," : "";
     
             // Copy styles from the original row
             originalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -896,7 +901,7 @@ class RegistrationPaymentSection extends Component {
           }
         });
 
-        let total = paginatedDetails.reduce((sum, item) => {
+        let total = selectedRows.reduce((sum, item) => {
           let priceStr = item?.courseInfo?.coursePrice || "$0";
           let numeric = parseFloat(priceStr.replace('$', ''));
         
@@ -957,8 +962,9 @@ class RegistrationPaymentSection extends Component {
         return "";
       }
 
-    exportAttendance = async (paginatedDetails) => {
+    exportAttendance = async () => {
       var { selectedCourseName, selectedLocation } = this.props;
+      var {selectedRows} = this.state;
     
       try {
         // Fetch the Excel file from public folder (adjust the path if necessary)
@@ -985,8 +991,8 @@ class RegistrationPaymentSection extends Component {
     
         // Set Course Commencement Date in A2
         let courseCommencementDate = '';
-        for (let i = 0; i < paginatedDetails.length; i++) {
-          const item = paginatedDetails[i];
+        for (let i = 0; i < selectedRows.length; i++) {
+          const item = selectedRows[i];
           if (item.course === selectedCourseName) {
             courseCommencementDate = item.courseInfo.courseDuration.split("-")[0].trim();
             break;
@@ -1011,7 +1017,7 @@ class RegistrationPaymentSection extends Component {
         cellA3.font = { name: 'Calibri', size: 18, bold: true };
 
         // Sort participants alphabetically by name (trim spaces)
-        let sortedParticipants = paginatedDetails
+        let sortedParticipants = selectedRows
                                   .filter(item => item.course === selectedCourseName && item.courseInfo.courseLocation === selectedLocation)
                                   .sort((a, b) => a.participantInfo.name.trim().toLowerCase().localeCompare(b.participantInfo.name.trim().toLowerCase()));
 
@@ -1037,7 +1043,7 @@ class RegistrationPaymentSection extends Component {
         }
     
         // Set Weekly labels in row 4 (D4 onwards)
-        const courseDuration = paginatedDetails[0]?.courseInfo?.courseDuration || '';
+        const courseDuration = selectedRows[0]?.courseInfo?.courseDuration || '';
         const [startDate, endDate] = courseDuration.split(" - ");  // Split course duration into start and end dates
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -1360,7 +1366,8 @@ class RegistrationPaymentSection extends Component {
       columnDefs.push({
         headerName: "",
         field: "delete",
-        width: 300,
+        width: 100,
+        pinned: 'right', // Pin the checkbox column
         cellRenderer: (params) => (
           <button
             onClick={() => this.handleDelete(params.data.id)}
@@ -1385,7 +1392,8 @@ class RegistrationPaymentSection extends Component {
       columnDefs.push({
         headerName: "",
         field: "portOver",
-        width: 300,
+        width: 150,
+        pinned: 'right', // Pin the checkbox column
         cellRenderer: (params) => (
           <button
             onClick={() => this.handlePortOver(params.data.id, params.data.participantInfo, params.data.courseInfo, params.data.paymentStatus)}
@@ -1404,7 +1412,15 @@ class RegistrationPaymentSection extends Component {
         ),
       });
     }
-  
+    columnDefs.push({
+      headerName: '', // blank header (no text)
+      field: 'checkbox',
+      checkboxSelection: true,
+      width: 50,
+      pinned: 'right', // Pin the checkbox column
+    });
+    
+    
     return columnDefs;
   };
   
@@ -2141,7 +2157,11 @@ class RegistrationPaymentSection extends Component {
     }
   }
 
-  
+  onSelectionChanged = (event) => {
+    const selectedRows = event.api.getSelectedRows();
+    this.setState({ selectedRows });
+  };
+
   render()
   {
     var {rowData, registerationDetails} = this.state;
@@ -2157,49 +2177,51 @@ class RegistrationPaymentSection extends Component {
               <button className="save-btn" onClick={() => this.saveData(rowData)}>
                 Save Data
               </button>
-              <button className="export-btn" onClick={() => this.exportToLOP(rowData)}>
+              <button className="export-btn" onClick={() => this.exportToLOP()}>
                 Export To LOP
               </button>
-              <button className="attendance-btn" onClick={() => this.exportAttendance(rowData)}>
+              <button className="attendance-btn" onClick={() => this.exportAttendance()}>
                 Course Attendance
               </button>
             </div>
             <div className="grid-container">
             <AgGridReact
-                columnDefs={this.state.columnDefs}
-                rowData={rowData}
-                domLayout="normal"
-                paginationPageSize={rowData.length}
-                sortable={true}
-                statusBar={false}
-                pagination={true}
-                defaultColDef={{
-                  resizable: true, // Make columns resizable
-                }}
-                onGridReady={this.onGridReady}
-                onCellValueChanged={this.onCellValueChanged} // Handle cell value change
-                onCellClicked={this.handleValueClick} // Handle cell click event
-                getRowStyle={(params) => {
-                  const rowIndex = params.node.rowIndex;
-                  const courseType = params.data.courseInfo.courseType;
-                
-                  let rowStyle = {};
-                
-                  // First apply courseType style
-                  if (courseType === 'ILP') {
-                    rowStyle.backgroundColor = '#A8D5BA';
-                  } else if (courseType === 'OtherType') {
-                    rowStyle.backgroundColor = '#FFB6C1';
-                  }
-                
-                  // Then override with anomaly style if needed
-                  if (anomalyStyles[rowIndex]) {
-                    rowStyle.backgroundColor = '#FFDDC1'; // anomaly wins
-                  }
-                
-                  return rowStyle;
-                }}
-              />
+              columnDefs={this.state.columnDefs}
+              rowData={rowData}
+              domLayout="normal"
+              paginationPageSize={rowData.length}
+              sortable={true}
+              statusBar={false}
+              pagination={true}
+              rowSelection="multiple" // <-- Enables multi-selection
+              defaultColDef={{
+                resizable: true,
+                sortable: true, // Just in case you want all columns to be sortable by default
+              }}
+              onGridReady={this.onGridReady}
+              onCellValueChanged={this.onCellValueChanged}
+              onCellClicked={this.handleValueClick}
+              onSelectionChanged={this.onSelectionChanged}
+              getRowStyle={(params) => {
+                const rowIndex = params.node.rowIndex;
+                const courseType = params.data.courseInfo.courseType;
+
+                let rowStyle = {};
+
+                if (courseType === 'ILP') {
+                  rowStyle.backgroundColor = '#A8D5BA';
+                } else if (courseType === 'OtherType') {
+                  rowStyle.backgroundColor = '#FFB6C1';
+                }
+
+                if (anomalyStyles[rowIndex]) {
+                  rowStyle.backgroundColor = '#FFDDC1'; // anomaly wins
+                }
+
+                return rowStyle;
+              }}
+            />
+
 
 
             </div>

@@ -6,7 +6,8 @@
     padding: 1rem; /* Padding using rem units */
     z-index: 0;
     margin-top: -9rem;
-  }
+}
+
 
 
 /* Center the heading container */
@@ -137,6 +138,10 @@
 
 .ag-header-cell-resize {
   display: none !important; /* Hide the column resize handle */
+}
+
+.ag-pinned-left .ag-cell {
+  border: none !important; /* Remove any borders for pinned columns */
 }
 
 .ag-row
