@@ -865,7 +865,7 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
     
             let courseName = detail.courseInfo.courseEngName;
-            sourceSheet.getCell(`O${rowIndex}`).value = this.courseReferenceCode(courseName.trim());
+            sourceSheet.getCell(`O${rowIndex}`).value = this.courseReferenceCode(courseName);
             let languages = courseName.split("–").pop().trim();
             if (!((languages === "English") || (languages === "Mandarin"))) {
               // If "English" or "Mandarin" is not in the course name, don't split
@@ -932,24 +932,26 @@ class RegistrationPaymentSection extends Component {
     courseReferenceCode(course) {
         //The Rest Note of Life – Mandarin 14-Feb
         course = course.trim();
-        console.log("Course Name: ", course);
+        console.log("Course Name111: ", course);
     
         //Therapeutic Basic Line Work
         const courseMap = {
-            "TCM – Don’t be a friend of Chronic Diseases": "TGS-2021008576",
-            "Nagomi Pastel Art Basic": "TGS-2022011919",
-            "Therapeutic Watercolour Painting for Beginners": "TGS-2022015737",
-            "Chinese Calligraphy Intermediate": "TGS-2022011921",
-            "Chinese Calligraphy Basic": "TGS-2022011920",
-            "Nagomi Pastel Art Appreciation": "TGS-2022011918",
-            "Community Ukulele – Mandarin": "TGS-2021008564",
-            "Community Singing – Mandarin": "TGS-2021008563",
-            "Self-Care TCM Wellness – Mandarin": "TGS-2021008561",
-            "Hanyu Pinyin for Beginners": "TGS-2021008571",
-            "The Rest Note of Life – Mandarin": "TGS-2022015736",
-            "TCM Diet & Therapy": "TGS-2021008570",
-            "Therapeutic Basic Line Work": "TGS-2024047927",
-            "Healthy Minds, Healthy Lives – Mandarin": "TGS-2023019018"
+            "TCM – Don’t be a friend of Chronic Diseases": "ECSS-CBO-M-016C",
+            "Nagomi Pastel Art Basic": "ECSS-CBO-M-019C",
+            "Therapeutic Watercolour Painting for Beginners": "ECSS-CBO-M-040C",
+            "Chinese Calligraphy Intermediate": "ECSS-CBO-M-021C",
+            "Chinese Calligraphy Basic": "ECSS-CBO-M-020C",
+            "Nagomi Pastel Art Appreciation": "ECSS-CBO-M-018C",
+            "Community Ukulele – Mandarin": "ECSS-CBO-M-004C",
+            "Community Singing – Mandarin": "ECSS-CBO-M-003C",
+            "Self-Care TCM Wellness – Mandarin": "ECSS-CBO-M-001C",
+            "Hanyu Pinyin for Beginners": "ECSS-CBO-M-011C",
+            "The Rest Note of Life – Mandarin": "ECSS-CBO-M-023C",
+            "TCM Diet & Therapy": "ECSS-CBO-M-010C",
+            "Therapeutic Basic Line Work": "ECSS-CBO-M-030E",
+            "Healthy Minds, Healthy Lives – Mandarin": "ECSS-CBO-M-028C",
+            "Smartphone Photography": "ECSS-CBO-M-038C",
+            "Art of Positive Communication builds happy homes": "ECSS-CBO-M-031C"
             //Healthy Minds, Healthy Lives – Mandarin
         };
 
