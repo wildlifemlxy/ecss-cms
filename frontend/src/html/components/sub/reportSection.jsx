@@ -14,7 +14,7 @@ class ReportSection extends Component {
       columnDefs: [  // Define the column headers and configurations
         { headerName: "S/N", field: "index", width: 100, sortable: true },
         { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
-        { headerName: "Payment Date", field: "official.date", width: 150, sortable: true },
+        { headerName: "Payment Date/ Last Updated", field: "official.date", width: 150, sortable: true },
         { headerName: "Receipt Number", field: "official.receiptNo", width: 250, sortable: true },
         { headerName: "Received From", field: "participant.name", width: 200, sortable: true },
         { headerName: "Payment Method", field: "course.payment", width: 150, sortable: true },
@@ -351,7 +351,7 @@ class ReportSection extends Component {
     const headers = [
       'S/N',
       'Registration Date',
-      'Payment Date',
+      'Payment Date/ Last Updated',
       'Receipt Number',
       'Received From',
       'Payment Method',
@@ -434,7 +434,7 @@ class ReportSection extends Component {
     const { updatedInvoiceData, dateRange } = this.state;
   
     const headers = [
-      'S/N', 'Registration Date', 'Payment Date', 'Receipt Number', 
+      'S/N', 'Registration Date', 'Payment Date/ Last Updated', 'Receipt Number', 
       'Received From', 'Payment Method', 'Price', 'Course Name', 
       'Course Location', 'Status', 'Misc', 'Remarks'
     ];
