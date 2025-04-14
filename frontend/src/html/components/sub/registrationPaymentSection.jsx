@@ -938,7 +938,7 @@ class RegistrationPaymentSection extends Component {
         const courseMap = {
             "TCM – Don’t be a friend of Chronic Diseases": "ECSS-CBO-M-016C",
             "Nagomi Pastel Art Basic": "ECSS-CBO-M-019C",
-            "Therapeutic Watercolour Painting for Beginners": "ECSS-CBO-M-040C",
+            "Therapeutic Watercolour Painting for Beginners": "ECSS-CBO-M-024E",
             "Chinese Calligraphy Intermediate": "ECSS-CBO-M-021C",
             "Chinese Calligraphy Basic": "ECSS-CBO-M-020C",
             "Nagomi Pastel Art Appreciation": "ECSS-CBO-M-018C",
