@@ -309,7 +309,9 @@ class invoiceGenerator {
             "The Rest Note of Life – Mandarin": "TGS-2022015736",
             "TCM Diet & Therapy": "TGS-2021008570",
             "Therapeutic Basic Line Work": "TGS-2024047927",
-            "Healthy Minds, Healthy Lives – Mandarin": "TGS-2023019018"
+            "Healthy Minds, Healthy Lives – Mandarin": "TGS-2023019018",
+            "Smartphone Photography": "TGS-2025054493",
+            "Art of Positive Communication builds happy homes": "TGS-2025054487"
             //Healthy Minds, Healthy Lives – Mandarin
         };
     
