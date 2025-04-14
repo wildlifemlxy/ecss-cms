@@ -865,7 +865,7 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
     
             let courseName = detail.courseInfo.courseEngName;
-            sourceSheet.getCell(`O${rowIndex}`).value = this.courseReferenceCode(courseName);
+            sourceSheet.getCell(`O${rowIndex}`).value = this.ecssCourseCode(courseName);
             let languages = courseName.split("–").pop().trim();
             if (!((languages === "English") || (languages === "Mandarin"))) {
               // If "English" or "Mandarin" is not in the course name, don't split
@@ -929,7 +929,7 @@ class RegistrationPaymentSection extends Component {
     };  
 
 
-    courseReferenceCode(course) {
+    ecssCourseCode(course) {
         //The Rest Note of Life – Mandarin 14-Feb
         course = course.trim();
         console.log("Course Name111: ", course);

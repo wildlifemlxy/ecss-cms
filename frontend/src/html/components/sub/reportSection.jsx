@@ -251,14 +251,16 @@ class ReportSection extends Component {
       const filteredData = this.state.invoiceData.filter((item) => {
         const itemDate = item.registrationDate; // assuming item.registrationDate is the date field in your data
         const date = parseDate(itemDate); // Parse the item date
+        const paymentDate = item.official?.date;
+        const payment = parseDate(paymentDate);
         const courseLocation = item.course.courseLocation; // Get the courseLocation from the item
         const targetLocation = "Tampines 253 Centre"; // This is your target location
   
         // If item has a valid date
-        if (date) {
+        if (payment) {
           // If both fromDate and toDate are valid, filter based on date range and location
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
-            return date >= fromParsed && date <= toParsed && courseLocation === targetLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+            return payment >= fromParsed && payment <= toParsed && courseLocation === targetLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
           } else if (!fromParsed && !toParsed) {
             // If no date range, just filter by courseLocation
             return courseLocation === targetLocation && item.course.payment !== "SkillsFuture";

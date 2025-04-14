@@ -380,12 +380,14 @@ class DatabaseConnectivity {
                             "official.time": time
                         }
                     };
-                } else {
+                }
+                else {
                     update = {
                         $set: {
                             "status": status,
-                            "official.date": "",
-                            "official.time": "",
+                            "official.name": name,
+                            "official.date": date,
+                            "official.time": time,
                             "official.confirmed": false
                         }
                     };
