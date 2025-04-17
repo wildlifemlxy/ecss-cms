@@ -5,8 +5,11 @@ import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
+import { ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule } from 'ag-grid-community'; 
 import JSZip from 'jszip';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 class RegistrationPaymentSection extends Component {
     constructor(props) {
@@ -2171,7 +2174,6 @@ class RegistrationPaymentSection extends Component {
   render()
   {
     var {rowData, registerationDetails} = this.state;
-    ModuleRegistry.registerModules([AllCommunityModule]);
     const anomalyStyles = this.getAnomalyRowStyles(rowData);
 
     return (

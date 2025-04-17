@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator('https://ecss.org.sg/product/%e8%87%aa%e6%9d%80%e9%a2%84%e9%98%b2%e6%84%8f%e8%af%86suicide-prevention-awarenessct-hub/');
+const qrCodeGenerator = new QRCodeGenerator('https://ecss.org.sg/product/%e7%a7%af%e6%9e%81%e6%b2%9f%e9%80%9a%e7%9a%84%e8%89%ba%e6%9c%af%e5%bb%ba%e7%ab%8b%e5%b9%b8%e7%a6%8f%e5%ae%b6%e5%ba%adart-of-positive-communication-builds-happy-homespasir-ris-west-wellness-centre/');
 qrCodeGenerator.generate();

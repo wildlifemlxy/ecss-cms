@@ -1103,6 +1103,8 @@
                         loadingPopup1 = {this.loadingPopup1}
                         generateInvoicePopup = {this.generateInvoicePopup}
                         reportType = {reportType}
+                        siteIC = {siteIC}
+                        role = {role}
                         />
                     </div>
                   </>} 
