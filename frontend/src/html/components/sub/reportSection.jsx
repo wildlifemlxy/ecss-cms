@@ -212,97 +212,86 @@ class ReportSection extends Component {
       console.error('Error fetching invoice details:', error);
     }
   };
-
+  
   fetchSiteICDetails = async (fromDate, toDate) => {
     try {
       this.props.loadingPopup1();
   
+      // Function to parse the date string in dd/mm/yyyy format
       const parseDate = (dateStr) => {
         if (!dateStr) return null;
         const [day, month, year] = dateStr.split('/');
-        return day && month && year ? new Date(`${year}-${month}-${day}`) : null;
+        if (day && month && year) {
+          return new Date(`${year}-${month}-${day}`);
+        }
+        return null; // If invalid date format
       };
   
+      // Validate if a date is valid
       const isValidDate = (date) => date instanceof Date && !isNaN(date);
   
+      // Parse fromDate and toDate
       const fromParsed = fromDate ? parseDate(fromDate) : null;
       const toParsed = toDate ? parseDate(toDate) : null;
   
+      // Log invalid dates, but continue with filtering
       if (fromDate && !isValidDate(fromParsed)) {
         console.error("Invalid fromDate:", fromDate);
       }
+  
       if (toDate && !isValidDate(toParsed)) {
         console.error("Invalid toDate:", toDate);
       }
   
-      let customIndex = 1;
+      // Filter and map the data to ensure the index always starts from 1 after each filter
+      let customIndex = 1; // Always start the index from 1
       console.log("Original Invoice Data:", this.state.invoiceData);
   
-      const { role, siteIC } = this.props;
-      const isPrivilegedRole = ["Admin", "Sub Admin", "Ops in-charge"].includes(role);
-      const isNSAInCharge = role === "NSA in-charge";
+      // Filter the data based on date range and location
+      const filteredData = this.state.invoiceData.filter((item) => {
+        const itemDate = item.registrationDate; // assuming item.registrationDate is the date field in your data
+        const date = parseDate(itemDate); // Parse the item date
+        const paymentDate = item.official?.date;
+        const payment = parseDate(paymentDate);
+        const courseLocation = item.course.courseLocation; // Get the courseLocation from the item
+        const targetLocation = "Tampines 253 Centre"; // This is your target location
   
-      const filteredData = this.state.invoiceData
-        .filter((item) => {
-          const paymentDate = item.official?.date;
-          const payment = parseDate(paymentDate);
-          const courseLocation = item.course?.courseLocation;
-  
-          if (!payment || !item.course) return false;
-  
-          const notSkillsFuture = item.course.payment !== "SkillsFuture";
-          const notPending = item.status !== "Pending";
-  
-          if (isPrivilegedRole) {
-            return isValidDate(fromParsed) && isValidDate(toParsed)
-              ? payment >= fromParsed && payment <= toParsed && notSkillsFuture && notPending
-              : false;
+        // If item has a valid date
+        if (payment) {
+          // If both fromDate and toDate are valid, filter based on date range and location
+          if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
+            return payment >= fromParsed && payment <= toParsed && courseLocation === targetLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+          } else if (!fromParsed && !toParsed) {
+            // If no date range, just filter by courseLocation
+            return courseLocation === targetLocation && item.course.payment !== "SkillsFuture";
           }
+        }
   
-          if (isNSAInCharge) {
-            return (
-              isValidDate(fromParsed) &&
-              isValidDate(toParsed) &&
-              payment >= fromParsed &&
-              payment <= toParsed &&
-              courseLocation === "CT Hub" &&
-              notSkillsFuture &&
-              notPending
-            );
-          }
-  
-          if (isValidDate(fromParsed) && isValidDate(toParsed)) {
-            return (
-              payment >= fromParsed &&
-              payment <= toParsed &&
-              courseLocation === siteIC &&
-              notSkillsFuture &&
-              notPending
-            );
-          }
-  
-          if (!fromParsed && !toParsed) {
-            return courseLocation === siteIC && notSkillsFuture;
-          }
-  
-          return false;
-        })
-        .map((item) => ({ ...item, index: customIndex++ }));
+        return false; // If no valid date is available, exclude this item
+      }).map((item) => {
+        const newItem = {
+          ...item,
+          index: customIndex, // Assign current customIndex
+        };
+        customIndex++; // Increment the index for the next item
+        return newItem;
+      });
   
       console.log("Filtered Report Data:", filteredData);
   
+      // Update the state with the filtered data
       this.setState({
-        rowData: filteredData,
-        updatedInvoiceData: filteredData,
+        rowData: filteredData, // Set the original data
+        updatedInvoiceData: filteredData, // Set the filtered data
         status: `Collection by ${this.props.userName}`,
       });
   
+      // Close the popup
       this.props.closePopup1();
     } catch (error) {
       console.error('Error fetching invoice details:', error);
     }
-  };
-  
+  };  
   
   // Function to extract unique month-year combinations in full month name format (mmmm yyyy)
   getMonthYearOptions = (data) => {
@@ -330,23 +319,16 @@ class ReportSection extends Component {
     const { invoiceData } = this.state;
     console.log("Selected Value:", selectedMonthYear);
     console.log("Invoice Data:", invoiceData);
-    
+  
     if (selectedMonthYear !== "") {
+      // Filter the data based on the selected month-year
       const filteredData = invoiceData.filter(item => {
-        const registrationDateString = item.official.date || ""; // Format: 'dd/mm/yyyy'
+        const registrationDateString = item.official.date || ""; // Assuming the format is 'dd/mm/yyyy'
         const [cday, cmonth, cyear] = registrationDateString.split('/');
         const monthName = new Date(`${cyear}-${cmonth}-${cday}`).toLocaleString('default', { month: 'long' });
         const monthYear = `${monthName} ${cyear}`;
-  
-        if (monthYear !== selectedMonthYear || item.official.receiptNo === "") {
-          return false;
-        }
-  
-        if (this.props.role === "NSA in-charge") {
-          return item.course.courseLocation === "CT Hub";
-        } else {
-          return true; // Don't check for courseLocation if role is not NSA in-charge
-        }
+        console.log("Filter:", monthYear, selectedMonthYear);
+        return monthYear === selectedMonthYear && item.official.receiptNo !== "";
       });
   
       // Reset the index for the filtered data starting from 1
@@ -362,7 +344,6 @@ class ReportSection extends Component {
       this.setState({ updatedInvoiceData: invoiceData, showTable: false });
     }
   };
-  
   
   generateMonthlyReport = () => {
     const { updatedInvoiceData, selectedMonthYear } = this.state;
@@ -591,8 +572,7 @@ class ReportSection extends Component {
   
   render() 
   {
-    var {showMonthYearDropdown, filteredMonthYearOptions} = this.state;
-    var {siteIC} = this.props;
+    var {showMonthYearDropdown, filteredMonthYearOptions,} = this.state;
     ModuleRegistry.registerModules([AllCommunityModule]);
     return (
       <>
