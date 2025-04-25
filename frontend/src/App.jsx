@@ -19,7 +19,7 @@ class App extends Component
   render() 
   {
     return (
-      <AuthProvider>
+      <AuthProvider>  
       <Router>
         <Switch>
           <Route exact path="/" component={LoginPage} />
