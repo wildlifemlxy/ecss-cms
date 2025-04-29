@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import axios from 'axios';
 import Plot from 'react-plotly.js';
-import '../../../css/sub/dashboardSection.css';  // Ensure the CSS file is imported
+import '../../../css/sub/dashboardSection.css';  // Ensure the CSS file is imported ok
 
 class DashboardSection extends Component {
     constructor(props) {
