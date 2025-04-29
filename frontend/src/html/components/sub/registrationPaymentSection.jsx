@@ -1368,7 +1368,7 @@ class RegistrationPaymentSection extends Component {
 
 
     // Add the "Delete" button column conditionally
-    {{/*if (!["Site in-charge", "Finance"].includes(role)) {
+    {/*if (!["Site in-charge", "Finance"].includes(role)) {
       columnDefs.push({
         headerName: "",
         field: "delete",
