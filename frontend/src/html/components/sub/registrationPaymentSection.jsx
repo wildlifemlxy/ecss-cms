@@ -1368,7 +1368,7 @@ class RegistrationPaymentSection extends Component {
 
 
     // Add the "Delete" button column conditionally
-    if (!["Site in-charge", "Finance"].includes(role)) {
+    {{/*if (!["Site in-charge", "Finance"].includes(role)) {
       columnDefs.push({
         headerName: "",
         field: "delete",
@@ -1389,9 +1389,9 @@ class RegistrationPaymentSection extends Component {
           >
             Delete
           </button>
-        ),
+        )
       });
-    }
+    }*/}
   
     // Add the "Port Over" button column conditionally
     if (!["Ops in-charge", "NSA in-charge", "Finance"].includes(role)) {
