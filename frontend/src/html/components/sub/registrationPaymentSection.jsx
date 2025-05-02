@@ -225,41 +225,70 @@ class RegistrationPaymentSection extends Component {
 
     anomalitiesAlert = (data) => {
       const anomalies = []; // Collect anomalies
-    
+            
       // Loop through your data to find anomalies and collect them
       for (let index = 0; index < data.length; index++) {
         const item = data[index];
         const name = item.participant.name;
         const courseName = item.course.courseEngName;
         const location = item.course.courseLocation;
-    
+              
         for (let i = 0; i < index; i++) {
           const prev = data[i];
-    
+                  
           if (
             prev.participant.name === name &&
             prev.course.courseEngName === courseName &&
             prev.course.courseLocation !== location
           ) {
-            anomalies.push(`Name: ${name}, Course: ${courseName}, Locations: ${prev.course.courseLocation} and ${location} (Person registered same course in different locations)`);
+            anomalies.push({
+              originalIndex: index+1,
+              name: name,
+              course: courseName,
+              locations: `${prev.course.courseLocation} (index: ${i+1}) and ${location} (index: ${index+1})`,
+              type: "Person registered same course in different locations"
+            });
           }
-          else if(prev.participant.name === name &&
+          else if(
+            prev.participant.name === name &&
             prev.course.courseEngName === courseName &&
             prev.course.courseLocation === location
-          )
-            {
-              anomalies.push(`Name: ${name}, Course: ${courseName}, Locations: ${prev.course.courseLocation} and ${location} (Person registered same course in same location)`);
-            }
+          ) {
+            anomalies.push({
+              originalIndex: index+1,
+              name: name,
+              course: courseName,
+              locations: `${prev.course.courseLocation} (index: ${i+1}) and ${location} (index: ${index+1})`,
+              type: "Person registered same course in same location"
+            });
+          }
         }
       }
-    
+            
       // Show alert only once with unique anomalies
       if (anomalies.length > 0) {
-        const uniqueAnomalies = [...new Set(anomalies)];
-        alert(`Anomalies detected:\n\n${uniqueAnomalies.join('\n')}`);
+        // Remove duplicates based on a unique identifier
+        const seen = new Set();
+        const uniqueAnomalies = anomalies.filter(item => {
+          const key = `${item.name}-${item.course}-${item.locations}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        
+        // Create a pre-formatted string with sequential S/N
+        let alertMessage = "Anomalies detected:\n\n";
+        uniqueAnomalies.forEach((anomaly, index) => {
+          alertMessage += `S/N: ${index+1}\n`;
+          alertMessage += `Name: ${anomaly.name}, `;
+          alertMessage += `Course: ${anomaly.course}\n`;
+          alertMessage += `Locations: ${anomaly.locations}\n`;
+          alertMessage += `Anomaly Type: ${anomaly.type}\n\n`;
+        });
+        
+        alert(alertMessage);
       }
     };
-    
     updateRowData(paginatedDetails) {
      // this.props.onResetSearch();
       // Update the state with the newly formatted rowData
@@ -745,120 +774,121 @@ class RegistrationPaymentSection extends Component {
         link.click(); // Trigger the download
     }*/
 
-        async saveData(paginatedDetails) {
-          console.log("Save Data:", paginatedDetails);
-          
-          // Prepare the data for Excel
-          const preparedData = []; 
-          
-          // Define the sub-headers
-          const headers = [
-              "S/N", 
-              "Participant Name", "Participant NRIC", "Participant Residential Status", 
-              "Participant Race", "Participant Gender", "Participant Contact Number",
-              "Participant Email", "Participant Postal Code", "Participant Education Level", 
-              "Participant Work Status", "Participant Date of Birth",
-              "Course Type", "Course English Name", "Course Chinese Name", "Course Location",
-              "Course Price", "Course Duration", "Payment", "Course Mode",
-              "Agreement", "Payment Status", 
-              "Staff Name", "Received Date", "Received Time", 
-              "Receipt/Invoice Number", "Remarks", "Confirmation Status", "Refunded Date", 
-              "Registration Date", "WhatsApp Message Sent"
+    async saveData(paginatedDetails) {
+      console.log("Save Data:", paginatedDetails);
+      
+      // Prepare the data for Excel
+      const preparedData = []; 
+      
+      // Define the sub-headers
+      const headers = [
+          "S/N", 
+          "Participant Name", "Participant NRIC", "Participant Residential Status", 
+          "Participant Race", "Participant Gender", "Participant Contact Number",
+          "Participant Email", "Participant Postal Code", "Participant Education Level", 
+          "Participant Work Status", "Participant Date of Birth",
+          "Course Type", "Course English Name", "Course Chinese Name", "Course Location",
+          "Course Price", "Course Duration", "Payment", "Course Mode",
+          "Agreement", "Payment Status", 
+          "Staff Name", "Received Date", "Received Time", 
+          "Receipt/Invoice Number", "Remarks", "Confirmation Status", "Refunded Date", 
+          "Registration Date", "WhatsApp Message Sent"
+      ];
+      
+      preparedData.push(headers);
+      
+      // Add the values - mapping from the actual JSON structure
+      paginatedDetails.forEach((detail, index) => {
+          const row = [
+              index + 1,
+              detail.participant?.name || "",
+              detail.participant?.nric || "",
+              detail.participant?.residentialStatus || "",
+              detail.participant?.race || "",
+              detail.participant?.gender || "",
+              detail.participant?.contactNumber || "",
+              detail.participant?.email || "",
+              detail.participant?.postalCode || "",
+              detail.participant?.educationLevel || "",
+              detail.participant?.workStatus || "",
+              detail.participant?.dateOfBirth || "",
+              detail.course?.courseType || "",
+              detail.course?.courseEngName || "",
+              detail.course?.courseChiName || "",
+              detail.course?.courseLocation || "",
+              detail.course?.coursePrice || "",
+              detail.course?.courseDuration || "",
+              detail.course?.payment || "",
+              detail.course?.courseMode || "",
+              detail.registrationDate || "",
+              detail.agreement || "",
+              detail.status || "",
+              detail.official?.confirmed ? "Yes" : "No",
+              detail.official?.name || "",
+              detail.official?.date || "",
+              detail.official?.time || "",
+              detail.official?.receiptNo || "",
+              detail.official?.remarks || "",
+              detail.official?.refundedDate || "",
+              detail.sendingWhatsappMessage ? "Yes" : "No"
           ];
-          
-          preparedData.push(headers);
-          
-          // Add the values - mapping from the actual JSON structure
-          paginatedDetails.forEach((detail, index) => {
-              const row = [
-                  index + 1,
-                  detail.participant?.name || "",
-                  detail.participant?.nric || "",
-                  detail.participant?.residentialStatus || "",
-                  detail.participant?.race || "",
-                  detail.participant?.gender || "",
-                  detail.participant?.contactNumber || "",
-                  detail.participant?.email || "",
-                  detail.participant?.postalCode || "",
-                  detail.participant?.educationLevel || "",
-                  detail.participant?.workStatus || "",
-                  detail.participant?.dateOfBirth || "",
-                  detail.course?.courseType || "",
-                  detail.course?.courseEngName || "",
-                  detail.course?.courseChiName || "",
-                  detail.course?.courseLocation || "",
-                  detail.course?.coursePrice || "",
-                  detail.course?.courseDuration || "",
-                  detail.course?.payment || "",
-                  detail.course?.courseMode || "",
-                  detail.registrationDate || "",
-                  detail.agreement || "",
-                  detail.status || "",
-                  detail.official?.confirmed ? "Yes" : "No",
-                  detail.official?.name || "",
-                  detail.official?.date || "",
-                  detail.official?.time || "",
-                  detail.official?.receiptNo || "",
-                  detail.official?.remarks || "",
-                  detail.official?.refundedDate || "",
-                  detail.sendingWhatsappMessage ? "Yes" : "No"
-              ];
-              preparedData.push(row);
-          });
-          
-          // Set column widths based on content
-          const colWidths = [];
-          for (let i = 0; i < headers.length; i++) {
-              let maxWidth = headers[i].length;
-              for (let j = 1; j < preparedData.length; j++) {
-                  const cellValue = preparedData[j][i];
-                  const cellWidth = cellValue ? String(cellValue).length : 0;
-                  maxWidth = Math.max(maxWidth, cellWidth);
-              }
-              // Add some padding and set the width
-              colWidths.push({ wch: maxWidth + 2 });
+          preparedData.push(row);
+      });
+      
+      // Set column widths based on content
+      const colWidths = [];
+      for (let i = 0; i < headers.length; i++) {
+          let maxWidth = headers[i].length;
+          for (let j = 1; j < preparedData.length; j++) {
+              const cellValue = preparedData[j][i];
+              const cellWidth = cellValue ? String(cellValue).length : 0;
+              maxWidth = Math.max(maxWidth, cellWidth);
           }
-          
-          // Convert the prepared data into a worksheet
-          const worksheet = XLSX.utils.aoa_to_sheet(preparedData);
-          
-          // Apply column widths
-          worksheet['!cols'] = colWidths;
-          
-          // Apply bold formatting to header row
-          const range = XLSX.utils.decode_range(worksheet['!ref']);
-          for (let col = range.s.c; col <= range.e.c; col++) {
-              const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-              if (!worksheet[cellAddress]) worksheet[cellAddress] = {};
-              worksheet[cellAddress].s = { font: { bold: true } };
-          }
-          
-          // Create a new workbook and add the worksheet
-          const workbook = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(workbook, worksheet, "Exported Data");
-          
-          // Generate filename with current date
-          const date = new Date();
-          const formattedDate = `${String(date.getDate()).padStart(2, '0')}${String(date.getMonth() + 1).padStart(2, '0')}${date.getFullYear()}`;
-          const fileName = `exported_data_${formattedDate}`;
-          
-          // Generate a binary string
-          const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-          
-          // Create a blob from the binary string
-          const blob = new Blob([excelBuffer], {
-              type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          });
-          
-          // Create a link element for downloading
-          const link = document.createElement('a');
-          link.href = window.URL.createObjectURL(blob);
-          link.download = `${fileName}.xlsx`; // Specify the file name with .xlsx extension
-          link.click(); // Trigger the download
-          
-          // Clean up
-          window.URL.revokeObjectURL(link.href);
-        }
+          // Add some padding and set the width
+          colWidths.push({ wch: maxWidth + 2 });
+      }
+      
+      // Convert the prepared data into a worksheet
+      const worksheet = XLSX.utils.aoa_to_sheet(preparedData);
+      
+      // Apply column widths
+      worksheet['!cols'] = colWidths;
+      
+      // Apply bold formatting to header row
+      const range = XLSX.utils.decode_range(worksheet['!ref']);
+      for (let col = range.s.c; col <= range.e.c; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+          if (!worksheet[cellAddress]) worksheet[cellAddress] = {};
+          worksheet[cellAddress].s = { font: { bold: true } };
+      }
+      
+      // Create a new workbook and add the worksheet
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Exported Data");
+      
+      // Generate filename with current date
+      const date = new Date();
+      const formattedDate = `${String(date.getDate()).padStart(2, '0')}${String(date.getMonth() + 1).padStart(2, '0')}${date.getFullYear()}`;
+      const fileName = `exported_data_${formattedDate}`;
+      
+      // Generate a binary string
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      
+      // Create a blob from the binary string
+      const blob = new Blob([excelBuffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      
+      // Create a link element for downloading
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `${fileName}.xlsx`; // Specify the file name with .xlsx extension
+      link.click(); // Trigger the download
+      
+      // Clean up
+      window.URL.revokeObjectURL(link.href);
+    }
+
     convertDateFormat1(dateString) {
       const months = {
         January: '01',

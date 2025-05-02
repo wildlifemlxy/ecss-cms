@@ -308,12 +308,31 @@ class DatabaseConnectivity {
                 // Use updateOne to update a single document
                 const filter = { _id: new ObjectId(id) };
     
+                // Declare update variable outside conditionals
+                let update;
+    
                 // Dynamically construct the update object with dot notation
-                const update = {
-                    $set: {
-                        [`participant.${field}`]: editedParticulars, // Use bracket notation for dynamic field
-                    },
-                };
+                if(field === "paymentDate") {
+                    update = {
+                        $set: {
+                           "official.date": editedParticulars,
+                        },
+                    };
+                }
+                else if(field === "refundedDate") {
+                    update = {
+                        $set: {
+                           "official.refundedDate": editedParticulars,
+                        },
+                    };
+                }
+                else {
+                    update = {
+                        $set: {
+                            [`participant.${field}`]: editedParticulars, // Use bracket notation for dynamic field
+                        },
+                    };
+                }
     
                 // Call updateOne
                 const result = await table.updateOne(filter, update);
@@ -322,9 +341,9 @@ class DatabaseConnectivity {
             }
         } catch (error) {
             console.error("Error updating database:", error);
+            throw error; // Re-throw the error to handle it in the calling function
         }
     }
-    
 
     async updateReceiptNumberData(dbname, id, receiptNumber) {
         console.log("Parameters:", dbname, id, receiptNumber);
