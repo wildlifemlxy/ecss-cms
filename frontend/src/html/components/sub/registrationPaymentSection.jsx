@@ -659,7 +659,7 @@ class RegistrationPaymentSection extends Component {
       };
       
       
-    async saveData(paginatedDetails) {
+    /*async saveData(paginatedDetails) {
         console.log("Save Data:", paginatedDetails);
     
         // Prepare the data for Excel
@@ -667,18 +667,23 @@ class RegistrationPaymentSection extends Component {
 
         // Define the sub-headers
         const headers = [
-            "Participant Name", "Participant NRIC", "Participant Residential Status", "Participant Race", "Participant Gender", "Participant Date of Birth",
-            "Participant Contact Number", "Participant Email", "Participant Postal Code", "Participant Education Level", "Participant Work Status",
-            "Course Type", "Course English Name", "Course Chinese Name", "Course Location",
-            "Course Price", "Course Duration", "Payment", "Agreement", "Payment Status", "Refunded Date",
-            "Staff Name", "Received Date", "Received Time", "Receipt/Inovice Number", "Remarks"
-        ];
+          "S/N", "Participant Name", "Participant NRIC", "Participant Residential Status", 
+          "Participant Race", "Participant Gender", "Participant Date of Birth",
+          "Participant Contact Number", "Participant Email", "Participant Postal Code", 
+          "Participant Education Level", "Participant Work Status",
+          "Course Type", "Course English Name", "Course Chinese Name", "Course Location",
+          "Course Mode", "Course Price", "Course Duration", "Payment", 
+          "Registration Date", "Agreement", "Payment Status", "Confirmation Status", 
+          "Refunded Date", "WhatsApp Message Sent",
+          "Staff Name", "Received Date", "Received Time", "Receipt/Invoice Number", "Remarks"
+      ];
     
         preparedData.push(headers);
     
         // Add the values
-        paginatedDetails.forEach(detail => {
+        paginatedDetails.forEach((index, detail) => {
             const row = [
+                index + 1,
                 detail.participantInfo.name,
                 detail.participantInfo.nric,
                 detail.participantInfo.residentialStatus,
@@ -694,12 +699,16 @@ class RegistrationPaymentSection extends Component {
                 detail.courseInfo.courseEngName,
                 detail.courseInfo.courseChiName,
                 detail.courseInfo.courseLocation,
+                detail.course.courseMode,
                 detail.courseInfo.coursePrice,
                 detail.courseInfo.courseDuration,
+                detail.registrationDate,
                 detail.courseInfo.payment,
                 detail.agreement,
                 detail.status,
+                detail.registrationDate,
                 detail.officialInfo?.refundedDate,
+                detail.sendingWhatsappMessage,
                 detail.officialInfo?.name,
                 detail.officialInfo?.date,
                 detail.officialInfo?.time,
@@ -734,8 +743,122 @@ class RegistrationPaymentSection extends Component {
         link.href = window.URL.createObjectURL(blob);
         link.download = `${fileName}.xlsx`; // Specify the file name with .xlsx extension
         link.click(); // Trigger the download
-    }
+    }*/
 
+        async saveData(paginatedDetails) {
+          console.log("Save Data:", paginatedDetails);
+          
+          // Prepare the data for Excel
+          const preparedData = []; 
+          
+          // Define the sub-headers
+          const headers = [
+              "S/N", 
+              "Participant Name", "Participant NRIC", "Participant Residential Status", 
+              "Participant Race", "Participant Gender", "Participant Contact Number",
+              "Participant Email", "Participant Postal Code", "Participant Education Level", 
+              "Participant Work Status", "Participant Date of Birth",
+              "Course Type", "Course English Name", "Course Chinese Name", "Course Location",
+              "Course Price", "Course Duration", "Payment", "Course Mode",
+              "Agreement", "Payment Status", 
+              "Staff Name", "Received Date", "Received Time", 
+              "Receipt/Invoice Number", "Remarks", "Confirmation Status", "Refunded Date", 
+              "Registration Date", "WhatsApp Message Sent"
+          ];
+          
+          preparedData.push(headers);
+          
+          // Add the values - mapping from the actual JSON structure
+          paginatedDetails.forEach((detail, index) => {
+              const row = [
+                  index + 1,
+                  detail.participant?.name || "",
+                  detail.participant?.nric || "",
+                  detail.participant?.residentialStatus || "",
+                  detail.participant?.race || "",
+                  detail.participant?.gender || "",
+                  detail.participant?.contactNumber || "",
+                  detail.participant?.email || "",
+                  detail.participant?.postalCode || "",
+                  detail.participant?.educationLevel || "",
+                  detail.participant?.workStatus || "",
+                  detail.participant?.dateOfBirth || "",
+                  detail.course?.courseType || "",
+                  detail.course?.courseEngName || "",
+                  detail.course?.courseChiName || "",
+                  detail.course?.courseLocation || "",
+                  detail.course?.coursePrice || "",
+                  detail.course?.courseDuration || "",
+                  detail.course?.payment || "",
+                  detail.course?.courseMode || "",
+                  detail.registrationDate || "",
+                  detail.agreement || "",
+                  detail.status || "",
+                  detail.official?.confirmed ? "Yes" : "No",
+                  detail.official?.name || "",
+                  detail.official?.date || "",
+                  detail.official?.time || "",
+                  detail.official?.receiptNo || "",
+                  detail.official?.remarks || "",
+                  detail.official?.refundedDate || "",
+                  detail.sendingWhatsappMessage ? "Yes" : "No"
+              ];
+              preparedData.push(row);
+          });
+          
+          // Set column widths based on content
+          const colWidths = [];
+          for (let i = 0; i < headers.length; i++) {
+              let maxWidth = headers[i].length;
+              for (let j = 1; j < preparedData.length; j++) {
+                  const cellValue = preparedData[j][i];
+                  const cellWidth = cellValue ? String(cellValue).length : 0;
+                  maxWidth = Math.max(maxWidth, cellWidth);
+              }
+              // Add some padding and set the width
+              colWidths.push({ wch: maxWidth + 2 });
+          }
+          
+          // Convert the prepared data into a worksheet
+          const worksheet = XLSX.utils.aoa_to_sheet(preparedData);
+          
+          // Apply column widths
+          worksheet['!cols'] = colWidths;
+          
+          // Apply bold formatting to header row
+          const range = XLSX.utils.decode_range(worksheet['!ref']);
+          for (let col = range.s.c; col <= range.e.c; col++) {
+              const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+              if (!worksheet[cellAddress]) worksheet[cellAddress] = {};
+              worksheet[cellAddress].s = { font: { bold: true } };
+          }
+          
+          // Create a new workbook and add the worksheet
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Exported Data");
+          
+          // Generate filename with current date
+          const date = new Date();
+          const formattedDate = `${String(date.getDate()).padStart(2, '0')}${String(date.getMonth() + 1).padStart(2, '0')}${date.getFullYear()}`;
+          const fileName = `exported_data_${formattedDate}`;
+          
+          // Generate a binary string
+          const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+          
+          // Create a blob from the binary string
+          const blob = new Blob([excelBuffer], {
+              type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          });
+          
+          // Create a link element for downloading
+          const link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.download = `${fileName}.xlsx`; // Specify the file name with .xlsx extension
+          link.click(); // Trigger the download
+          
+          // Clean up
+          window.URL.revokeObjectURL(link.href);
+        }
     convertDateFormat1(dateString) {
       const months = {
         January: '01',
@@ -1344,16 +1467,24 @@ class RegistrationPaymentSection extends Component {
         },
         editable: true,
         width: 350,
-      },      
-      {
-        headerName: "Refunded Date",
-        field: "refundedDate",
-        width: 250,
-      },
+      }, 
       {
         headerName: "Receipt/Invoice Number",
         field: "recinvNo",
         width: 300,
+      },     
+      {
+        headerName: "Payment Date",
+        field: "paymentDate",
+        width: 350,
+        editable: true
+      },
+
+      {
+        headerName: "Refunded Date",
+        field: "refundedDate",
+        width: 350,
+        editable: true
       },
       {
         headerName: "Remarks",
@@ -1472,7 +1603,7 @@ class RegistrationPaymentSection extends Component {
         course: item.course.courseEngName,  // Replace with the actual field for payment status
         courseChi: item.course.courseChiName,  // Replace with the actual field for payment status
         location: item.course.courseLocation,  // Replace with the actual field for payment status
-        courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course.courseMode,
+        courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course?.courseMode,
         sendDetails: item.sendingWhatsappMessage,
         paymentMethod: item.course.payment,  // Replace with the actual field for payment method
         confirmed: item.official.confirmed,  // Replace with the actual field for receipt/invoice number
@@ -1485,7 +1616,8 @@ class RegistrationPaymentSection extends Component {
         status: item.status,
         registrationDate: item.registrationDate,
         refundedDate: item.official?.refundedDate || "",
-        remarks: item.official?.remarks || ""
+        remarks: item.official?.remarks || "",
+        paymentDate: item.official?.date || ""
       };
     });
     console.log("All Rows Data:", rowData);
@@ -1963,7 +2095,8 @@ class RegistrationPaymentSection extends Component {
         agreement: item.agreement,
         remarks: item.official?.remarks,
         registrationDate: item.registrationDate,
-        sendDetails: item.sendingWhatsappMessage
+        sendDetails: item.sendingWhatsappMessage,
+        paymentDate: item.official?.date || ""
       }));
 
       /*if (!this.state.isAlertShown) {
@@ -1976,7 +2109,7 @@ class RegistrationPaymentSection extends Component {
     // Update state and restore scroll position in one step
     this.setState({
       originalData: data,
-      registerationDetails: ndata,
+      registerationDetails: data,
       rowData: updatedRowData
     }, () => {
       // Restore scroll position directly
@@ -2051,7 +2184,8 @@ class RegistrationPaymentSection extends Component {
           agreement: item.agreement,
           registrationDate: item.registrationDate,
           remarks: item.official.remarks,
-          sendDetails: item.sendingWhatsappMessage
+          sendDetails: item.sendingWhatsappMessage,
+          paymentDate: item.official?.date || ""
         }));
   
         // Update the row data with the filtered results
@@ -2154,7 +2288,8 @@ class RegistrationPaymentSection extends Component {
         agreement: item.agreement,
         registrationDate: item.registrationDate,
         sendDetails: item.sendingWhatsappMessage,
-        remarks: item.official.remarks
+        remarks: item.official.remarks,
+        paymentDate: item.official?.date || ""
       }));
 
       // Update the row data with the filtered results
@@ -2181,7 +2316,7 @@ class RegistrationPaymentSection extends Component {
             <h1>{this.props.language === 'zh' ? '报名与支付' : 'Registration And Payment'}</h1>
             <div className="button-row">
               <button className="save-btn" onClick={() => this.saveData(rowData)}>
-                Save Data
+                Save/Archive Data
               </button>
               <button className="export-btn" onClick={() => this.exportToLOP()}>
                 Export To LOP

@@ -13,15 +13,16 @@ class ReportSection extends Component {
       updatedInvoiceData: [],  // Store invoice data
       columnDefs: [  // Define the column headers and configurations
         { headerName: "S/N", field: "index", width: 100, sortable: true },
-        { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
-        { headerName: "Payment Date/ Last Updated", field: "official.date", width: 150, sortable: true },
-        { headerName: "Receipt Number", field: "official.receiptNo", width: 250, sortable: true },
         { headerName: "Received From", field: "participant.name", width: 200, sortable: true },
+        { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true },
+        { headerName: "Course Location", field: "course.courseLocation", width: 200, sortable: true },
         { headerName: "Payment Method", field: "course.payment", width: 150, sortable: true },
         { headerName: "Price", field: "course.coursePrice", width: 150, sortable: true },
         { headerName: "Payment Status", field: "status", width: 200, sortable: true },
-        { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true },
-        { headerName: "Course Location", field: "course.courseLocation", width: 200, sortable: true },
+        { headerName: "Receipt Number", field: "official.receiptNo", width: 250, sortable: true },
+        { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
+        { headerName: "Payment Date/ Last Updated", field: "official.date", width: 150, sortable: true },
+        { headerName: "Refunded Date", field: "official.refundedDate", width: 150, sortable: true },
         { headerName: "Misc", field: "misc", width: 250, sortable: true },
         { headerName: "Remarks", field: "official.remarks", width: 250, sortable: true },
       ], 
@@ -347,32 +348,30 @@ class ReportSection extends Component {
   
   generateMonthlyReport = () => {
     const { updatedInvoiceData, selectedMonthYear } = this.state;
-  
+    
     const headers = [
-      'S/N',
-      'Registration Date',
-      'Payment Date/ Last Updated',
-      'Receipt Number',
-      'Received From',
-      'Payment Method',
-      'Price',
-      'Course Name',
-      'Course Location',
-      'Misc',
+      'S/N', 'Received From', 'Course Name', 
+      'Course Location', 'Payment Method', 'Price', 
+      'Payment Status', 'Receipt Number', 'Registration Date', 
+      'Payment Date', 'Refunded Date', 'Misc',
       'Remarks'
     ];
   
     // Prepare the rows from the filtered data
     const rows = updatedInvoiceData.map((item, index) => [
       index + 1, // Serial number (S/N)
-      item.registrationDate || '', // Registration Date
-      item.official.date || '', // Payment Date
-      item.official?.receiptNo || '', // Receipt Number
       item.participant?.name || '', // Received From
-      item.course?.payment || '', // Payment Method
-      item.course?.coursePrice || '', // Price
       item.course?.courseEngName || '', // Course Name
       item.course?.courseLocation || '', // Course Location
+      item.course?.payment || '', // Payment Method
+      item.course?.coursePrice || '', // Price
+      item.status || '', // Payment Status
+      item.official?.receiptNo || '', // Receipt Number
+      item.registrationDate || '', // Registration Date
+      item.official?.date || '', // Added optional chaining for consistency
+      item.official?.refundedDate || '',
+      '',
+      item.official?.remarks || ''
     ]);
   
     // Calculate total price for the filtered data
@@ -434,9 +433,11 @@ class ReportSection extends Component {
     const { updatedInvoiceData, dateRange } = this.state;
   
     const headers = [
-      'S/N', 'Registration Date', 'Payment Date/ Last Updated', 'Receipt Number', 
-      'Received From', 'Payment Method', 'Price', 'Course Name', 
-      'Course Location', 'Status', 'Misc', 'Remarks'
+      'S/N', 'Received From', 'Course Name', 
+      'Course Location', 'Payment Method', 'Price', 
+      'Payment Status', 'Receipt Number', 'Registration Date', 
+      'Payment Date', 'Refunded Date', 'Misc',
+      'Remarks'
     ];
   
     // Group by receiptNo (the first part before the "-")
@@ -464,22 +465,33 @@ class ReportSection extends Component {
       };
     });
   
+    /*
+      'S/N', 'Received From', 'Course Name', 
+      'Course Location', 'Payment Method', 'Price', 
+      'Payment Status', 'Receipt Number', 'Registration Date', 
+      'Payment Date', 'Refunded Date', 'Misc',
+      'Remarks'
+    */
+
     // Prepare the rows from the sorted and grouped data
     const rows = [];
     sortedGroupedData.forEach(group => {
       group.data.forEach((item, index) => {
         rows.push([
           rows.length + 1, // Serial number (S/N)
-          item.registrationDate || '', // Registration Date
-          item.official.date || '', // Payment Date
-          item.official?.receiptNo || '', // Receipt Number
           item.participant?.name || '', // Received From
-          item.course?.payment || '', // Payment Method
-          item.course?.coursePrice || '', // Price
           item.course?.courseEngName || '', // Course Name
           item.course?.courseLocation || '', // Course Location
-          item.status || '' // Status
-        ]);
+          item.course?.payment || '', // Payment Method
+          item.course?.coursePrice || '', // Price
+          item.status || '', // Payment Status
+          item.official?.receiptNo || '', // Receipt Number
+          item.registrationDate || '', // Registration Date
+          item.official.date || '', // Payment Date
+          item.official?.refundedDate || '',
+          '',
+          item.official?.remarks || ''
+        ])
       });
     });
   
