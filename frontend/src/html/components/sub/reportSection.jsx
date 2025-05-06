@@ -184,8 +184,10 @@ class ReportSection extends Component {
       const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/generate_monthly_report/`);
       const data = response.data.data;
 
+      const filteredData = data.filter(item => item.payment !== "SkillsFuture");
+
       // Map data to include an 'index' field for the AG-Grid
-      const mappedData = data.map((item, index) => ({
+      const mappedData = filteredData.map((item, index) => ({
         ...item,
         index: index + 1,
       }));
@@ -476,7 +478,7 @@ class ReportSection extends Component {
     XLSX.utils.book_append_sheet(wb, ws, 'Invoice Report');
     XLSX.writeFile(wb, `Invoice Report - ${selectedMonthYear}.xlsx`);
   };
-  
+
   generatePaymentReport = () => {
     const { updatedInvoiceData, dateRange } = this.state;
   
