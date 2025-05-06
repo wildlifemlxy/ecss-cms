@@ -255,7 +255,7 @@ class RegistrationController {
             if(result === "Connected to MongoDB Atlas!")
             {
                 var databaseName = "Courses-Management-System"; 
-                var connectedDatabase = await this.databaseConnectivity.updateConfirmtionOfficialUse(databaseName, id, name, date, time, status);  
+                var connectedDatabase = await this.databaseConnectivity.updateConfirmationOfficialUse(databaseName, id, name, date, time, status);  
                 return connectedDatabase.acknowledged;
                 //console.log("Updated Official Use:", connectedDatabase);
             }

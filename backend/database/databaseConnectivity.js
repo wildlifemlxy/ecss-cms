@@ -400,6 +400,15 @@ class DatabaseConnectivity {
                         }
                     };
                 }
+                else if(status === "Cancelled")
+                {
+                    update = {
+                        $set: {
+                            "status": status,
+                            "official.confirmed": false
+                        }
+                    };
+                }
                 else {
                     update = {
                         $set: {
@@ -422,7 +431,7 @@ class DatabaseConnectivity {
         }
     }
 
-    async updateConfirmtionOfficialUse(dbname, id, name, date, time, status) {
+    async updateConfirmationOfficialUse(dbname, id, name, date, time, status) {
         var db = this.client.db(dbname); // return the db object
         try {
             if (db) {
