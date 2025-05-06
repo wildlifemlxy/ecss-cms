@@ -261,7 +261,7 @@ class ReportSection extends Component {
         if (payment) {
           // If both fromDate and toDate are valid, filter based on date range and location
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
-            if(this.props.siteIC === null || this.props.siteIC === undefined || this.props.siteIC === "")
+            if(this.props.siteIC === null || this.props.siteIC === undefined || this.props.siteIC == "")
             {
               return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
             }
@@ -364,8 +364,49 @@ class ReportSection extends Component {
       'Remarks'
     ];
   
-    // Prepare the rows from the filtered data
-    const rows = updatedInvoiceData.map((item, index) => [
+    // First filter out SkillsFuture payments
+    const filteredData = updatedInvoiceData.filter(item => 
+      item.course?.payment !== "SkillsFuture"
+    );
+    
+    // Group by receipt number prefix
+    const groupedByPrefix = {};
+    
+    filteredData.forEach(item => {
+      const receiptNo = item.official?.receiptNo || '';
+      const prefix = receiptNo.split('-')[0]?.trim() || 'Unknown';
+      
+      if (!groupedByPrefix[prefix]) {
+        groupedByPrefix[prefix] = [];
+      }
+      groupedByPrefix[prefix].push(item);
+    });
+    
+    // For each prefix group, sort by numeric part
+    Object.keys(groupedByPrefix).forEach(prefix => {
+      groupedByPrefix[prefix].sort((a, b) => {
+        const receiptA = a.official?.receiptNo || '';
+        const receiptB = b.official?.receiptNo || '';
+        
+        // Extract the numeric part after the dash
+        const numA = receiptA.split('-')[1]?.trim();
+        const numB = receiptB.split('-')[1]?.trim();
+        
+        if (!numA) return 1;  // Items without numeric part go last
+        if (!numB) return -1;
+        
+        return parseInt(numA, 10) - parseInt(numB, 10);
+      });
+    });
+    
+    // Flatten the grouped and sorted data back into a single array
+    const sortedData = [];
+    Object.keys(groupedByPrefix).sort().forEach(prefix => {
+      sortedData.push(...groupedByPrefix[prefix]);
+    });
+  
+    // Prepare the rows from the sorted data
+    var rows = sortedData.map((item, index) => [
       index + 1, // Serial number (S/N)
       item.participant?.name || '', // Received From
       item.course?.courseEngName || '', // Course Name
@@ -382,10 +423,10 @@ class ReportSection extends Component {
     ]);
   
     // Calculate total price for the filtered data
-    const totalPrice = updatedInvoiceData.reduce((total, item) => {
+    const totalPrice = sortedData.reduce((total, item) => {
       let price = 0;
-      if (item.official.date) {
-        const priceString = item.course?.coursePrice.replace('$', '').trim();
+      if (item.official?.date) {
+        const priceString = (item.course?.coursePrice || '').replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
         }
@@ -395,7 +436,7 @@ class ReportSection extends Component {
   
     const formattedTotalPrice = `$  ${totalPrice.toFixed(2)}`;
   
-    // Prepare empty and collection rows
+    // The rest of your code remains unchanged
     const emptyRow = new Array(headers.length).fill('');
     const collectionRow = new Array(headers.length).fill('');
     collectionRow[2] = 'dd-mm-yy'; 
@@ -434,8 +475,8 @@ class ReportSection extends Component {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Invoice Report');
     XLSX.writeFile(wb, `Invoice Report - ${selectedMonthYear}.xlsx`);
-  };  
-
+  };
+  
   generatePaymentReport = () => {
     const { updatedInvoiceData, dateRange } = this.state;
   
