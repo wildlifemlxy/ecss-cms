@@ -786,13 +786,11 @@ class RegistrationPaymentSection extends Component {
           "Participant Name", "Participant NRIC", "Participant Residential Status", 
           "Participant Race", "Participant Gender", "Participant Contact Number",
           "Participant Email", "Participant Postal Code", "Participant Education Level", 
-          "Participant Work Status", "Participant Date of Birth",
-          "Course Type", "Course English Name", "Course Chinese Name", "Course Location",
-          "Course Price", "Course Duration", "Payment", "Course Mode",
-          "Agreement", "Payment Status", 
-          "Staff Name", "Received Date", "Received Time", 
-          "Receipt/Invoice Number", "Remarks", "Confirmation Status", "Refunded Date", 
-          "Registration Date", "WhatsApp Message Sent"
+          "Participant Work Status", "Participant Date of Birth", "Registration Date",
+          "Course Type", "Course English Name", "Course Chinese Name", "Course Location", "Course Mode",
+          "Course Price", "Course Duration", "Agreement", "WhatsApp Message Sent", 
+          "Confirmation Status", "Payment Method", "Payment Status", "Staff Name", "Payment Date", "Payment Time", 
+          "Receipt/Invoice Number", "Remarks",  "Refunded Date"
       ];
       
       preparedData.push(headers);

@@ -21,7 +21,7 @@ class ReportSection extends Component {
         { headerName: "Payment Status", field: "status", width: 200, sortable: true },
         { headerName: "Receipt Number", field: "official.receiptNo", width: 250, sortable: true },
         { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
-        { headerName: "Payment Date/ Last Updated", field: "official.date", width: 150, sortable: true },
+        { headerName: "Payment Date", field: "official.date", width: 150, sortable: true },
         { headerName: "Refunded Date", field: "official.refundedDate", width: 150, sortable: true },
         { headerName: "Misc", field: "misc", width: 250, sortable: true },
         { headerName: "Remarks", field: "official.remarks", width: 250, sortable: true },
