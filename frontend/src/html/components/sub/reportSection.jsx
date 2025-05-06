@@ -261,7 +261,7 @@ class ReportSection extends Component {
         if (payment) {
           // If both fromDate and toDate are valid, filter based on date range and location
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
-            if(site === null || site === undefined || site || "")
+            if(this.props.siteIC === null || this.props.siteIC === undefined || this.props.siteIC === "")
             {
               return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
             }
