@@ -184,7 +184,7 @@ class ReportSection extends Component {
       const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/generate_monthly_report/`);
       const data = response.data.data;
 
-      const filteredData = data.filter(item => item.payment !== "SkillsFuture");
+      const filteredData = data.filter(item => item.course?.payment !== "SkillsFuture");
 
       // Map data to include an 'index' field for the AG-Grid
       const mappedData = filteredData.map((item, index) => ({
