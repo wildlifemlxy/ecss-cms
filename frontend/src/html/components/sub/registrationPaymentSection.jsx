@@ -790,7 +790,7 @@ class RegistrationPaymentSection extends Component {
           "Course Type", "Course English Name", "Course Chinese Name", "Course Location", "Course Mode",
           "Course Price", "Course Duration", "Agreement", "WhatsApp Message Sent", 
           "Confirmation Status", "Payment Method", "Payment Status", "Staff Name", "Payment Date", "Payment Time", 
-          "Receipt/Invoice Number", "Remarks",  "Refunded Date"
+          "Receipt/Invoice Number", "Remarks",  "Refunded Date" 
       ];
       
       preparedData.push(headers);
