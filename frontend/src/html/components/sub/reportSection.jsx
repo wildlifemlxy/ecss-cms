@@ -261,7 +261,14 @@ class ReportSection extends Component {
         if (payment) {
           // If both fromDate and toDate are valid, filter based on date range and location
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
-            return payment >= fromParsed && payment <= toParsed && courseLocation === targetLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+            if(site === null || site === undefined || site || "")
+            {
+              return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+            }
+            else
+            {
+              return payment >= fromParsed && payment <= toParsed && courseLocation === targetLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+            }
           } else if (!fromParsed && !toParsed) {
             // If no date range, just filter by courseLocation
             return courseLocation === targetLocation && item.course.payment !== "SkillsFuture";

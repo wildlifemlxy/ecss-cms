@@ -810,16 +810,17 @@ class RegistrationPaymentSection extends Component {
               detail.participantInfo?.educationLevel || "",
               detail.participantInfo?.workStatus || "",
               detail.participantInfo?.dateOfBirth || "",
+              detail.registrationDate || "",
               detail.courseInfo?.courseType || "",
               detail.courseInfo?.courseEngName || "",
               detail.courseInfo?.courseChiName || "",
               detail.courseInfo?.courseLocation || "",
+              detail.courseInfo?.courseMode || "",
               detail.courseInfo?.coursePrice || "",
               detail.courseInfo?.courseDuration || "",
-              detail.courseInfo?.payment || "",
-              detail.courseInfo?.courseMode || "",
-              detail.registrationDate || "",
               detail.agreement || "",
+              detail.sendDetails ? "Yes" : "No",
+              detail.courseInfo?.payment || "",
               detail.status || "",
               detail.officialInfo?.confirmed ? "Yes" : "No",
               detail.officialInfo?.name || "",
@@ -828,7 +829,6 @@ class RegistrationPaymentSection extends Component {
               detail.officialInfo?.receiptNo || "",
               detail.officialInfo?.remarks || "",
               detail.officialInfo?.refundedDate || "",
-              detail.sendDetails ? "Yes" : "No"
           ];
           preparedData.push(row);
       });
