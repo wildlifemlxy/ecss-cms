@@ -214,7 +214,7 @@ class WooCommerceAPI:
             print(f"Processing status: {status}")
 
             # **Stock Update Logic**
-            if status == "Cancelled":
+            if status == "Withdrawn":
                 if new_stock_quantity < vacancies:  # Only increase stock if it is below vacancies
                     print("Increase stock by 1")
                     new_stock_quantity += 1

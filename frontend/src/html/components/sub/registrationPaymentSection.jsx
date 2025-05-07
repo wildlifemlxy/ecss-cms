@@ -307,7 +307,7 @@ class RegistrationPaymentSection extends Component {
     updateWooCommerceForRegistrationPayment = async (chi, eng, location, updatedStatus) => { 
       try {
         // Check if the value is "Paid" or "Generate SkillsFuture Invoice"
-        if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled" || updatedStatus === "Confirmed") {
+        if (updatedStatus === "Paid" || updatedStatus === "SkillsFuture Done" || updatedStatus === "Cancelled" || updatedStatus === "Withdrawn" || updatedStatus === "Confirmed") {
           // Proceed to update WooCommerce stock
           const stockResponse = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/update_stock/`, { type: 'update', page: { "courseChiName": chi, "courseEngName": eng, "courseLocation": location }, status: updatedStatus, location: location });
 
@@ -1448,17 +1448,34 @@ class RegistrationPaymentSection extends Component {
         field: "paymentStatus",
         cellEditor: "agSelectCellEditor",
         cellEditorParams: (params) => {
-          const { paymentMethod, courseInfo } = params.data;
+          const { paymentMethod, courseInfo, paymentStatus } = params.data;
           const courseType = courseInfo.courseType;
+        // First determine the options array as before
+        const initialOptions = 
+        courseType === "NSA"
+          ? paymentMethod === "SkillsFuture"
+            ? ["Pending", "Generating SkillsFuture Invoice", "SkillsFuture Done", "Cancelled", "Withdrawn", "Refunded"]
+            : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded"]
+          : ["Pending", "Confirmed", "Withdrawn"];
+
+        // Remove "Withdrawn" and "Refunded" options if current status is "Pending"
+        let options;
+
+        if (paymentStatus === "Pending") {
+          options = initialOptions.filter(status => status !== "Withdrawn" && status !== "Refunded");
+        } else if (paymentStatus === "Paid") {
+          options = initialOptions.filter(status => status !== "Cancelled" && status != "Refunded");
+        } 
+        else if (paymentStatus === "Withdrawn") {
+          options = initialOptions.filter(status => status !== "Cancelled" );
+        }else {
+          options = initialOptions;
+        }
+
+          // Then filter out the current payment status
+        const filteredOptions = options.filter(status => status !== paymentStatus);
       
-          const options =
-            courseType === "NSA"
-              ? paymentMethod === "SkillsFuture"
-                ? ["Pending", "Generating SkillsFuture Invoice", "SkillsFuture Done", "Cancelled", "Refunded"]
-                : ["Pending", "Paid", "Cancelled", "Refunded"]
-              : ["Pending", "Confirmed", "Cancelled", "Refunded"];
-      
-          return { values: options };
+          return { values: filteredOptions };
         },
         cellRenderer: (params) => {
           const statusStyles = {
@@ -1466,6 +1483,7 @@ class RegistrationPaymentSection extends Component {
             "Generating SkillsFuture Invoice": "#00CED1", // Dark Turquoise
             "SkillsFuture Done": "#008000", // Green
             Cancelled: "#FF0000", // Red
+            "Withdrawn": "#800000", // Red
             Paid: "#008000", // Green
             Confirmed: "#008000", // Green
             Refunded: "#D2691E", // Lighter brown (Dark orange brown)
@@ -1520,7 +1538,7 @@ class RegistrationPaymentSection extends Component {
         width: 300,
         editable: (params) => {
           // Disable editing if the paymentStatus is "Cancelled" or "Refunded"
-          return params.data.paymentStatus === 'Cancelled' || params.data.paymentStatus === 'Refunded';
+          return params.data.paymentStatus === 'Withdrawn' || params.data.paymentStatus === 'Cancelled' || params.data.paymentStatus === 'Refunded';
         }
       }
     ];
@@ -1899,7 +1917,7 @@ class RegistrationPaymentSection extends Component {
               if(paymentMethod === "Cash" || paymentMethod === "PayNow")
               {
                 console.log("Update Payment Status Success1");
-                if(newValue === "Cancelled")
+                if(newValue === "Withdrawn")
                 {
                     console.log("Old Payment Status:", oldPaymentStatus);
                     if(oldPaymentStatus === "Paid")
