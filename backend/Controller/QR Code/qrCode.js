@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `乐龄儿孙乐 Joyful Grandparenting (CT Hub).jpg`; 
+            const filename = `盆栽课程 Bonsai Learning – Elementary (Pasir Ris West Wellness Centre).jpg`; 
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e4%b9%90%e9%be%84%e5%84%bf%e5%ad%99%e4%b9%90joyful-grandparentingct-hub/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e7%9b%86%e6%a0%bd%e8%af%be%e7%a8%8bbonsai-learning-elementarypasir-ris-west-wellness-centre/`);
 qrCodeGenerator.generate();

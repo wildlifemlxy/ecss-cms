@@ -573,6 +573,9 @@ class DatabaseConnectivity {
         if (centreLocation === "Tampines 253 Centre" && courseLocation.startsWith("ECSS/SFC")) {
             regexPattern = `${courseLocation}TP`; // Ensure "TP" appears after courseLocation
         }
+        else if (centreLocation === "Renewal Christian Church" && courseLocation.startsWith("ECSS/SFC")) {
+            regexPattern = `${courseLocation}R` // Ensure "TP" appears after courseLocation
+        }
 
         console.log("Regex Pattern:", regexPattern);
         
@@ -598,6 +601,10 @@ class DatabaseConnectivity {
                 if (centreLocation === "Tampines 253 Centre") {
                     // Ensure "TP" appears for Tampines 253 Centre
                     regexPattern = new RegExp(`^${courseLocation}TP\\d+/(${currentYear})$`);
+                } 
+                else if (centreLocation === "Renewal Christian Church") {
+                    // Ensure "TP" appears for Tampines 253 Centre
+                    regexPattern = new RegExp(`^${courseLocation}R\\d+/(${currentYear})$`);
                 } else {
                     // Default pattern without "TP"
                     regexPattern = new RegExp(`^${courseLocation}\\d+/(${currentYear})$`);
@@ -613,7 +620,11 @@ class DatabaseConnectivity {
                 if (centreLocation === "Tampines 253 Centre") {
                     // Enforce "TP" for Tampines 253 Centre receipts
                     regexPattern = new RegExp(`^${courseLocation}TP(\\d+)(?:/\\d+| - \\d+)$`);
-                } else {
+                } else if (centreLocation === "Renewal Christian Church") {
+                    // Enforce "TP" for Tampines 253 Centre receipts
+                    regexPattern = new RegExp(`^${courseLocation}R(\\d+)(?:/\\d+| - \\d+)$`);
+                } 
+                else {
                     // Default pattern without "TP"
                     regexPattern = new RegExp(`^${courseLocation}(\\d+)(?:/\\d+| - \\d+)$`);
                 }
@@ -653,6 +664,10 @@ class DatabaseConnectivity {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 13 ;
             }
+            else if (centreLocation === "Renewal Christian Church") {
+                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 16 ;
+            }
         } 
         // Logic for 2026 and beyond
         else if (currentYear >= 26) {
@@ -666,6 +681,10 @@ class DatabaseConnectivity {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
+            else if (centreLocation === "Renewal Christian Church") {
+                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
+            }
         }
 
         console.log("Tampines 253 Centre Next Receipt:", nextNumber);
@@ -673,9 +692,14 @@ class DatabaseConnectivity {
         // Pad number to 3 digits if less than 3 digits, else keep original length
         if (nextNumber.toString().length < 3) 
         {
+            
             if(centreLocation === "Tampines 253 Centre")
             {
                 nextNumber = `TP${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
+            }
+            else if(centreLocation === "Renewal Christian Church")
+            {
+                nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
             else
             {
@@ -687,6 +711,10 @@ class DatabaseConnectivity {
             if(centreLocation === "Tampines 253 Centre")
             {
                 nextNumber = `TP${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
+            }
+            else if(centreLocation === "Renewal Christian Church")
+            {
+                nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
             else
             {
@@ -703,6 +731,7 @@ class DatabaseConnectivity {
         let nextNumber;
     
         console.log("Centre Receipt Number:", courseLocation, existingReceipts, centreLocation, currentYear);
+    
 
          // Filter the existing receipts based on the location
         //const filteredReceipts = existingReceipts.filter(receipt => receipt.location === centreLocation);
@@ -733,11 +762,18 @@ class DatabaseConnectivity {
             nextNumber =  maxReceiptNumber + 1;
         } 
     
+        else if (centreLocation === "Renewal Christian Church") {
+            // For CT Hub, it uses the same logic as the others
+           // console.log("This is a new location");
+            nextNumber =  maxReceiptNumber + 1;
+        } 
+    
         // Determine the length of the next number based on the nextNumber value
         let numberLength = nextNumber.toString().length;
     
         // Format the next number dynamically with leading zeros based on its length
         let formattedNextNumber = String(nextNumber).padStart(numberLength + 3, '0');  // Start with length 4, increase as needed*/
+       // console.log(`Latest Receipt Number1234: ${courseLocation} - ${formattedNextNumber}`)
     
         // Return the formatted receipt number in the format: "courseLocation - 0001"
         return `${courseLocation} - ${formattedNextNumber}`;
