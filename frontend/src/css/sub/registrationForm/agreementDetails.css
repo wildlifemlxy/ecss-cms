@@ -86,7 +86,7 @@
   }
 
   .agreement-details-section {
-    height: 61vh; /* Full height of the screen */
+    height: 40vh; /* Full height of the screen */
     overflow-y: auto; /* Enable vertical scrolling */
     margin: 10px;
     display: flex;
