@@ -286,22 +286,30 @@ class FormPage extends Component {
     console.log('Participants Details', participantDetails);
     
     // Example of sending data to the server using Axios
-    axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { participantDetails, purpose: "insert" })
+    axios.post(
+      `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, 
+      { participantDetails, purpose: "insert" }
+    )
       .then((response) => {
         console.log('Form submitted successfully', response.data);
-        if(response.data)
-        {
-          window.close(); 
-          //alert("Success");
-        }
-        else
-        {
-          //alert("Failure");
+        if (response.data) {
+          // Success alert
+         // alert("Success");
+    
+          // Set a 10-second timeout to close the window after success
+          setTimeout(() => {
+            window.close(); // This will close the window after 10 seconds
+          }, 10000);
+        } else {
+          // Handle failure if necessary
+          alert("Error during submission");
         }
       })
       .catch((error) => {
         console.error('Error submitting form:', error);
+        alert("Error during submission");
       });
+    
   };
 
   isValidNRIC(nric) {

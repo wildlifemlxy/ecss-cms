@@ -25,36 +25,84 @@ class PersonalInfo extends Component {
     };
   }
 
-  // Handle text input change
+  handleChange = (e) => {
+    const { name, value } = e.target;
+    let formattedValue = value;
+  
+    if (name === "nRIC") {
+      // Remove any spaces
+      formattedValue = formattedValue.trim();
+  
+      // Capitalize first and last letters if present
+      if (formattedValue.length >= 2) {
+        const first = formattedValue.charAt(0).toUpperCase();
+        const middle = formattedValue.slice(1, -1);
+        const last = formattedValue.charAt(formattedValue.length - 1).toUpperCase();
+        formattedValue = first + middle + last;
+      } else if (formattedValue.length === 1) {
+        formattedValue = formattedValue.toUpperCase();
+      }
+    }
+  
+    console.log(`${name}: ${formattedValue}`);
+    this.props.onChange({ [name]: formattedValue });
+  };
+  
+
+  /*// Handle text input change
   handleChange = (e) => {
     const { name, value } = e.target;
     console.log(`${name}: ${value}`);
     this.props.onChange({ [name]: value});
+  };*/
+
+  isValidDDMMYYYY = (dateString) => {
+    // Match pattern: dd/mm/yyyy
+    const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+    if (!regex.test(dateString)) return false;
+  
+    // Extra: Validate if it's a real calendar date
+    const [dd, mm, yyyy] = dateString.split('/');
+    const date = new Date(`${yyyy}-${mm}-${dd}`);
+    return (
+      date &&
+      date.getFullYear() === parseInt(yyyy, 10) &&
+      date.getMonth() + 1 === parseInt(mm, 10) &&
+      date.getDate() === parseInt(dd, 10)
+    );
   };
+
 
   handleChange1 = (e, field) => {
     if (field === "DOB") {
-      const { name, value } = e.target;
+      let { name, value } = e.target;
   
-      console.log(`${name}: ${value}`);
+      // Remove all non-digit characters first
+      value = value.replace(/\D/g, '');
   
-      // Update state immediately with user input (even if invalid)
+      // Auto-insert slashes as needed
+      if (value.length >= 3 && value.length <= 4) {
+        value = value.slice(0, 2) + '/' + value.slice(2);
+      } else if (value.length > 4 && value.length <= 8) {
+        value = value.slice(0, 2) + '/' + value.slice(2, 4) + '/' + value.slice(4);
+      }
+  
+      // Limit to 10 characters (dd/mm/yyyy)
+      if (value.length > 10) value = value.slice(0, 10);
+  
+      // Update input value live
       this.setState({ manualDate: value });
   
-      // Regular expression to match "dd/mm/yyyy" format
-      const datePattern = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-  
-      if (datePattern.test(value)) {
-        console.log(`Valid Date Entered: ${value}`);
-        this.props.onChange({ [name]: value }); // Pass to parent only if valid
-        this.setState({ selectedDate: new Date(value)});
-  
+      // If the auto-formatted value is valid, pass it to parent
+      if (this.isValidDDMMYYYY(value)) {
+        console.log("✅ Valid date:", value);
+        this.props.onChange({ [name]: value });
+        this.setState({ selectedDate: new Date(value.split('/').reverse().join('-')) });
       } else {
-        console.warn("Invalid date format. Please use dd/mm/yyyy.");
+        console.warn("❌ Invalid date format. Expected dd/mm/yyyy");
       }
     }
   };
-  
   
 
   // Handle backspace dynamically
