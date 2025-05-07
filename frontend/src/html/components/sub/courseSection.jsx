@@ -3,6 +3,8 @@ import axios from 'axios';
 import '../../../css/sub/courseSection.css';
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
+import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 class CoursesSection extends Component {
     constructor(props) {
@@ -566,6 +568,108 @@ class CoursesSection extends Component {
       }
     }
 
+  // This function exports data to Excel using the ExcelJS library with custom headers
+  saveData = async (rowData) => {
+    console.log("Course Data:", rowData);
+    
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Courses');
+      
+      // Define custom headers
+      const customHeaders = [
+        'Course Id', 
+        'Course Name', 
+        'Course Mode', 
+        'Current Capacity', 
+        'Projected Capacity', 
+        'Maximum Capacity', 
+        'No. of Lesson', 
+        'Language', 
+        'Status', 
+        'Course Duration', 
+        'Course Timing', 
+        'SkillsFuture Eligibility'
+      ];
+      
+      // Add headers
+      worksheet.addRow(customHeaders);
+      
+      // Style the header row
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD3D3D3' } // Light gray background
+      };
+      
+      // Map data fields to our custom headers
+      rowData.forEach(item => {
+        const rowValues = [
+          item.courseId,
+          item.courseName,
+          item.courseMode || '',
+          item.current,
+          // Convert projected from ["12"] to 12
+          Array.isArray(item.projected) ? parseInt(item.projected[0]) : item.projected,
+          item.maximum,
+          item.noLesson,
+          item.language,
+          item.status,
+          item.courseDuration,
+          item.courseTiming,
+          item.eligibility
+        ];
+        
+        const row = worksheet.addRow(rowValues);
+        
+        // Format eligibility cell with checkmark or X symbol
+        const eligibilityCell = row.getCell(12); // 12th column
+        if (item.eligibility === true) {
+          eligibilityCell.value = '✓';
+          eligibilityCell.font = { color: { argb: 'FF008000' } }; // Green color
+        } else if (item.eligibility === false) {
+          eligibilityCell.value = '✗';
+          eligibilityCell.font = { color: { argb: 'FFFF0000' } }; // Red color
+        }
+      });
+      
+      // Auto-fit columns
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell({ includeEmpty: true }, cell => {
+          const columnLength = cell.value ? cell.value.toString().length : 10;
+          if (columnLength > maxLength) {
+            maxLength = columnLength;
+          }
+        });
+        column.width = Math.min(maxLength + 2, 30); // Cap width at 30
+      });
+      
+      // Generate Excel file
+      const buffer = await workbook.xlsx.writeBuffer();
+      
+      // Create a Blob and download
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+      link.download = `Course_Listing_${formattedDate}.xlsx`;
+      link.click();
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      
+      console.log("Excel export completed successfully");
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+    }
+  };
+
   render() 
   {
     ModuleRegistry.registerModules([AllCommunityModule]);  
@@ -575,21 +679,26 @@ class CoursesSection extends Component {
           <h1 style={{ textAlign: 'center' }}>
             {this.props.courseType === "NSA" ? "NSA Courses" : "ILP Courses"}
           </h1>
-        </div>
-        <div className="course-table-wrapper">
-          <AgGridReact
-            columnDefs={this.state.columnDefs}
-            rowData={this.state.rowData}
-            domLayout="normal"
-            statusBar={false}
-            pagination={true}
-            paginationPageSize={this.state.rowData.length}
-            defaultColDef={{
-              resizable: true, // Make columns resizable
-            }}
-            sortable={true} 
-            onCellClicked={this.handleValueClick}
-          />
+          <div className="button-row4">
+            <button className="save-btn" onClick={() => this.saveData(this.state.rowData)}>
+              Export To Excel
+            </button>
+          </div>
+            <div className="course-table-wrapper">
+              <AgGridReact
+                columnDefs={this.state.columnDefs}
+                rowData={this.state.rowData}
+                domLayout="normal"
+                statusBar={false}
+                pagination={true}
+                paginationPageSize={this.state.rowData.length}
+                defaultColDef={{
+                  resizable: true, // Make columns resizable
+                }}
+                sortable={true} 
+                onCellClicked={this.handleValueClick}
+              />
+            </div>
         </div>
         {this.state.expandedRowIndex !== null && (
             <div
