@@ -1015,8 +1015,10 @@ class RegistrationPaymentSection extends Component {
             const workParts = detail.participantInfo.workStatus.split(" ");
             sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
     
-            let courseName = detail.courseInfo.courseEngName;
-            sourceSheet.getCell(`O${rowIndex}`).value = this.ecssCourseCode(courseName);
+            let courseEngName = detail.courseInfo.courseEngName;
+            let courseChiName = detail.courseInfo.courseChiName;
+            let courseCode = this.ecssChineseCourseCode(courseChiName) || this.ecssEnglishCourseCode(courseEngName);
+            sourceSheet.getCell(`O${rowIndex}`).value = courseName.trim();
             let languages = courseName.split("–").pop().trim();
             if (!((languages === "English") || (languages === "Mandarin"))) {
               // If "English" or "Mandarin" is not in the course name, don't split
@@ -1080,7 +1082,7 @@ class RegistrationPaymentSection extends Component {
     };  
 
 
-    ecssCourseCode(course) {
+    /*ecssCourseCode(course) {
         //The Rest Note of Life – Mandarin 14-Feb
         course = course.trim();
         console.log("Course Name111: ", course);
@@ -1113,7 +1115,92 @@ class RegistrationPaymentSection extends Component {
     
         // If no match, return a default value
         return "";
+      }*/
+
+    ecssChineseCourseCode(course) {
+          if (!course) return "";
+          course = course.trim();
+      
+          switch (course) {
+              case "不和慢性病做朋友":
+                  return "ECSS-CBO-M-016C";
+              case "和谐粉彩绘画基础班":
+                  return "ECSS-CBO-M-019C";
+              case "疗愈水彩画基础班":
+                  return "ECSS-CBO-M-024E";
+              case "中文书法中级班":
+                  return "ECSS-CBO-M-021C";
+              case "中文书法初级班":
+                  return "ECSS-CBO-M-020C";
+              case "和谐粉彩绘画体验班":
+                  return "ECSS-CBO-M-018C";
+              case "音乐祝福社区四弦琴班":
+                  return "ECSS-CBO-M-004C";
+              case "音乐祝福社区歌唱班":
+                  return "ECSS-CBO-M-003C";
+              case "自我养生保健":
+                  return "ECSS-CBO-M-001C";
+              case "汉语拼音基础班":
+                  return "ECSS-CBO-M-011C";
+              case "人生休止符":
+                  return "ECSS-CBO-M-023C";
+              case "食疗与健康":
+                  return "ECSS-CBO-M-010C";
+              case "疗愈基础素描":
+                  return "ECSS-CBO-M-030E";
+              case "健康心灵，健康生活":
+                  return "ECSS-CBO-M-028C";
+              case "智能手机摄影":
+                  return "ECSS-CBO-M-038C";
+              case "掌握沟通艺术。 拥有快乐的家":
+                  return "ECSS-CBO-M-031C";
+              default:
+                  return "";
+          }
       }
+
+     ecssEnglishCourseCode(course) {
+        if (!course) return "";
+        course = course.trim();
+    
+        switch (course) {
+            case "TCM – Don’t be a friend of Chronic Diseases":
+                return "ECSS-CBO-M-016C";
+            case "Nagomi Pastel Art Basic":
+                return "ECSS-CBO-M-019C";
+            case "Therapeutic Watercolour Painting for Beginners":
+                return "ECSS-CBO-M-024E";
+            case "Chinese Calligraphy Intermediate":
+                return "ECSS-CBO-M-021C";
+            case "Chinese Calligraphy Basic":
+                return "ECSS-CBO-M-020C";
+            case "Nagomi Pastel Art Appreciation":
+                return "ECSS-CBO-M-018C";
+            case "Community Ukulele – Mandarin":
+                return "ECSS-CBO-M-004C";
+            case "Community Singing – Mandarin":
+                return "ECSS-CBO-M-003C";
+            case "Self-Care TCM Wellness – Mandarin":
+                return "ECSS-CBO-M-001C";
+            case "Hanyu Pinyin for Beginners":
+                return "ECSS-CBO-M-011C";
+            case "The Rest Note of Life – Mandarin":
+                return "ECSS-CBO-M-023C";
+            case "TCM Diet & Therapy":
+                return "ECSS-CBO-M-010C";
+            case "Therapeutic Basic Line Work":
+                return "ECSS-CBO-M-030E";
+            case "Healthy Minds, Healthy Lives – Mandarin":
+                return "ECSS-CBO-M-028C";
+            case "Smartphone Photography":
+                return "ECSS-CBO-M-038C";
+            case "Art of Positive Communication builds happy homes":
+                return "ECSS-CBO-M-031C";
+            default:
+                return "";
+        }
+    }
+          
 
     exportAttendance = async () => {
       var { selectedCourseName, selectedLocation } = this.props;
