@@ -184,7 +184,11 @@ class ReportSection extends Component {
       const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/generate_monthly_report/`);
       const data = response.data.data;
 
-      const filteredData = data.filter(item => item.course?.payment !== "SkillsFuture");
+      const filteredData = data.filter(item => {
+        return item.course?.payment !== "SkillsFuture" && 
+               ["CT Hub", "Renewal Christian Church"].includes(item.courseLocation);
+      });
+      
 
       // Map data to include an 'index' field for the AG-Grid
       const mappedData = filteredData.map((item, index) => ({
@@ -269,7 +273,14 @@ class ReportSection extends Component {
             }
             else
             {
-              return payment >= fromParsed && payment <= toParsed && courseLocation === targetLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+              if(this.props.role === "NSA in-charge")
+              {
+                return payment >= fromParsed && payment <= toParsed && ["CT Hub", "Renewal Christian Church"].includes(item.courseLocation) && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+              }
+              else
+              {
+                return payment >= fromParsed && payment <= toParsed && courseLocation === targetLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+              }
             }
           } else if (!fromParsed && !toParsed) {
             // If no date range, just filter by courseLocation
