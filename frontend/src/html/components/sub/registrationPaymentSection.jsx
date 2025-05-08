@@ -969,7 +969,6 @@ class RegistrationPaymentSection extends Component {
     
         const originalRow = sourceSheet.getRow(9); // Row 9 is the template row to copy
         const startRow = 9;
-        var courseName = "";
     
         console.log("Paginated Details :", selectedRows, selectedRows.length);
 
@@ -1018,8 +1017,10 @@ class RegistrationPaymentSection extends Component {
             let courseEngName = detail.courseInfo.courseEngName;
             let courseChiName = detail.courseInfo.courseChiName;
             let courseCode = this.ecssChineseCourseCode(courseChiName) || this.ecssEnglishCourseCode(courseEngName);
-            sourceSheet.getCell(`O${rowIndex}`).value = courseName.trim();
+            sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
+            let courseName = courseChiName || courseEngName;
             let languages = courseName.split("–").pop().trim();
+            console.log("Course Name111111:", courseName);
             if (!((languages === "English") || (languages === "Mandarin"))) {
               // If "English" or "Mandarin" is not in the course name, don't split
               sourceSheet.getCell(`P${rowIndex}`).value = courseName.trim();
@@ -1117,7 +1118,7 @@ class RegistrationPaymentSection extends Component {
         return "";
       }*/
 
-    ecssChineseCourseCode(course) {
+      ecssChineseCourseCode(course) {
           if (!course) return "";
           course = course.trim();
       
@@ -1126,22 +1127,28 @@ class RegistrationPaymentSection extends Component {
                   return "ECSS-CBO-M-016C";
               case "和谐粉彩绘画基础班":
                   return "ECSS-CBO-M-019C";
+              case "和谐粉彩绘画体验班":
+                  return "ECSS-CBO-M-018C";
               case "疗愈水彩画基础班":
                   return "ECSS-CBO-M-024E";
               case "中文书法中级班":
                   return "ECSS-CBO-M-021C";
               case "中文书法初级班":
                   return "ECSS-CBO-M-020C";
-              case "和谐粉彩绘画体验班":
-                  return "ECSS-CBO-M-018C";
               case "音乐祝福社区四弦琴班":
                   return "ECSS-CBO-M-004C";
+              case "音乐祝福社区四弦琴班第2阶":
+                  return "ECSS-CBO-M-037C";
               case "音乐祝福社区歌唱班":
                   return "ECSS-CBO-M-003C";
               case "自我养生保健":
                   return "ECSS-CBO-M-001C";
               case "汉语拼音基础班":
                   return "ECSS-CBO-M-011C";
+              case "汉语拼音中级班":
+                  return "ECSS-CBO-M-025C";
+              case "汉语拼音之–《唐诗三百首》":
+                  return "ECSS-CBO-M-036C";
               case "人生休止符":
                   return "ECSS-CBO-M-023C";
               case "食疗与健康":
@@ -1154,12 +1161,35 @@ class RegistrationPaymentSection extends Component {
                   return "ECSS-CBO-M-038C";
               case "掌握沟通艺术。 拥有快乐的家":
                   return "ECSS-CBO-M-031C";
+              case "和谐粉彩绘画基础班-第2阶":
+                  return "ECSS-CBO-M-039C";
+              case "中级疗愈水彩班":
+                  return "ECSS-CBO-M-040C";
+              case "自我成长":
+                  return "ECSS-CBO-M-013C";
+              case "我的故事":
+                  return "ECSS-CBO-M-007C";
+              case "如何退而不休活得精彩":
+                  return "ECSS-CBO-M-006C";
+              case "活跃乐龄大使":
+                  return "ECSS-CBO-M-005C";
+              case "预防跌倒与功能强化训练":
+                  return "ECSS-CBO-M-002C";
+              case "C3A心理健康课程: 以微笑应万变":
+                  return "ECSS-CBO-M-017C";
+              case "智慧理财基础知识":
+                  return "ECSS-CBO-M-029C";
+              case "盆栽课程":
+                  return "ECSS-CBO-M-034C";
+              case "乐龄儿孙乐":
+                  return "ECSS-CBO-M-035C";
               default:
                   return "";
           }
       }
+      
 
-     ecssEnglishCourseCode(course) {
+      ecssEnglishCourseCode(course) {
         if (!course) return "";
         course = course.trim();
     
@@ -1168,22 +1198,28 @@ class RegistrationPaymentSection extends Component {
                 return "ECSS-CBO-M-016C";
             case "Nagomi Pastel Art Basic":
                 return "ECSS-CBO-M-019C";
+            case "Nagomi Pastel Art Appreciation":
+                return "ECSS-CBO-M-018C";
             case "Therapeutic Watercolour Painting for Beginners":
                 return "ECSS-CBO-M-024E";
             case "Chinese Calligraphy Intermediate":
                 return "ECSS-CBO-M-021C";
             case "Chinese Calligraphy Basic":
                 return "ECSS-CBO-M-020C";
-            case "Nagomi Pastel Art Appreciation":
-                return "ECSS-CBO-M-018C";
             case "Community Ukulele – Mandarin":
                 return "ECSS-CBO-M-004C";
+            case "Community Ukulele Level 2 – Mandarin":
+                return "ECSS-CBO-M-037C";
             case "Community Singing – Mandarin":
                 return "ECSS-CBO-M-003C";
             case "Self-Care TCM Wellness – Mandarin":
                 return "ECSS-CBO-M-001C";
             case "Hanyu Pinyin for Beginners":
                 return "ECSS-CBO-M-011C";
+            case "Hanyu Pinyin Intermediate":
+                return "ECSS-CBO-M-025C";
+            case "Hanyu Pinyin – 300 Tang Poems":
+                return "ECSS-CBO-M-036C";
             case "The Rest Note of Life – Mandarin":
                 return "ECSS-CBO-M-023C";
             case "TCM Diet & Therapy":
@@ -1192,16 +1228,45 @@ class RegistrationPaymentSection extends Component {
                 return "ECSS-CBO-M-030E";
             case "Healthy Minds, Healthy Lives – Mandarin":
                 return "ECSS-CBO-M-028C";
+            case "C3A AgeMAP – Healthy Minds for Healthy Lives":
+                return "ECSS-CBO-M-028E";
             case "Smartphone Photography":
                 return "ECSS-CBO-M-038C";
             case "Art of Positive Communication builds happy homes":
                 return "ECSS-CBO-M-031C";
+            case "Nagomi Pastel Art Basic – Level 2":
+                return "ECSS-CBO-M-039C";
+            case "Intermediate Therapeutic Watercolour":
+                return "ECSS-CBO-M-040C";
+            case "My Growth":
+                return "ECSS-CBO-M-013C";
+            case "My Story":
+                return "ECSS-CBO-M-007C";
+            case "How to Retire & Live Wonderfully":
+                return "ECSS-CBO-M-006C";
+            case "Active Ageing Ambassadors":
+                return "ECSS-CBO-M-005C";
+            case "Fall Prevention & Functional Improvement Training":
+                return "ECSS-CBO-M-002E";
+            case "C3A Mental Wellbeing Curriculum – Riding the Waves of Change Smiling":
+                return "ECSS-CBO-M-017E";
+            case "C3A Mental Wellbeing Curriculum – Riding the Waves of Change Smiling (Malay)":
+                return "ECSS-CBO-M-017M";
+            case "Basics of Smart Money Management":
+                return "ECSS-CBO-M-029E";
+            case "The Art of Paper Quilling":
+                return "ECSS-CBO-M-032E";
+            case "Community Cajon Foundation 1":
+                return "ECSS-CBO-M-033E";
+            case "Bonsai Course":
+                return "ECSS-CBO-M-034C";
+            case "Happy Grandparenting":
+                return "ECSS-CBO-M-035C";
             default:
                 return "";
         }
-    }
-          
-
+      }
+    
     exportAttendance = async () => {
       var { selectedCourseName, selectedLocation } = this.props;
       var {selectedRows} = this.state;
