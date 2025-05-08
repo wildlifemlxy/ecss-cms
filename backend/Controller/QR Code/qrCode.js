@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `盆栽课程 Bonsai Learning – Elementary (Pasir Ris West Wellness Centre).jpg`; 
+            const filename = `日本和谐粉彩基础班 Nagomi Pastel Art Basic L2 (CT Hub).jpg`; 
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e7%9b%86%e6%a0%bd%e8%af%be%e7%a8%8bbonsai-learning-elementarypasir-ris-west-wellness-centre/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%E6%97%A5%E6%9C%AC%E5%92%8C%E8%B0%90%E7%B2%89%E5%BD%A9%E5%9F%BA%E7%A1%80%E7%8F%ADnagomi-pastel-art-basic-l2/`);
 qrCodeGenerator.generate();

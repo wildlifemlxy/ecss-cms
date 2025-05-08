@@ -69,7 +69,7 @@ class RegistrationPaymentSection extends Component {
         console.log("Role", role, "SiteIC", siteIC);
         const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC });
         const response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role: "admin", siteIC: "" });
-        console.log("Course Registration:", response);
+        console.log("Course Registration:", response.data.result, response1.data.result);
     
         const data = this.languageDatabase(response.data.result, language);
         const data1 = this.languageDatabase(response1.data.result, language);
@@ -87,6 +87,8 @@ class RegistrationPaymentSection extends Component {
           const participant = array[i].participant;
           participant.residentialStatus = participant.residentialStatus.split(' ')[0];
           participant.race = participant.race.split(' ')[0];
+
+          console.log("Education Level:", participant.educationLevel);
 
           if (participant.educationLevel.split(' ').length === 3) {
             participant.educationLevel = participant.educationLevel.split(' ').slice(0, 2).join(' ');
@@ -1009,8 +1011,13 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`L${rowIndex}`).value = detail.participantInfo.postalCode;
     
             const educationParts = detail.participantInfo.educationLevel.split(" ");
-            sourceSheet.getCell(`M${rowIndex}`).value = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
-    
+            let educationValue = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
+            console.log("Before Education Level:", educationValue);
+            if (educationValue === "Master's Degree") {
+                educationValue = "Masters/Doctorate";                      
+            }
+            console.log("After Education Level:", educationValue);
+            sourceSheet.getCell(`M${rowIndex}`).value = educationValue
             const workParts = detail.participantInfo.workStatus.split(" ");
             sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
     
@@ -1033,9 +1040,7 @@ class RegistrationPaymentSection extends Component {
             let numericValue = parseFloat(priceStr.replace('$', ''))// Step 2: Multiply by 5
             let multiplied = numericValue * 5;
             let formattedPrice = `$${multiplied.toFixed(2)}`;
-            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;
-          
-            
+            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;        
     
             const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
             sourceSheet.getCell(`S${rowIndex}`).value = this.convertDateFormat1(startDate);
