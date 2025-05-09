@@ -255,6 +255,8 @@ class invoiceGenerator {
     }
         
     async addBody(doc, array, currentPage, totalPages, name, receiptNo) {
+        const fontSize = 24;
+
         const leftMargin = 2.54 * 28.35; // 2.54 cm to points
         const rightMargin = 15.93; // Right margin in points
     
@@ -329,7 +331,7 @@ class invoiceGenerator {
      * @param {string} courseName - Chinese course name
      * @returns {string} TGS course code
      */
-    async getChineseCourseCode(courseName) {
+    getChineseCourseCode(courseName) {
         switch(courseName) {
         case '汉语拼音之一《唐诗三百首》':
             return 'TGS-2025054486';
@@ -395,7 +397,7 @@ class invoiceGenerator {
      * @param {string} courseName - English course name
      * @returns {string} TGS course code
      */
-    async getEnglishCourseCode(courseName) {
+    getEnglishCourseCode(courseName) {
         switch(courseName) {
         case 'Hanyu Pinyin & The Three Hundred Tang Poems':
             return 'TGS-2025054486';
@@ -457,6 +459,7 @@ class invoiceGenerator {
     async createCourseTable(doc, array, header1, header2, header3, header4, header5, header6) {
         const fontPathBold = path.join(__dirname, '../../fonts/ARIALBD.TTF'); 
         const fontPathRegular = path.join(__dirname, '../../fonts/ARIAL.TTF'); 
+        const chineseFontPath = path.join(__dirname, '../../fonts/NotoSansSC-Regular.ttf');
     
         const leftMargin = 2.54 * 28.35 - 60; 
         const tableTop = doc.y; 
@@ -515,14 +518,22 @@ class invoiceGenerator {
                 .lineTo(columnPositions[column], tableTop + headerHeight)
                 .stroke('black');
         }
+
     
         let currentY = tableTop + headerHeight; 
         doc.fontSize(9).fillColor('black').font(fontPathRegular);
         array.forEach((item, index) => {
            // console.log("Course Reference Code:", this.courseReferenceCode(item.course.courseEngName));
-            const courseRefCode = this.getChineseCourseCode(item.course.courseChiName) || this.getEnglishCourseCode(item.course.courseEngName);
+            const courseRefCode =  this.getChineseCourseCode(item.course.courseChiName) || this.getEnglishCourseCode(item.course.courseEngName);
             const courseName = item.course.courseChiName || item.course.courseEngName;
             console.log("Course Reference Code:", courseRefCode);
+           const containsChinese = /[\u4e00-\u9fff]/.test(courseName);     
+            if (containsChinese) {
+                doc.font(chineseFontPath);  // Use Chinese font
+            } 
+            else {
+                doc.font(fontPathRegular);  // Use English font (Arial)
+            }
             console.log("Course Name:", courseName);
             doc.text(courseRefCode, columnPositions.courseRef + 2, currentY + 3)
             doc.text(courseName, columnPositions.courseTitle + 2, currentY + 3, { maxWidth: headerWidths[1]});
