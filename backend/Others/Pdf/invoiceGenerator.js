@@ -291,7 +291,7 @@ class invoiceGenerator {
     }
     
 
-    /*courseReferenceCode(course) {
+    courseReferenceCode(course) {
         //The Rest Note of Life – Mandarin 14-Feb
         course = course.trim();
         console.log("Course Name: ", course);
@@ -324,14 +324,14 @@ class invoiceGenerator {
     
         // If no match, return a default value
         return "";
-    }*/
+    }
 
     /**
      * Function to get course code from Chinese course name
      * @param {string} courseName - Chinese course name
      * @returns {string} TGS course code
      */
-    getChineseCourseCode(courseName) {
+    /*getChineseCourseCode(courseName) {
         switch(courseName) {
         case '汉语拼音之一《唐诗三百首》':
             return 'TGS-2025054486';
@@ -390,14 +390,14 @@ class invoiceGenerator {
         default:
             return 'Course code not found';
         }
-    }
+    }*/
   
     /**
      * Function to get course code from English course name
      * @param {string} courseName - English course name
      * @returns {string} TGS course code
      */
-    getEnglishCourseCode(courseName) {
+    /*getEnglishCourseCode(courseName) {
         switch(courseName) {
         case 'Hanyu Pinyin & The Three Hundred Tang Poems':
             return 'TGS-2025054486';
@@ -454,7 +454,7 @@ class invoiceGenerator {
         default:
             return 'Course code not found';
         }
-    }
+    }*/
       
     async createCourseTable(doc, array, header1, header2, header3, header4, header5, header6) {
         const fontPathBold = path.join(__dirname, '../../fonts/ARIALBD.TTF'); 
@@ -524,8 +524,10 @@ class invoiceGenerator {
         doc.fontSize(9).fillColor('black').font(fontPathRegular);
         array.forEach((item, index) => {
            // console.log("Course Reference Code:", this.courseReferenceCode(item.course.courseEngName));
-            const courseRefCode =  this.getChineseCourseCode(item.course.courseChiName) || this.getEnglishCourseCode(item.course.courseEngName);
-            const courseName = item.course.courseChiName || item.course.courseEngName;
+            //const courseRefCode =  this.getChineseCourseCode(item.course.courseChiName) || this.getEnglishCourseCode(item.course.courseEngName);
+            //const courseName = item.course.courseChiName || item.course.courseEngName;
+             const courseRefCode = this.courseReferenceCode(item.course.courseEngName);
+            const courseName = item.course.courseEngName;
             console.log("Course Reference Code:", courseRefCode);
            const containsChinese = /[\u4e00-\u9fff]/.test(courseName);     
             if (containsChinese) {
