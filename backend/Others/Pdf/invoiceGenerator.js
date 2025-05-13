@@ -313,7 +313,15 @@ class invoiceGenerator {
             "Therapeutic Basic Line Work": "TGS-2024047927",
             "Healthy Minds, Healthy Lives – Mandarin": "TGS-2023019018",
             "Smartphone Photography": "TGS-2025054493",
-            "Art of Positive Communication builds happy homes": "TGS-2025054487"
+            "Art of Positive Communication builds happy homes": "TGS-2025054487",
+            "Joyful Grandparenting": "TGS-2025054491",
+            "Hanyu Pinyin & The Three Hundred Tang Poems": "TGS-2025054486",
+            "The Art of Paper Quilling": "TGS-2025054488",
+            "Nagomi Pastel Art Basic L2": "TGS-2025054494",
+            "Enhanced Therapeutic Intermediate Watercolour": "TGS-2025054495",
+            "Community Ukulele – Mandarin L1": "TGS-2021008564",
+            "Bonsai Learning – Elementary": "TGS-2025054490",
+            "Healthy Minds for Healthy Lives": "TGS-2023019019"  
             //Healthy Minds, Healthy Lives – Mandarin
         };
     
