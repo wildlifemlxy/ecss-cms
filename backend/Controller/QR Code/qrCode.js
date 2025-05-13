@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `日本和谐粉彩基础班 Nagomi Pastel Art Basic L2 (CT Hub).jpg`; 
+            const filename = `时光步道 - 走过中巴鲁 Tiong Bahru Heritage Trail (TNCC).jpg`; 
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%E6%97%A5%E6%9C%AC%E5%92%8C%E8%B0%90%E7%B2%89%E5%BD%A9%E5%9F%BA%E7%A1%80%E7%8F%ADnagomi-pastel-art-basic-l2/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e6%97%b6%e5%85%89%e6%ad%a5%e9%81%93-%e8%b5%b0%e8%bf%87%e4%b8%ad%e5%b7%b4%e9%b2%81tiong-bahru-heritage-trailtampines-north-community-centre/`);
 qrCodeGenerator.generate();

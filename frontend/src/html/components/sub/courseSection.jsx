@@ -216,7 +216,7 @@ class CoursesSection extends Component {
   };
   
 
-  getSelectedDetails(short_description, vacancy) {
+  /*getSelectedDetails(short_description, vacancy) {
     let array = short_description.split('<p>');
     if (array[0] === '') {
       array.shift(); // Remove the empty string at the start
@@ -325,7 +325,120 @@ class CoursesSection extends Component {
       status,
       eligibility: short_description.includes("SkillsFuture")
     });
+  }*/
+
+    getSelectedDetails(short_description, vacancy) {
+  let array = short_description.split('<p>');
+  if (array[0] === '') {
+    array.shift();
   }
+
+  array = array.flatMap(element => element.split('</p>')).filter(element => element.trim() !== '');
+
+  let noOfLesson = array.find(item => item.toLowerCase().includes("lesson")) || "";
+  noOfLesson = noOfLesson.split("<br />")[1] || "";
+  noOfLesson = noOfLesson.replace(/\n|<b>|<\/b>/g, "").match(/\d+/);
+  noOfLesson = noOfLesson ? parseInt(noOfLesson[0], 10) : "";
+
+  console.log("No. of Lesson:", noOfLesson);
+
+  let language = array
+    .map(item => item.replace(/\n|<b>|<\/b>/g, ""))
+    .find(item => item.toLowerCase().includes("language")) || "";
+  language = language.split("<br />").pop()?.trim() || "";
+
+  let vacancies = array
+    .map(item => item.replace(/\n|<b>|<\/b>/g, ""))
+    .find(item => item.toLowerCase().includes("vacancy")) || "";
+  vacancies = vacancies.split("<br />").pop()?.trim().split("/")[2] || "";
+  let vacanciesMatch = vacancies.match(/\d+/) ? parseInt(vacancies.match(/\d+/)[0], 10) : "";
+
+  let startDate = array
+    .map(item => item.replace(/\<strong>|\<\/strong>|\n|<b>|<\/b>/g, ""))
+    .find(item => item.toLowerCase().includes("start date")) || "";
+  startDate = startDate.split("<br />").pop()?.trim() || "";
+  let [day, monthStr, year] = startDate.split(" ");
+  day = parseInt(day) || 1;
+  year = parseInt(year) || new Date().getFullYear();
+  let month = this.changeMonthToNumber(monthStr || "");
+
+  let endDate = array
+    .map(item => item.replace(/\<strong>|\<\/strong>|\n|<b>|<\/b>/g, ""))
+    .find(item => item.toLowerCase().includes("end date")) || "";
+  endDate = endDate.split("<br />").pop()?.trim() || "";
+  let [day1, monthStr1, year1] = endDate.split(" ");
+  day1 = parseInt(day1) || 1;
+  year1 = parseInt(year1) || new Date().getFullYear();
+  let month1 = this.changeMonthToNumber(monthStr1 || "");
+
+  console.log("Course End Date:", startDate, endDate);
+
+  let timing = array
+    .map(item => item.replace(/\<strong>|\<\/strong>|\n|<b>|<\/b>/g, ""))
+    .find(item => item.toLowerCase().includes("lesson schedule")) || "";
+  timing = timing.split("<br />").pop()?.trim() || "";
+
+  let startTime = "";
+  let endTime = "";
+
+  if (timing) {
+    if (timing.includes("&#8211;")) {
+      [startTime, endTime] = timing.split("&#8211;").map(t => t.trim());
+    } else if (timing.includes("–")) {
+      [startTime, endTime] = timing.split("–").map(t => t.trim());
+    }
+
+    if (startTime.includes(",")) {
+      startTime = startTime.split(",")[1]?.trim() || startTime;
+    }
+  }
+
+  const startDateTime = new Date(year, month - 1, day);
+  const { hours: startHours, minutes: startMinutes } = this.convertTo24HourWithHrs(startTime || "") || { hours: 0, minutes: 0 };
+  startDateTime.setHours(startHours);
+  startDateTime.setMinutes(startMinutes);
+  startDateTime.setSeconds(0);
+
+  const endDateTime = new Date(year1, month1 - 1, day1);
+  const { hours: endHours, minutes: endMinutes } = this.convertTo24HourWithHrs(endTime || "") || { hours: 0, minutes: 0 };
+  endDateTime.setHours(endHours);
+  endDateTime.setMinutes(endMinutes);
+  endDateTime.setSeconds(0);
+
+  console.log("Start Date Course:", year, month, day, startDateTime);
+  console.log("End Date Time:", endDate, endDateTime);
+
+  let status = "";
+  const currentDate = new Date();
+
+  if (vacancy === 0) {
+    status = "Full";
+  } else if (vacancy > 0) {
+    if (currentDate < startDateTime) {
+      status = "Available";
+    } else if (currentDate >= endDateTime) {
+      status = "Ended";
+    } else {
+      status = "Ongoing";
+    }
+  }
+
+  startDate = this.shorternMonth(startDate || "");
+  endDate = this.shorternMonth(endDate || "");
+
+  return JSON.stringify({
+    noOfLesson: noOfLesson || "",
+    language: language || "",
+    vacancies: vacanciesMatch || "",
+    startDate: startDate || "",
+    endDate: endDate || "",
+    startTime: startTime || "",
+    endTime: endTime || "",
+    status: status || "",
+    eligibility: short_description.includes("SkillsFuture")
+  });
+}
+
     
   courseNameAndDetails(product_name) {
     var regex = /<br\s*\/?>/gi;
