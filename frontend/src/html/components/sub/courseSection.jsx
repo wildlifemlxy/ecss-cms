@@ -199,7 +199,7 @@ class CoursesSection extends Component {
         courseMode: item?.attributes?.[2]?.options?.[0] === "Face-to-Face" ? "F2F" : item?.attributes?.[2]?.options?.[0],
         current: item.stock_quantity,
         projected: displayedDetails.vacancies,
-        maximum: Math.ceil(parseInt(displayedDetails.vacancies) * 1.5),
+        maximum: displayedDetails.vacancies === "" ? "" : Math.ceil(parseInt(displayedDetails.vacancies) * 1.5),
         noLesson: displayedDetails.noOfLesson,
         language: displayedDetails.language,
         status: displayedDetails.status,
@@ -430,7 +430,7 @@ class CoursesSection extends Component {
     noOfLesson: noOfLesson || "",
     language: language || "",
     vacancies: vacanciesMatch || "",
-    startDate: startDate || "",Ma
+    startDate: startDate || "",
     endDate: endDate || "",
     startTime: startTime || "",
     endTime: endTime || "",
@@ -507,7 +507,7 @@ class CoursesSection extends Component {
       // Map filteredDetails to rowData
       const rowData = filteredDetails.map((item) => {
         console.log("Filtered Course Details:", item);
-  
+        console.log("Maximum Capacity", item.maximum);
         // Return mapped data
         return {
           courseId: item.courseId,
@@ -517,7 +517,7 @@ class CoursesSection extends Component {
           noLesson: item.noLesson,
           current: item.current,
           projected: item.projected,
-          maximum: item.current && item.projected === "" ? "" : item.maximum,
+          maximum: item.maximum,
           status: item.status,
           courseDuration: item.courseDuration,
           courseTiming: item.courseTiming,
@@ -526,7 +526,7 @@ class CoursesSection extends Component {
         };
       });
   
-      console.log("Filtered Row Data:", rowData);
+      console.log(" :", rowData);
   
       this.setState({ rowData });
     }
