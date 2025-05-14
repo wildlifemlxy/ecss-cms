@@ -430,7 +430,7 @@ class CoursesSection extends Component {
     noOfLesson: noOfLesson || "",
     language: language || "",
     vacancies: vacanciesMatch || "",
-    startDate: startDate || "",
+    startDate: startDate || "",Ma
     endDate: endDate || "",
     startTime: startTime || "",
     endTime: endTime || "",
@@ -517,7 +517,7 @@ class CoursesSection extends Component {
           noLesson: item.noLesson,
           current: item.current,
           projected: item.projected,
-          maximum: item.maximum,
+          maximum: item.current && item.projected === "" ? "" : item.maximum,
           status: item.status,
           courseDuration: item.courseDuration,
           courseTiming: item.courseTiming,
