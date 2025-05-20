@@ -40,6 +40,16 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
     
     <!-- OneSignal SDK -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
@@ -54,60 +64,28 @@
           await OneSignal.init({
             appId: "e215cf65-e110-4f8c-9e40-90e1f1e85d8e",
             allowLocalhostAsSecureOrigin: true,
-            // Make the subscription prompt more visible
-            promptOptions: {
-              slidedown: {
-                prompts: [
-                  { 
-                    type: "push", 
-                    autoPrompt: true,  // Show prompt automatically
-                    delay: { pageViews: 1, timeDelay: 5 }, // Show after 5 seconds
-                    text: {
-                      actionMessage: "Get notified about new course registrations!",
-                      acceptButton: "Allow",
-                      cancelButton: "Not Now"
-                    }
-                  }
-                ]
-              }
-            },
-            // Show a persistent notification bell
             notifyButton: {
               enable: true,
-              size: 'large',
-              position: 'bottom-right',
-              showCredit: false
             }
           });
           
-          // Set tag for current path
+          // Set tag for current path for notification filtering
           const currentPath = window.location.pathname;
           console.log('Setting OneSignal path tag:', currentPath);
-          OneSignal.sendTag('current_path', currentPath);
+          await OneSignal.User.addTag('current_path', currentPath);
           
-          // Track path changes (for client-side routing)
+          // Track path changes
           const originalPushState = history.pushState;
           history.pushState = function() {
             originalPushState.apply(this, arguments);
             const newPath = window.location.pathname;
             console.log('Path changed, updating OneSignal tag:', newPath);
-            OneSignal.sendTag('current_path', newPath);
+            OneSignal.User.addTag('current_path', newPath);
           };
         } else {
           console.log("Skipping OneSignal initialization on form page");
         }
       });
     </script>
-    
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
   </body>
 </html>
