@@ -57,7 +57,7 @@ router.post('/', async function(req, res, next)
                 await sendOneSignalNotification({
                     title: 'New Course Registration',
                     message: `${participantsParticulars.participant.name} has registered for ${participantsParticulars.course.courseEngName}`,
-                    url: "http://localhost:3000", // Replace with your actual URL
+                    url: "https://salmon-wave-09f02b100.6.azurestaticapps.net/", // Replace with your actual URL
                     //url: `${process.env.FRONTEND_URL || 'https://salmon-wave-09f02b100.6.azurestaticapps.net'}`,
                     //excludePaths: ['/form'] // Don't send to users on form page
                 });
