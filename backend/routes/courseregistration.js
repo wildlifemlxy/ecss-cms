@@ -3,6 +3,7 @@ var router = express.Router();
 var RegistrationController = require('../Controller/Registration/RegistrationController');
 var receiptGenerator = require('../Others/Pdf/receiptGenerator');
 var invoiceGenerator = require('../Others/Pdf/invoiceGenerator');
+const { sendOneSignalNotification } = require('../services/notificationService');
 
 function getCurrentDateTime() {
     // Create a Date object and adjust for Singapore Standard Time (UTC+8)
@@ -49,7 +50,24 @@ router.post('/', async function(req, res, next)
             remarks: ""
           };
         var result = await controller.newParticipant(participantsParticulars);
-        return res.json({"result": result});
+        
+        // Send notification after successful registration
+        if (result) {
+            try {
+                await sendOneSignalNotification({
+                    title: 'New Course Registration',
+                    message: `${participantsParticulars.participant.name} has registered for ${participantsParticulars.course.courseEngName}`,
+                    url: "http://localhost:3000", // Replace with your actual URL
+                    //url: `${process.env.FRONTEND_URL || 'https://salmon-wave-09f02b100.6.azurestaticapps.net'}`,
+                    //excludePaths: ['/form'] // Don't send to users on form page
+                });
+                console.log('Registration notification sent successfully');
+                return res.json({"result": result});
+            } catch (error) {
+                console.error('Failed to send notification:', error);
+                // Continue with the response even if notification fails
+            }
+       // }  
     }
     else if(req.body.purpose === "retrieve")
     {
