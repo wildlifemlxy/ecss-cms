@@ -32,18 +32,6 @@ class CourseDetailsSection extends Component {
     return decodedString;
   }
 
-  filterCourses(courses) {
-    return courses.filter(course => {
-      // Add null checks before calling toLowerCase()
-      const courseName = course.name || '';
-      const courseDescription = course.description || '';
-      
-      // Now you can safely call toLowerCase()
-      return courseName.toLowerCase().includes(this.state.searchTerm.toLowerCase()) ||
-             courseDescription.toLowerCase().includes(this.state.searchTerm.toLowerCase());
-    });
-  }
-
   render() {
     const { selectedPayment, paymentTouched } = this.state;
   
@@ -124,7 +112,7 @@ class CourseDetailsSection extends Component {
               </label>
               {/* Conditionally render SkillsFuture based on the course names */}
               {!this.props.courseEnglishName.includes('Ukulele') && 
-                !this.props.courseChineseName.includes('四弦琴班') && (
+                !this.props.courseChineseName.includes('音乐祝福社区四弦琴班') && (
                   <label>
                     <input
                       type="radio"
