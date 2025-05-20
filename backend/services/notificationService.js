@@ -9,6 +9,12 @@ const ONESIGNAL_API_KEY = 'Basic os_v2_app_4ik46zpbcbhyzhsasdq7d2c5ry4mimwudbted
  */
 async function sendOneSignalNotification({ title, message, url}) {
   try {
+    // Don't send notification if the URL contains "form"
+    if (url && url.includes("form")) {
+      console.log("Skipping notification for form URL:", url);
+      return { success: false, reason: "URL contains form path" };
+    }
+    
     console.log("Sending OneSignal notification with:", { title, message, url });
     
     // During development, you can add specific test device IDs here
