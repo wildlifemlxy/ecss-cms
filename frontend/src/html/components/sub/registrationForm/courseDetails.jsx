@@ -32,6 +32,18 @@ class CourseDetailsSection extends Component {
     return decodedString;
   }
 
+  filterCourses(courses) {
+    return courses.filter(course => {
+      // Add null checks before calling toLowerCase()
+      const courseName = course.name || '';
+      const courseDescription = course.description || '';
+      
+      // Now you can safely call toLowerCase()
+      return courseName.toLowerCase().includes(this.state.searchTerm.toLowerCase()) ||
+             courseDescription.toLowerCase().includes(this.state.searchTerm.toLowerCase());
+    });
+  }
+
   render() {
     const { selectedPayment, paymentTouched } = this.state;
   
