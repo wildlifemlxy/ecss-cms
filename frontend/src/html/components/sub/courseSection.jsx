@@ -497,25 +497,12 @@ class CoursesSection extends Component {
       if (normalizedSearchQuery) {
         filteredDetails = filteredDetails.filter(item => {
           // Get location full name safely
-          const locationFullName = locationMap[item.centreLocation] || item.centreLocation || '';
+          //const locationFullName = locationMap[item.centreLocation] || item.centreLocation || '';
           
           // Check all fields that could be searched
           return (
             // Text fields
-            (item.courseName && item.courseName.toLowerCase().includes(normalizedSearchQuery)) ||
-            (locationFullName.toLowerCase().includes(normalizedSearchQuery)) ||
-            (item.courseMode && item.courseMode.toLowerCase().includes(normalizedSearchQuery)) ||
-            (item.status && item.status.toLowerCase().includes(normalizedSearchQuery)) ||
-            (item.courseDuration && item.courseDuration.toLowerCase().includes(normalizedSearchQuery)) ||
-            (item.courseTiming && item.courseTiming.toLowerCase().includes(normalizedSearchQuery)) ||
-            (item.language && item.language.toLowerCase().includes(normalizedSearchQuery)) ||
-            
-            // Numeric fields (convert to string first)
-            (item.courseId && item.courseId.toString().includes(normalizedSearchQuery)) ||
-            (item.current && item.current.toString().includes(normalizedSearchQuery)) ||
-            (item.projected && item.projected.toString().includes(normalizedSearchQuery)) ||
-            (item.maximum && item.maximum.toString().includes(normalizedSearchQuery)) ||
-            (item.noLesson && item.noLesson.toString().includes(normalizedSearchQuery))
+            (item.courseName.toLowerCase() && item.courseName.toLowerCase().includes(normalizedSearchQuery))
           );
         });
       }
