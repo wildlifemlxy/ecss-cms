@@ -111,8 +111,8 @@ class CourseDetailsSection extends Component {
                 PayNow
               </label>
               {/* Conditionally render SkillsFuture based on the course names */}
-              {this.props.courseEnglishName !== 'Community Ukulele – Mandarin' && 
-                this.props.courseChineseName !== '音乐祝福社区四弦琴班 – 中文' && (
+              {!this.props.courseEnglishName.includes('Ukulele') && 
+                !this.props.courseChineseName.includes('四弦琴班') && (
                   <label>
                     <input
                       type="radio"
