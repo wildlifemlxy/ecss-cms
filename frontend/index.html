@@ -56,35 +56,28 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
-        // Check if current page is a form page
-        const isFormPage = window.location.href.includes('form');
+        // Initialize for all pages now (commented out form page check)
+        await OneSignal.init({
+          appId: "e215cf65-e110-4f8c-9e40-90e1f1e85d8e",
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: true,
+          }
+        });
+          
+        // Set tag for current path for notification filtering
+        const currentPath = window.location.pathname;
+        console.log('Setting OneSignal path tag:', currentPath);
+        await OneSignal.User.addTag('current_path', currentPath);
         
-        // Only initialize OneSignal on non-form pages
-        if (!isFormPage) {
-          await OneSignal.init({
-            appId: "e215cf65-e110-4f8c-9e40-90e1f1e85d8e",
-            allowLocalhostAsSecureOrigin: true,
-            notifyButton: {
-              enable: true,
-            }
-          });
-          
-          // Set tag for current path for notification filtering
-          const currentPath = window.location.pathname;
-          console.log('Setting OneSignal path tag:', currentPath);
-          await OneSignal.User.addTag('current_path', currentPath);
-          
-          // Track path changes
-          const originalPushState = history.pushState;
-          history.pushState = function() {
-            originalPushState.apply(this, arguments);
-            const newPath = window.location.pathname;
-            console.log('Path changed, updating OneSignal tag:', newPath);
-            OneSignal.User.addTag('current_path', newPath);
-          };
-        } else {
-          console.log("Skipping OneSignal initialization on form page");
-        }
+        // Track path changes
+        const originalPushState = history.pushState;
+        history.pushState = function() {
+          originalPushState.apply(this, arguments);
+          const newPath = window.location.pathname;
+          console.log('Path changed, updating OneSignal tag:', newPath);
+          OneSignal.User.addTag('current_path', newPath);
+        };
       });
     </script>
   </body>
