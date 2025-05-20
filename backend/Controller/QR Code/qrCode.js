@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `健康心灵, 健康生活 Healthy Minds for Healthy Lives (Pasir Ris West Wellness Centre).jpg`; 
+            const filename = `衍纸的乐趣 Fun with Paper Quilling (Tampines 253 Centre).jpg`; 
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e5%81%a5%e5%ba%b7%e5%bf%83%e7%81%b5%ef%bc%8c%e5%81%a5%e5%ba%b7%e7%94%9f%e6%b4%bbhealthy-minds-for-healthy-lives-mandarin-prw/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e8%a1%8d%e7%ba%b8%e7%9a%84%e4%b9%90%e8%b6%a3fun-with-paper-quilling-tncc/`);
 qrCodeGenerator.generate();

@@ -20,7 +20,7 @@ async function sendOneSignalNotification({ title, message, url}) {
       headings: { en: title },
       url: url,
       priority: 10,
-      ttl: 259200  // 3 days in seconds
+      ttl: 259200  // 72 days in seconds
     };
     
     // If test devices are provided, target them specifically
