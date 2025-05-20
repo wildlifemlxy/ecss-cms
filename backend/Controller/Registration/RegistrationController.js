@@ -23,7 +23,7 @@ class RegistrationController {
                 var collectionName = "Registration Forms";
                 var connectedDatabase = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, data);   
                 console.log("Insert New Participants:", connectedDatabase);
-                if(connectedDatabase === true)
+                if(connectedDatabase.acknowledged === true)
                 {
                     return {
                         success: true,
