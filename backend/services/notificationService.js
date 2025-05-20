@@ -1,8 +1,8 @@
 const axios = require('axios');
 
-// OneSignal App ID and REST API Key
-const ONESIGNAL_APP_ID = 'e215cf65-e110-4f8c-9e40-90e1f1e85d8e';
-const ONESIGNAL_API_KEY = 'Basic os_v2_app_4ik46zpbcbhyzhsasdq7d2c5ry4mimwudbtedxnyo3gq7ak2u3avljzu6upxdz5j36wr7kaymgclt756zekbruq7zbfnbq5zskgb3oy';
+// Updated OneSignal App ID and REST API Key
+const ONESIGNAL_APP_ID = '01b56852-4a5c-4ccc-9733-11aa47d27400';
+const ONESIGNAL_API_KEY = 'Basic os_v2_app_ag2wqusklrgmzfztcgveputuabbdoykxe6dumemjzjrcrgapmx3kfpff2g3qgyasj6mfdw6236tkygmxhodlx7tvdre7ykbc6pjlvyq';
 
 /**
  * Send a OneSignal push notification to all users except those on the form page.

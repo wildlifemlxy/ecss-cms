@@ -56,15 +56,21 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
-        // Initialize for all pages now (commented out form page check)
         await OneSignal.init({
-          appId: "e215cf65-e110-4f8c-9e40-90e1f1e85d8e",
+          appId: "01b56852-4a5c-4ccc-9733-11aa47d27400",
           allowLocalhostAsSecureOrigin: true,
           notifyButton: {
-            enable: true,
+            enable: true,  // Shows the bell icon
+          },
+          promptOptions: {
+            slidedown: {
+              prompts: [
+                { type: "push", autoPrompt: true }
+              ]
+            }
           }
         });
-          
+        
         // Set tag for current path for notification filtering
         const currentPath = window.location.pathname;
         console.log('Setting OneSignal path tag:', currentPath);
