@@ -28,9 +28,9 @@ class App extends Component
           <Route path="/new" component={NewCustomersPage} />
           <Route path="/mass" component={MassImportPage} />
           <Route path="/coursesSelection" component={CourseSelectionPage}/>
-          {/*<Route exact path="/singpass" component={SingpassPage} />
+          <Route exact path="/singpass" component={SingpassPage} />
           <Route path="/myinfo-redirect" component={MyInfoRedirectPage} />
-          <Route path="/myinfo-results" component={MyInfoResultsPage} />*/}
+          <Route path="/myinfo-results" component={MyInfoResultsPage} />
           <Route component={ErrorPage} />
         </Switch>
       </Router>

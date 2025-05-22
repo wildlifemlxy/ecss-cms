@@ -20,25 +20,15 @@ class MyInfoRedirect extends Component {
 
   exchangeCodeForToken = async (authCode) => {
     const codeVerifier = sessionStorage.getItem('code_verifier');
-    const tokenUrl = "https://stg-id.singpass.gov.sg/token";
-    const clientId = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
     const redirectUri = "http://localhost:3000/myinfo-redirect"; // Same redirect URI as before
 
-    const params = new URLSearchParams();
-    params.append("grant_type", "authorization_code");
-    params.append("code", authCode);
-    params.append("redirect_uri", redirectUri);
-    params.append("client_id", clientId);
-    params.append("code_verifier", codeVerifier);
-
     try {
-      const response = await axios.post(tokenUrl, params, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
+      const response = await axios.post('http://localhost:3001/singpass', {
+        code: authCode,
+        code_verifier: codeVerifier,
+        redirect_uri: redirectUri,
       });
       console.log("Token Response:", response.data);
-      // Handle the access token and store it in localStorage or session
       const accessToken = response.data.access_token;
       sessionStorage.setItem("access_token", accessToken);
     } catch (error) {
