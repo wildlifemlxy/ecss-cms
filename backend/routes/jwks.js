@@ -8,7 +8,7 @@ router.get('/.well-known/jwks.json', (req, res) => {
   try {
     const jwks = JSON.parse(fs.readFileSync(jwksPath, 'utf8'));
     console.log('JWKS loaded successfully', jwks);
-    res.json(jwks);
+   // res.json(jwks);
   } catch (err) {
     res.status(500).json({ error: 'Unable to load JWKS' });
   }

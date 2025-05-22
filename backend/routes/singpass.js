@@ -30,8 +30,8 @@ const ENCRYPTION_PRIVATE_KEY = {
 };
 
 // --- Demo Singpass Application Attributes ---
-const SINGPASS_CLIENT_ID = "tLRDBkf1CNy5Rsi34mEKuOD5EpQAwjIq"; // Registered client_id
-const SINGPASS_REDIRECT_URI = "http://localhost:3000/myinfo-redirect"; // Use local redirect URI for development
+const SINGPASS_CLIENT_ID = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo"; // Registered client_id
+const SINGPASS_REDIRECT_URI = "https://ecss-backend-node.azurewebsites.net/myinfo-redirect"; // Use local redirect URI for development
 const SINGPASS_TOKEN_URL = "https://stg-id.singpass.gov.sg/token";
 const SINGPASS_KID = "signing-key-id";
 const SINGPASS_ISSUER = "https://ecss-backend-node.azurewebsites.net"; // Your Azure backend URL
@@ -67,6 +67,10 @@ router.post("/", async (req, res) => {
 
     // Log the generated JWT
     console.log("Generated JWT:", jwt);
+
+    // Decode and log the JWT payload for debugging
+    const decoded = decodeJwt(jwt);
+    console.log("Decoded JWT payload:", decoded);
 
     // --- Build request parameters as attributes ---
     const tokenRequestParams = {
