@@ -30,18 +30,19 @@ class SingpassPage extends Component {
   handleLogin = async () => {
     // Generate PKCE parameters
     const codeVerifier = this.generateCodeVerifier();
-    console.log('Code verifier generated123:', codeVerifier);
+    console.log('Code verifier generated:', codeVerifier);
     const codeChallenge = await this.generateCodeChallenge(codeVerifier);
     const codeChallengeMethod = "S256"; // PKCE method
 
     const authurl = "https://stg-id.singpass.gov.sg/auth?";
-    //const scope = "openid uinfin name dob sex nationality race residentialstatus email mobileno regadd"; // Available scopes for user data
     const scope = "openid name uinfin residentialstatus race sex dob nationality mobileno email regadd"; // Available scopes for user data
     const response_type = "code";
     const client_id = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
-    const redirect_uri = await axios.post(
-        `${window.location.hostname === "localhost" ? "http://localhost:3000" : "https://salmon-wave-09f02b100.6.azurestaticapps.net"}/myinfo-redirect`,
-    );
+    
+    // Fix: redirect_uri should be a string, not an axios.post call
+    const redirect_uri = window.location.hostname === "localhost" 
+      ? "http://localhost:3000/myinfo-redirect" 
+      : "https://salmon-wave-09f02b100.6.azurestaticapps.net/myinfo-redirect";
 
     // Generate state and nonce
     const nonce = window.crypto.randomUUID();
@@ -53,13 +54,14 @@ class SingpassPage extends Component {
     sessionStorage.setItem('code_verifier', codeVerifier);
     
     console.log('State stored:', state);
+    console.log('Redirect URI:', redirect_uri);
 
     const url =
       authurl +
-      "scope=" + scope + // URL encoding handles spaces between scopes
+      "scope=" + encodeURIComponent(scope) + // Fix: URL encode the scope parameter
       "&state=" + state +
       "&response_type=" + response_type +
-      "&redirect_uri=" + redirect_uri +
+      "&redirect_uri=" + encodeURIComponent(redirect_uri) + // Fix: URL encode the redirect_uri
       "&client_id=" + client_id +
       "&nonce=" + nonce +
       "&code_challenge=" + codeChallenge +
@@ -77,11 +79,11 @@ class SingpassPage extends Component {
       }));
     }, 1000);
     
-    // Delay redirect by 15 seconds
+    // Fix: Delay redirect by 1 second (not 15 milliseconds)
     setTimeout(() => {
       clearInterval(this.countdownInterval);
       window.location.href = url;
-    }, 15);
+    }, 1000);
   };
 
   constructor(props) {
@@ -104,18 +106,64 @@ class SingpassPage extends Component {
     const { redirecting, countdown } = this.state;
     
     return (
-      <div>
+      <div style={{
+        maxWidth: '400px',
+        margin: '50px auto',
+        padding: '30px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+        textAlign: 'center'
+      }}>
         {redirecting ? (
-          <div className="redirect-container">
-            <p>Redirecting to SingPass in {countdown} seconds...</p>
-            <button onClick={() => window.location.href = url}>
-              Redirect now
-            </button>
+          <div>
+            <h3 style={{ color: '#333', marginBottom: '20px' }}>Redirecting to SingPass...</h3>
+            <p style={{ color: '#666', marginBottom: '20px' }}>
+              You will be redirected in {countdown} second{countdown !== 1 ? 's' : ''}
+            </p>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid #f3f3f3',
+              borderTop: '4px solid #2196F3',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto'
+            }}></div>
           </div>
         ) : (
-          <button type="submit" onClick={this.handleLogin}>
-            Login with Singpass
-          </button>
+          <div>
+            <h2 style={{ color: '#333', marginBottom: '20px' }}>SingPass Login</h2>
+            <p style={{ color: '#666', marginBottom: '30px' }}>
+              Click below to authenticate with your SingPass credentials
+            </p>
+            <button 
+              type="submit" 
+              onClick={this.handleLogin}
+              style={{
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                padding: '12px 24px',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '500',
+                transition: 'all 0.3s ease',
+                minWidth: '200px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#45a049';
+                e.target.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#4CAF50';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              Login with SingPass
+            </button>
+          </div>
         )}
       </div>
     );
