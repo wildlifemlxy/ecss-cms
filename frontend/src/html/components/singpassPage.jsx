@@ -40,7 +40,7 @@ class SingpassPage extends Component {
     const response_type = "code";
     const client_id = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
     const redirect_uri = await axios.post(
-        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/singpass`,
+        `${window.location.hostname === "localhost" ? "http://localhost:3000" : "https://salmon-wave-09f02b100.6.azurestaticapps.net"}/myinfo-redirect`,
     );
 
     // Generate state and nonce
