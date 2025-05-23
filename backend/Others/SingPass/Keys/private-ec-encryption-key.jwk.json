@@ -1,10 +1,10 @@
 {
   "kty": "EC",
-  "x": "LJxR7zvMGPjt5E0aF96uW86WyIkT4E4erpilWzBhS7o",
-  "y": "ob0isNyOo1IKq55BFHQllb-lkQ5zAwEEUBFO1ytozts",
+  "x": "-Rfvusaw8CX-Wn768xm7uzM7vLTScf5Wd0yMdf8o0s8",
+  "y": "1SDLjGHPuVBpFe_qQJ8syAPmcpJ_u2BVzEAfpR343PI",
   "crv": "P-256",
-  "d": "hT7Ul334ShcBmjCwy3iFhdaKsAR_AaUzxxNmGvo4bgI",
+  "d": "JvgI690zt3FThebW5XxlVNvp3s8JYJOaFrTsMLocFUs",
   "use": "enc",
   "alg": "ECDH-ES+A256KW",
-  "kid": "ec-encryption-key-4aa640be"
+  "kid": "ec-encryption-key-f407a12d"
 }

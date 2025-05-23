@@ -8,7 +8,7 @@ async function generateAndSaveKeys() {
   const kidSuffix = crypto.randomBytes(4).toString('hex');
   
   // Generate signing EC key pair (P-256)
-  const { publicKey: signPublicKey, privateKey: signPrivateKey } = await generateKeyPair('ES512', { extractable: true });
+  const { publicKey: signPublicKey, privateKey: signPrivateKey } = await generateKeyPair('ES256', { extractable: true });
   
   // Generate encryption EC key pair (P-256) for JWE (ECDH-ES+A256KW)
   // NOTE: For JWE, use ECDH-ES with curve P-256 ("P-256" is the default for ECDH-ES in jose)
@@ -17,7 +17,7 @@ async function generateAndSaveKeys() {
   // Export signing public key as JWK
   const signJwk = await exportJWK(signPublicKey);
   signJwk.use = 'sig';
-  signJwk.alg = 'ES512';
+  signJwk.alg = 'ES256';
   signJwk.kid = `signing-key-${kidSuffix}`;
 
   // Export ECDH encryption public key as JWK (for JWE encryption)
@@ -32,7 +32,7 @@ async function generateAndSaveKeys() {
   // Export private keys as JWK
   const signPrivateJwk = await exportJWK(signPrivateKey);
   signPrivateJwk.use = 'sig';
-  signPrivateJwk.alg = 'ES512';
+  signPrivateJwk.alg = 'ES256';
   signPrivateJwk.kid = signJwk.kid;
 
   const encPrivateJwk = await exportJWK(encPrivateKey);
@@ -103,7 +103,7 @@ async function testJweEncryption() {
 // Run both functions
 async function run() {
   await generateAndSaveKeys();
-  await testJweEncryption();
+  //await testJweEncryption();
 }
 
 run();

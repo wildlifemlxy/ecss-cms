@@ -2,21 +2,21 @@
   "keys": [
     {
       "kty": "EC",
-      "x": "AftJ2MNpumEVjFC9QwCLvBN70svfCuQ_p6uDs_IJPjFbAdFyZKWgg6bLq5iJDdEgO4s84zjk4HqTFhy4K4ektE7W",
-      "y": "AP5WqkPrk7HQ25G4Gdj8cBN6a6bNGdO836z6kuSmQuK4-iFb9rg7qbS1gqX3coPz6iPLCLNEbADFUWV_w3WWIK8L",
-      "crv": "P-521",
+      "x": "XiV6mrzYIqnB5C5jg2E_Ot51TalaOd_lxfzp04xYKWg",
+      "y": "KioV9MN3bqXAAGrEE8onEDFr5s_BwmoqFRspSOgYx-k",
+      "crv": "P-256",
       "use": "sig",
-      "alg": "ES512",
-      "kid": "signing-key-4aa640be"
+      "alg": "ES256",
+      "kid": "signing-key-f407a12d"
     },
     {
       "kty": "EC",
-      "x": "LJxR7zvMGPjt5E0aF96uW86WyIkT4E4erpilWzBhS7o",
-      "y": "ob0isNyOo1IKq55BFHQllb-lkQ5zAwEEUBFO1ytozts",
+      "x": "-Rfvusaw8CX-Wn768xm7uzM7vLTScf5Wd0yMdf8o0s8",
+      "y": "1SDLjGHPuVBpFe_qQJ8syAPmcpJ_u2BVzEAfpR343PI",
       "crv": "P-256",
       "use": "enc",
       "alg": "ECDH-ES+A256KW",
-      "kid": "ec-encryption-key-4aa640be"
+      "kid": "ec-encryption-key-f407a12d"
     }
   ]
 }

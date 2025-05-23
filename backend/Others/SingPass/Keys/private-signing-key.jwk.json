@@ -1,10 +1,10 @@
 {
   "kty": "EC",
-  "x": "AftJ2MNpumEVjFC9QwCLvBN70svfCuQ_p6uDs_IJPjFbAdFyZKWgg6bLq5iJDdEgO4s84zjk4HqTFhy4K4ektE7W",
-  "y": "AP5WqkPrk7HQ25G4Gdj8cBN6a6bNGdO836z6kuSmQuK4-iFb9rg7qbS1gqX3coPz6iPLCLNEbADFUWV_w3WWIK8L",
-  "crv": "P-521",
-  "d": "AJKTZvJ9itWqhOwmJYnMy2Ghe3XBpPEFU74iltb74pzySD0ogtXTN3P6UEXwc-9RHxD7CCdUAr7rYFUnCFFATcpB",
+  "x": "XiV6mrzYIqnB5C5jg2E_Ot51TalaOd_lxfzp04xYKWg",
+  "y": "KioV9MN3bqXAAGrEE8onEDFr5s_BwmoqFRspSOgYx-k",
+  "crv": "P-256",
+  "d": "M65DMRGEXmJThRZ15-_OKrVz7RmgDGQxGYUqt7lErWs",
   "use": "sig",
-  "alg": "ES512",
-  "kid": "signing-key-4aa640be"
+  "alg": "ES256",
+  "kid": "signing-key-f407a12d"
 }
