@@ -2,29 +2,21 @@
   "keys": [
     {
       "kty": "EC",
-      "x": "ikauGas2F4_6hxY9tzW9AXR5DyGN875FTM3QBs-hfPE",
-      "y": "05qcYh9kb_WWGPFBKi0vWLZ1GWg9Z-6uurc_ZTlKkC4",
-      "crv": "P-256",
+      "x": "AftJ2MNpumEVjFC9QwCLvBN70svfCuQ_p6uDs_IJPjFbAdFyZKWgg6bLq5iJDdEgO4s84zjk4HqTFhy4K4ektE7W",
+      "y": "AP5WqkPrk7HQ25G4Gdj8cBN6a6bNGdO836z6kuSmQuK4-iFb9rg7qbS1gqX3coPz6iPLCLNEbADFUWV_w3WWIK8L",
+      "crv": "P-521",
       "use": "sig",
-      "alg": "ES256",
-      "kid": "signing-key-50f8c6d9"
+      "alg": "ES512",
+      "kid": "signing-key-4aa640be"
     },
     {
       "kty": "EC",
-      "x": "3VVdvOMDP1h1Ba7s9pQawiblzF8jxVb65sddEPkmNHE",
-      "y": "5KVw0uepa1aBh3H28yqbKqt4uUvnDmrShAExmF1FV4U",
+      "x": "LJxR7zvMGPjt5E0aF96uW86WyIkT4E4erpilWzBhS7o",
+      "y": "ob0isNyOo1IKq55BFHQllb-lkQ5zAwEEUBFO1ytozts",
       "crv": "P-256",
       "use": "enc",
       "alg": "ECDH-ES+A256KW",
-      "kid": "ec-encryption-key-50f8c6d9"
-    },
-    {
-      "kty": "RSA",
-      "n": "ztLH5x5A50d4ooch4N5hD24EAScBguuf-RtZQu5yPg8BAk7zZHei4GlabCpeZXPff-wJ0tguAQrBDL41sjXq8RQmYG4WRcGxACdYQ2QIdMs9VInzmwHRgKwqdmLZcJ97cPvJ_ggvc9BkKF8RQcOtldhIUguV7sv-za2f8dRLZNUK0NcsB0JXfenCXMv4ofm2jpuUmHTkl1-Oc3QnkNY_gq6Znusg832K2SaKUJXnvwTdMOAQDzPOR0oZLIc8CdlHKYWIDKrC6edZ8TeJ0cwTKGMb1tqkMQtN56Keyokpefd6oS-beVjO6uXVWVNVLTuBqOTrDHSLkJ4XmU7R-hvzGQ",
-      "e": "AQAB",
-      "use": "enc",
-      "alg": "RSA-OAEP-256",
-      "kid": "rsa-encryption-key-50f8c6d9"
+      "kid": "ec-encryption-key-4aa640be"
     }
   ]
 }
