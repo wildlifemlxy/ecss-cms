@@ -22,7 +22,7 @@ const jwksRouter = require('./routes/jwks');
 app.use(cors()); // Enable CORS
 app.use(logger('dev')); // HTTP request logger
 app.use(express.json()); // For parsing JSON
-app.use(express.urlencoded({ extended: false })); // For parsing URL-encoded data
+app.use(express.urlencoded({ extended: true })); // For parsing URL-encoded data
 app.use(cookieParser()); // For parsing cookies
 
 // Set up views (if you're using templates)okok
@@ -37,7 +37,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
