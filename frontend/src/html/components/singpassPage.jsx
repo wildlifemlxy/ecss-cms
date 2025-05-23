@@ -34,10 +34,13 @@ class SingpassPage extends Component {
     const codeChallengeMethod = "S256"; // PKCE method
 
     const authurl = "https://stg-id.singpass.gov.sg/auth?";
-    const scope = "openid";
+    //const scope = "openid uinfin name dob sex nationality race residentialstatus email mobileno regadd"; // Available scopes for user data
+    const scope = "openid name uinfin residentialstatus race sex dob nationality mobileno email regadd"; // Available scopes for user data
     const response_type = "code";
     const client_id = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
-    const redirect_uri = "http://localhost:3000/myinfo-redirect";
+    const redirect_uri = await axios.post(
+        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/singpass`,
+    );
 
     // Generate state and nonce
     const nonce = window.crypto.randomUUID();
@@ -52,14 +55,14 @@ class SingpassPage extends Component {
 
     const url =
       authurl +
-      "scope=" + encodeURIComponent(scope) +
-      "&state=" + encodeURIComponent(state) +
-      "&response_type=" + encodeURIComponent(response_type) +
-      "&redirect_uri=" + encodeURIComponent(redirect_uri) +
-      "&client_id=" + encodeURIComponent(client_id) +
-      "&nonce=" + encodeURIComponent(nonce) +
-      "&code_challenge=" + encodeURIComponent(codeChallenge) +
-      "&code_challenge_method=" + encodeURIComponent(codeChallengeMethod);
+      "scope=" + scope + // URL encoding handles spaces between scopes
+      "&state=" + state +
+      "&response_type=" + response_type +
+      "&redirect_uri=" + redirect_uri +
+      "&client_id=" + client_id +
+      "&nonce=" + nonce +
+      "&code_challenge=" + codeChallenge +
+      "&code_challenge_method=" + codeChallengeMethod;
 
     console.log('Redirecting to:', url);
     
