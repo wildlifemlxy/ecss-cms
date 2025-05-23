@@ -9,7 +9,7 @@ const CLIENT_ID = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
 const JWTTOKENURL = "https://stg-id.singpass.gov.sg";
 const SPTOKENURL = "https://stg-id.singpass.gov.sg/token";
 const REDIRECT_URI = process.env.NODE_ENV === 'production' 
-  ? "https://ecss-cms-frontend.azurewebsites.net/myinfo-redirect"  // Replace with your actual Azure frontend URL
+  ? "https://salmon-wave-09f02b100.6.azurestaticapps.net/myinfo-redirect"  // Replace with your actual Azure frontend URL
   : "http://localhost:3000/myinfo-redirect";
 
 const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
