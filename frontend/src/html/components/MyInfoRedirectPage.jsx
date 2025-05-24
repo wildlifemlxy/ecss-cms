@@ -35,9 +35,15 @@ class MyInfoRedirectPage extends Component {
     console.log("Sending code to backend:", code);
     console.log("Using code_verifier:", code_verifier);
     
+    // Azure best practice: Use environment variables for API endpoints
+    const API_BASE_URL =
+      window.location.hostname === "localhost" 
+        ? "http://localhost:3001" 
+        : "https://ecss-backend-node.azurewebsites.net";
+    
     try {
       const response = await axios.post(
-        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/singpass`,
+        `${API_BASE_URL}/singpass`,
         {
           code,
           code_verifier
@@ -45,22 +51,37 @@ class MyInfoRedirectPage extends Component {
         {
           timeout: 30000, // 30 second timeout
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
           }
         }
       );
       console.log("Backend response:", response.data);
       
+      // Process and normalize the user data
+      const normalizedUserData = this.normalizeUserData(response.data);
+      console.log("Normalized user data:", normalizedUserData);
+      
       // Handle successful authentication
       this.setState({ 
         loading: false,
         success: true, 
-        data: response.data,
+        data: {
+          ...response.data,
+          normalizedUserData: normalizedUserData
+        },
         error: false 
       });
       
     } catch (error) {
       console.error("Authentication failed:", error);
+      console.error("Error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url
+      });
+      
       this.setState({ 
         loading: false,
         success: false, 
@@ -68,6 +89,135 @@ class MyInfoRedirectPage extends Component {
         errorMessage: error.response?.data?.message || error.message || "Authentication failed"
       });
     }
+  };
+
+  // NEW: Function to normalize user data for FormPage
+  normalizeUserData = (responseData) => {
+    console.log("Raw response data:", responseData);
+    
+    const userData = responseData.userData || {};
+    console.log("Extracted userData:", userData);
+    console.log("Residential status code:", userData.residentialstatus);
+    
+    // Create normalized data object with proper field mapping
+    const normalized = {
+      name: this.extractValue(userData.name),
+      nric: this.extractValue(userData.uinfin),
+      residentialStatus: this.formatResidentialStatus(userData.residentialstatus.code, userData.residentialstatus.desc),
+      race: this.formatRace(userData.race.code, userData.race.desc),
+      gender: this.formatGender(userData.sex.code, userData.sex.desc),
+      dob: userData.dob,
+      contactNumber: this.extractMobileNumber(userData.mobileno),
+      email: this.extractValue(userData.email) || '',
+      postalCode: this.extractPostalCode(userData.regadd),
+      educationLevel: this.extractValue(userData.education) || '',
+      workStatus: this.extractValue(userData.workstatus) || ''
+    };
+    
+    console.log("Normalized user data:", normalized);
+    return normalized;
+  };
+
+  // Helper function to extract simple values from SingPass structure
+  extractValue = (field) => {
+    if (!field) return '';
+    
+    // Handle SingPass structured data: {lastupdated, source, classification, value}
+    if (typeof field === 'object' && field.value !== undefined) {
+      return this.extractValue(field.value);
+    }
+    
+    // Handle simple string/number values
+    if (typeof field === 'string' || typeof field === 'number') {
+      return String(field).trim();
+    }
+    
+    return '';
+  };
+
+  // Helper function to extract coded values (like race, gender, residential status)
+  extractCodeValue = (field) => {
+    if (!field) return '';
+    
+    // Handle SingPass structured data
+    if (typeof field === 'object' && field.value !== undefined) {
+      return this.extractCodeValue(field.value);
+    }
+    
+    // Handle coded values: {code, desc}
+    if (typeof field === 'object' && field.code !== undefined) {
+      return field.code;
+    }
+    
+    // Handle simple values
+    if (typeof field === 'string' || typeof field === 'number') {
+      return String(field).trim();
+    }
+    
+    return '';
+  };
+
+  // Helper function to extract and format date
+  extractAndFormatDate = (dateField) => {
+    if (!dateField) return '';
+    
+    const dateValue = this.extractValue(dateField);
+    if (!dateValue) return '';
+    
+    return this.formatDateOfBirth(dateValue);
+  };
+
+  // Helper function to extract mobile number without country code
+  extractMobileNumber = (mobileField) => {
+    if (!mobileField) return '';
+    
+    // Handle SingPass structured data
+    if (typeof mobileField === 'object' && mobileField.value !== undefined) {
+      return this.extractMobileNumber(mobileField.value);
+    }
+    
+    // Handle mobile number structure: {areacode, prefix, nbr}
+    if (typeof mobileField === 'object' && mobileField.nbr) {
+      const number = this.extractValue(mobileField.nbr);
+      return number;
+    }
+    
+    // Handle simple string/number
+    if (typeof mobileField === 'string' || typeof mobileField === 'number') {
+      let mobile = String(mobileField).trim();
+      // Remove +65 country code if present
+      if (mobile.startsWith('+65')) {
+        mobile = mobile.substring(3);
+      }
+      if (mobile.startsWith('65') && mobile.length === 10) {
+        mobile = mobile.substring(2);
+      }
+      return mobile;
+    }
+    
+    return '';
+  };
+
+  // Helper function to extract postal code from address
+  extractPostalCode = (addressField) => {
+    if (!addressField) return '';
+    
+    // Handle SingPass structured data
+    if (typeof addressField === 'object' && addressField.value !== undefined) {
+      return this.extractPostalCode(addressField.value);
+    }
+    
+    // Handle address object with postal field
+    if (typeof addressField === 'object' && addressField.postal) {
+      return this.extractValue(addressField.postal);
+    }
+    
+    // Handle simple values
+    if (typeof addressField === 'string' || typeof addressField === 'number') {
+      return String(addressField).trim();
+    }
+    
+    return '';
   };
 
   constructor(props) {
@@ -100,6 +250,7 @@ class MyInfoRedirectPage extends Component {
 
   // Enhanced helper function to safely render complex SingPass structured objects
   renderValue = (value, fieldName = null) => {
+    console.log('Rendering value for field:', fieldName, 'Value:', value, "Type:", typeof value);
     if (value === null || value === undefined) {
       return 'N/A';
     }
@@ -135,9 +286,12 @@ class MyInfoRedirectPage extends Component {
       return number; // Return only the number without country code
     }
     
-    // Handle date of birth formatting to dd/mm/yyyy
+    // Handle date of birth formatting to dd/mm/yyyy - FIXED
     if (fieldName === 'dob' && typeof value === 'string') {
-      return this.formatDateOfBirth(value);
+      console.log('Date of Birth input:', value);
+      const formattedDate = this.formatDateOfBirth(value);
+      console.log('Date of Birth formatted:', formattedDate);
+      return formattedDate;
     }
     
     // Handle address objects - return only postal code
@@ -216,37 +370,73 @@ class MyInfoRedirectPage extends Component {
     return String(value);
   };
 
-  // Helper function to format date of birth to dd/mm/yyyy
+  // FIXED: Helper function to format date of birth to dd/mm/yyyy
   formatDateOfBirth = (dateString) => {
     try {
-      // Handle various date formats
-      let date;
+      console.log('Formatting date input:', dateString, 'Type:', typeof dateString);
+      
+      // Handle null, undefined, or empty values
+      if (!dateString || dateString === '') {
+        console.log('Empty date string, returning N/A');
+        return 'N/A';
+      }
+      
+      // Convert to string if it's not already
+      const dateStr = String(dateString).trim();
       
       // If it's already in dd/mm/yyyy format, return as is
-      if (dateString.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-        return dateString;
+      if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+        console.log('Date already in dd/mm/yyyy format:', dateStr);
+        return dateStr;
       }
       
-      // If it's in yyyy-mm-dd format (ISO format)
-      if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        const [year, month, day] = dateString.split('-');
-        return `${day}/${month}/${year}`;
+      // If it's in yyyy-mm-dd format (ISO format) - most common SingPass format
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [year, month, day] = dateStr.split('-');
+        const formattedDate = `${day}/${month}/${year}`;
+        console.log('Converted yyyy-mm-dd to dd/mm/yyyy:', formattedDate);
+        return formattedDate;
       }
       
-      // Try parsing as a date object
-      date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
+      // If it's in dd-mm-yyyy format with dashes
+      if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
+        const [day, month, year] = dateStr.split('-');
+        const formattedDate = `${day}/${month}/${year}`;
+        console.log('Converted dd-mm-yyyy to dd/mm/yyyy:', formattedDate);
+        return formattedDate;
+      }
+      
+      // If it's in mm/dd/yyyy format (US format)
+      if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/) && dateStr !== dateStr.replace(/^(\d{2})\/(\d{2})\/(\d{4})$/, '$2/$1/$3')) {
+        // This is a more complex check - for now, assume it's already correct
+        console.log('Date appears to be in mm/dd/yyyy or dd/mm/yyyy format:', dateStr);
+        return dateStr;
+      }
+      
+      // Try parsing as a Date object for other formats
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
+        const formattedDate = `${day}/${month}/${year}`;
+        console.log('Parsed date object to dd/mm/yyyy:', formattedDate);
+        return formattedDate;
+      }
+      
+      // If it's just a year (like "1960")
+      if (dateStr.match(/^\d{4}$/)) {
+        console.log('Only year provided:', dateStr);
+        return `01/01/${dateStr}`;
       }
       
       // If all else fails, return the original string
-      return dateString;
+      console.log('Could not format date, returning original:', dateStr);
+      return dateStr;
+      
     } catch (error) {
       console.error('Error formatting date:', error);
-      return dateString;
+      return dateString || 'N/A';
     }
   };
 
@@ -254,6 +444,7 @@ class MyInfoRedirectPage extends Component {
   formatResidentialStatus = (code, description) => {
     const statusMap = {
       'SC': 'SC 新加坡公民',
+      'C': 'SC 新加坡公民',
       'PR': 'PR 永久居民',
       'P': 'PR 永久居民'   // Alternative code for PR
     };
@@ -287,8 +478,109 @@ class MyInfoRedirectPage extends Component {
   };
 
   // Helper function to handle navigation
-  handleNavigation = (path) => {
-    window.location.href = path;
+  handleNavigation = (path, userData = null) => {
+    // Get course link from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const courseLink = urlParams.get('link');
+    
+    if (userData) {
+      // Use the normalized user data for FormPage
+      const userDataToPass = this.state.data?.normalizedUserData || userData;
+      console.log('Passing user data to FormPage:', userDataToPass);
+      
+      // Use React Router's history to navigate with state
+      this.props.history.push({
+        pathname: path,
+        state: { 
+          userData: userDataToPass,
+          courseLink: courseLink ? decodeURIComponent(courseLink) : null
+        }
+      });
+    } else {
+      // Navigate without state but preserve course link if going to singpass
+      if (path === "/singpass" && courseLink) {
+        this.props.history.push(`${path}?link=${courseLink}`);
+      } else {
+        this.props.history.push(path);
+      }
+    }
+  };
+
+  // Helper function to extract course information from URL
+  extractCourseInfo = (courseUrl) => {
+    if (!courseUrl) return null;
+    
+    try {
+      const url = new URL(courseUrl);
+      const pathname = url.pathname;
+      
+      // Extract course slug from URL path
+      const segments = pathname.split('/').filter(segment => segment);
+      
+      if (segments.length >= 2 && segments[0] === 'product') {
+        const courseSlug = decodeURIComponent(segments[1]);
+        
+        // Parse course information
+        const courseInfo = {
+          url: courseUrl,
+          slug: courseSlug,
+          name: this.parseCourseName(courseSlug),
+          location: this.parseCourseLocation(courseSlug)
+        };
+        
+        return courseInfo;
+      }
+      
+      return { url: courseUrl, name: 'Course Registration' };
+    } catch (error) {
+      console.error('Error parsing course URL:', error);
+      return { url: courseUrl, name: 'Course Registration' };
+    }
+  };
+
+  // Helper function to parse course name from slug
+  parseCourseName = (slug) => {
+    // Handle Chinese course names
+    const chineseMatch = slug.match(/[\u4e00-\u9fff]+/);
+    const chineseName = chineseMatch ? chineseMatch[0] : '';
+    
+    // Handle English parts
+    const englishParts = slug
+      .replace(/[\u4e00-\u9fff]+/, '') // Remove Chinese characters
+      .split(/[-_]/)
+      .filter(part => 
+        part && 
+        !/^(tampines|jurong|bedok|woodlands|toa|payoh|ang|mo|kio|centre|\d+)$/i.test(part)
+      );
+    
+    let englishName = '';
+    if (englishParts.length > 0) {
+      englishName = englishParts
+        .join(' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    if (chineseName && englishName) {
+      return `${chineseName} (${englishName})`;
+    }
+    
+    return chineseName || englishName || 'Course Registration';
+  };
+
+  // Helper function to parse course location from slug
+  parseCourseLocation = (slug) => {
+    const locationMatch = slug.match(/(tampines|jurong|bedok|woodlands|toa-payoh|ang-mo-kio).*?(\d+).*?(centre|center)/i);
+    
+    if (locationMatch) {
+      const area = locationMatch[1]
+        .replace(/-/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase());
+      const number = locationMatch[2];
+      return `${area} ${number} Centre`;
+    }
+    
+    return 'Location TBC';
   };
 
   render() {
@@ -397,7 +689,7 @@ class MyInfoRedirectPage extends Component {
               e.target.style.backgroundColor = '#4CAF50';
               e.target.style.transform = 'translateY(0)';
             }}
-            onClick={() => this.handleNavigation("/singPass")}
+            onClick={() => this.handleNavigation("/singpass")}
           >
             Try Again
           </button>
@@ -500,6 +792,40 @@ class MyInfoRedirectPage extends Component {
                   ))}
               </div>
             )}
+            
+            {/* Display normalized data for debugging */}
+            {data.normalizedUserData && (
+              <div style={{ marginTop: '25px' }}>
+                <h4 style={{
+                  marginBottom: '15px',
+                  color: '#333',
+                  borderBottom: '2px solid #4CAF50',
+                  paddingBottom: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }}>
+                  Normalized Data (For Form)
+                </h4>
+                {Object.entries(data.normalizedUserData)
+                  .filter(([key, value]) => value !== '') // Only show non-empty values
+                  .map(([key, value], index, array) => (
+                    <div 
+                      key={key} 
+                      style={{
+                        ...dataItemStyle,
+                        borderBottom: index === array.length - 1 ? 'none' : '1px solid #e0e0e0'
+                      }}
+                    >
+                      <strong style={labelStyle}>
+                        {key}:
+                      </strong>
+                      <span style={valueStyle}>
+                        {value || 'N/A'}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
           
           <button 
@@ -512,9 +838,9 @@ class MyInfoRedirectPage extends Component {
               e.target.style.backgroundColor = '#4CAF50';
               e.target.style.transform = 'translateY(0)';
             }}
-            onClick={() => this.handleNavigation("/singPass")}
+            onClick={() => this.handleNavigation("/form", data.userData)}
           >
-            Continue
+            Continue to Form
           </button>
         </div>
       );

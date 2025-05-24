@@ -1,18 +1,20 @@
 import React, { Component } from 'react';
 import '../../css/formPage.css';
 import FormDetails from './sub/registrationForm/formDetails';
-import PersonalInfo from './sub/registrationForm/personalInfo'; // Import PersonalInfo component
-import CourseDetails from './sub/registrationForm/courseDetails'; // Import CourseDetails component
+import PersonalInfo from './sub/registrationForm/personalInfo';
+import CourseDetails from './sub/registrationForm/courseDetails';
 import AgreementDetailsSection from './sub/registrationForm/agreementDetails';
 import SubmitDetailsSection from './sub/registrationForm/submitDetails';
 import axios from 'axios';
+import SingPassButton from './sub/SingPassButton';
 
 class FormPage extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      currentSection: 0 ,
+      currentSection: 0,
       loading: false,
+      isAuthenticated: false, // Track SingPass authentication status
       formData: {
         englishName: '',
         chineseName: '',
@@ -28,7 +30,7 @@ class FormPage extends Component {
         eDUCATION: '',
         wORKING: '',
         courseDate: '',
-        agreement: '',  // Corrected key from 'argeement' to 'agreement'
+        agreement: '',
         bgColor: '',
         courseMode: ''
       },
@@ -36,24 +38,280 @@ class FormPage extends Component {
     };
   }
 
+  // Check if user is authenticated with SingPass
+  checkSingPassAuthentication = () => {
+    try {
+      const userDataJson = sessionStorage.getItem('singpass_user_data_json');
+      const accessToken = sessionStorage.getItem('singpass_access_token');
+      
+      if (userDataJson && accessToken) {
+        const userData = JSON.parse(userDataJson);
+        return userData && userData.name;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking SingPass authentication:', error);
+      return false;
+    }
+  };
+
+  // Handle manual proceed without SingPass (optional)
+  handleProceedWithoutSingPass = () => {
+    this.setState({ 
+      isAuthenticated: true,
+      currentSection: 1 // Move to next section
+    });
+  };
+
+  formatRace = (race) => {
+    if (!race) return '';
+
+    // If already formatted in Chinese/English mix, return as is
+    if (
+      typeof race === 'string' &&
+      (race.includes('华') || race.includes('印') || race.includes('马') || race.includes('其他'))
+    ) {
+      return race;
+    }
+
+    // Default to OT unless we find a valid code
+    let raceCode = 'OT';
+
+    // Try to extract race code from structured object
+    if (typeof race === 'object') {
+      if (race.code) {
+        raceCode = race.code;
+      } else if (race.value) {
+        raceCode = race.value;
+      }
+    } else if (typeof race === 'string') {
+      raceCode = race;
+    }
+
+    const raceMap = {
+      'CN': 'Chinese 华',
+      'IN': 'Indian 印',
+      'MY': 'Malay 马',
+      'OT': 'Others 其他'
+    };
+
+    return raceMap[raceCode] || raceMap['OT'];
+  };
+
+
+  // Add helper function to format gender
+  formatGender = (gender) => {
+    console.log("Formatting gender:", gender);
+    if (!gender) return '';
+    
+    // Handle if gender is already formatted
+    if (typeof gender === 'string' && (gender.includes('男') || gender.includes('女'))) {
+      return gender;
+    }
+    
+    // Extract value if it's a SingPass structured object
+    let genderCode = gender.code;
+    if (typeof gender === 'object' && gender.value !== undefined) {
+      genderCode = gender.code;
+    }
+    
+    // Format according to your requirements
+    const genderMap = {
+      'M': 'M 男',
+      'F': 'F 女'
+    };
+    
+    return genderMap[genderCode] || genderCode;
+  };
+
+  // Updated formatResidentialStatus method to handle the classification property correctly
+  formatResidentialStatus = (status) => {
+    console.log("Residential Status:", status);
+    
+    if (!status) return '';
+    
+    // Handle if status is already formatted
+    if (typeof status === 'string' && (status.includes('新加坡公民') || status.includes('永久居民'))) {
+      return status;
+    }
+    
+    // Extract the correct status code from SingPass structured object
+    let statusCode = status;
+    if (typeof status === 'object') {
+      // Use classification if available, otherwise use code
+      statusCode = status.classification || status.code || status.value;
+    }
+    
+    console.log("Status Code:", statusCode);
+    
+    // Format according to your requirements
+    const statusMap = {
+      'SC': 'SC 新加坡公民',
+      'C': 'SC 新加坡公民',
+      'PR': 'PR 永久居民',
+      'P': 'PR 永久居民'
+    };
+    
+    return statusMap[statusCode] || statusCode;
+  };
+
+  // Add helper function to extract mobile number properly
+  extractMobileNumber = (mobileData) => {
+    if (!mobileData) return '';
+    
+    // Handle SingPass mobile structure: {areacode, prefix, nbr}
+    if (typeof mobileData === 'object' && mobileData.nbr) {
+      // Extract just the number from nbr.value
+      if (mobileData.nbr.value) {
+        return mobileData.nbr.value;
+      }
+      return mobileData.nbr;
+    }
+    
+    // Handle simple string/number
+    if (typeof mobileData === 'string' || typeof mobileData === 'number') {
+      let mobile = String(mobileData).trim();
+      // Remove +65 country code if present
+      if (mobile.startsWith('+65')) {
+        mobile = mobile.substring(3);
+      }
+      if (mobile.startsWith('65') && mobile.length === 10) {
+        mobile = mobile.substring(2);
+      }
+      return mobile;
+    }
+    
+    return '';
+  };
+
   componentDidMount = async () => {
-      window.scrollTo(0, 0);
-      const queryParams = new URLSearchParams(window.location.search);
-      console.log("QueryParams:", queryParams);
-  
-      const link = queryParams.get('link')?.trim() || '';
+    window.scrollTo(0, 0);
+    var clink;
+    
+    // Check if user is already authenticated with SingPass
+    const isAuthenticatedWithSingPass = this.checkSingPassAuthentication();
+    
+    if (isAuthenticatedWithSingPass) {
+      console.log('User already authenticated with SingPass');
+      this.setState({ isAuthenticated: true, loading: false });
+      
+      // Pre-populate form with SingPass data
+      this.populateFormWithSingPassData();
+    }
+
+    // Load course data
+    await this.loadCourseData();
+  };
+
+  // Extract SingPass data population logic into separate method
+  populateFormWithSingPassData = () => {
+    let userData = null;
+    try {
+      const userDataJson = sessionStorage.getItem('singpass_user_data_json');
+      if (userDataJson) {
+        userData = JSON.parse(userDataJson);
+        console.log('SingPass User Data retrieved:', userData);
+      } else {
+        console.log('No SingPass user data found in sessionStorage');
+      }
+    } catch (error) {
+      console.error('Error parsing SingPass user data from sessionStorage:', error);
+      
+      // Fallback: try to get individual fields
+      try {
+        userData = {
+          name: sessionStorage.getItem('singpass_user_data_name'),
+          uinfin: sessionStorage.getItem('singpass_user_data_uinfin'),
+          residentialstatus: sessionStorage.getItem('singpass_user_data_residentialstatus'),
+          race: sessionStorage.getItem('singpass_user_data_race'),
+          sex: sessionStorage.getItem('singpass_user_data_sex'),
+          dob: sessionStorage.getItem('singpass_user_data_dob'),
+          mobileno: sessionStorage.getItem('singpass_user_data_mobileno'),
+          email: sessionStorage.getItem('singpass_user_data_email'),
+          regadd: sessionStorage.getItem('singpass_user_data_regadd')
+        };
+        console.log('Fallback: Retrieved individual SingPass fields:', userData);
+      } catch (fallbackError) {
+        console.error('Fallback method also failed:', fallbackError);
+        userData = null;
+      }
+    }
+
+    if (userData) {
+      console.log('Pre-populating form with SingPass data:', userData);
+      
+      // Extract postal code from regadd if it's an object or string
+      let postalCode = '';
+      if (userData.regadd) {
+        try {
+          if (typeof userData.regadd === 'string') {
+            // Try to parse if it's a JSON string
+            const regaddObj = JSON.parse(userData.regadd);
+            postalCode = regaddObj.postal?.value || '';
+          } else if (typeof userData.regadd === 'object') {
+            postalCode = userData.regadd.postal?.value || '';
+          }
+        } catch (regaddError) {
+          console.log('Could not extract postal code from regadd:', regaddError);
+        }
+      }
+      
+      // Extract and format mobile number properly
+      const mobileNumber = this.extractMobileNumber(userData.mobileno);
+      
+      // Format all user data fields properly
+      const formattedResidentialStatus = this.formatResidentialStatus(userData.residentialstatus);
+      const formattedRace = this.formatRace(userData.race);
+      const formattedGender = this.formatGender(userData.sex);
+      
+      this.setState(prevState => ({
+        formData: {
+          ...prevState.formData,
+          // Map SingPass fields to form fields correctly
+          pName: userData.name || '',
+          nRIC: userData.uinfin || '',  // uinfin maps to nRIC
+          rESIDENTIALSTATUS: formattedResidentialStatus,
+          rACE: formattedRace,
+          gENDER: formattedGender,  // sex maps to gENDER
+          dOB: userData.dob || '',
+          cNO: mobileNumber,  // extracted mobile number
+          eMAIL: userData.email || '',
+          postalCode: postalCode || '',
+        }
+      }));
+      
+      console.log('Form pre-populated with SingPass data');
+      console.log('Formatted residential status:', formattedResidentialStatus);
+      console.log('Formatted race:', formattedRace);
+      console.log('Formatted gender:', formattedGender);
+      console.log('Extracted mobile number:', mobileNumber);
+    } else {
+      console.log('No SingPass user data available for pre-population');
+    }
+  };
+
+  // Extract course loading logic into separate method
+  loadCourseData = async () => {
+    const params = new URLSearchParams(window.location.search) || sessionStorage.getItem("courseLink");
+    const link = params.get("link");
+    console.log('Course Link:', link);
+    if(!this.state.isAuthenticated) {
+      sessionStorage.setItem("courseLink", link);
+    }
+    console.log('Final Course Link:', link);
+
+    if (link) {
       // Fetching courses
       var courseType = "";
       var allCourses = await this.fetchCourses(courseType);
       console.log("All Courses:", allCourses);
-  
+
       // Function to find the course by name
       function findCourseByName(courseList) {
         return courseList.find(course => {
-            // Direct comparison without spaces
-            console.log("Actual Link:", link);
-            console.log("Woocommerce Link:", decodeURIComponent(course.permalink));
-            return decodeURIComponent(course.permalink) === link;
+          console.log("Actual Link:", link);
+          console.log("Woocommerce Link:", decodeURIComponent(course.permalink));
+          return decodeURIComponent(link) === decodeURIComponent(course.permalink);
         });
       }
 
@@ -62,96 +320,121 @@ class FormPage extends Component {
       console.log("Matched Course:", matchedCourse);
 
       if (matchedCourse) {
-         const type = matchedCourse.categories[1].name.split(":")[1].trim();
-          // Setting background color based on course type
-          if (type === 'ILP') {
-              this.setState({ bgColor: '#006400' }); // Dark green for ILP
-          } else if (type === 'NSA') {
-              this.setState({ bgColor: '#003366' }); // Dark blue for NSA
-          }
-          let selectedLocation = matchedCourse.attributes[1].options[0];
-          selectedLocation = selectedLocation === 'CT Hub' ? 'CT Hub' :
-                             selectedLocation === '恩 Project@253' ? 'Tampines 253 Centre' :
-                             selectedLocation === 'Pasir Ris West' ? 'Pasir Ris West Wellness Centre' :
-                             selectedLocation === 'Tampines North CC' ? 'Tampines North Community Centre' :
-                             selectedLocation; // Default if no match
-          console.log("Selected Course Details:", matchedCourse.name.split(/<br\s*\/?>/));
-          console.log("Selected Course Price:", matchedCourse.price);
-          const shortDescription = matchedCourse.short_description;
+        const type = matchedCourse.categories[1].name.split(":")[1].trim();
+        
+        // Setting background color based on course type
+        if (type === 'ILP') {
+          this.setState({ bgColor: '#006400' });
+        } else if (type === 'NSA') {
+          this.setState({ bgColor: '#003366' });
+        }
+        
+        let selectedLocation = matchedCourse.attributes[1].options[0];
+        selectedLocation = selectedLocation === 'CT Hub' ? 'CT Hub' :
+                          selectedLocation === '恩 Project@253' ? 'Tampines 253 Centre' :
+                          selectedLocation === 'Pasir Ris West' ? 'Pasir Ris West Wellness Centre' :
+                          selectedLocation === 'Tampines North CC' ? 'Tampines North Community Centre' :
+                          selectedLocation;
+        
+        console.log("Selected Course Details:", matchedCourse.name.split(/<br\s*\/?>/));
+        console.log("Selected Course Price:", matchedCourse.price);
+        const shortDescription = matchedCourse.short_description;
 
-          var courseMode = matchedCourse?.attributes?.[2]?.options?.[0];
+        var courseMode = matchedCourse?.attributes?.[2]?.options?.[0];
 
-          // Split the string by "<p>" to separate paragraph elements
-          const paragraphs = shortDescription.split("<p>");
-          
-          // Get the last paragraph for Start Date (index -1) and second-to-last for End Date (index -2)
-          const startDateParagraph = paragraphs[paragraphs.length - 2]; // second-to-last element
-          const endDateParagraph = paragraphs[paragraphs.length - 1];  // last element
-          
-          // Clean the paragraphs by removing the <strong> and </strong> tags and </p> tag
-          const cleanedStartDate = startDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
-          const cleanedEndDate = endDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
-          
-          // Output the results
-          console.log("Start Date:", cleanedStartDate);
-          console.log("End Date:", cleanedEndDate);   
-          const courseDuration = `${cleanedStartDate.replace(/\n/g, "")} - ${cleanedEndDate.replace(/\n/g, "")}`;    
+        // Parse course duration
+        const paragraphs = shortDescription.split("<p>");
+        const startDateParagraph = paragraphs[paragraphs.length - 2];
+        const endDateParagraph = paragraphs[paragraphs.length - 1];
+        
+        const cleanedStartDate = startDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
+        const cleanedEndDate = endDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
+        
+        console.log("Start Date:", cleanedStartDate);
+        console.log("End Date:", cleanedEndDate);
+        const courseDuration = `${cleanedStartDate.replace(/\n/g, "")} - ${cleanedEndDate.replace(/\n/g, "")}`;
 
-  
-          // Destructuring the split course name into parts
-          const courseParts = matchedCourse.name.split(/<br\s*\/?>/).map(part => part.trim());
-          const formattedPrice = matchedCourse.price ? `$${parseFloat(matchedCourse.price).toFixed(2)}` : "$0.00";
-  
-          // Setting state based on the course parts
-          if (courseParts.length === 3) {
-              // If we have three parts (Chinese, English, Location)
-              this.setState((prevState) => ({
-                  formData: {
-                      ...prevState.formData,
-                      chineseName: courseParts[0],  // Chinese name
-                      englishName: courseParts[1],   // English name
-                      location: selectedLocation,      // Location
-                      price: formattedPrice,
-                      type,
-                      courseDuration,
-                      courseMode
-                  },
-                  loading: true
-              }));
-          } else if (courseParts.length === 2) {
-              // If we have two parts (Chinese, English)
-              this.setState((prevState) => ({
-                  formData: {
-                      ...prevState.formData,
-                      englishName: courseParts[0],  // Chinese name
-                      location: selectedLocation,   // English name
-                      price: formattedPrice,
-                      type,
-                      courseDuration,
-                      courseMode
-                  },
-                  loading: true
-              }));
-          }
-      } 
+        // Parse course name parts
+        const courseParts = matchedCourse.name.split(/<br\s*\/?>/).map(part => part.trim());
+        const formattedPrice = matchedCourse.price ? `$${parseFloat(matchedCourse.price).toFixed(2)}` : "$0.00";
+
+        // Update course details in state
+        if (courseParts.length === 3) {
+          this.setState((prevState) => ({
+            formData: {
+              ...prevState.formData,
+              chineseName: courseParts[0],
+              englishName: courseParts[1],
+              location: selectedLocation,
+              price: formattedPrice,
+              type,
+              courseDuration,
+              courseMode
+            },
+            loading: true
+          }));
+        } else if (courseParts.length === 2) {
+          this.setState((prevState) => ({
+            formData: {
+              ...prevState.formData,
+              englishName: courseParts[0],
+              chineseName: courseParts[1] || '',
+              location: selectedLocation,
+              price: formattedPrice,
+              type,
+              courseDuration,
+              courseMode
+            },
+            loading: true
+          }));
+        } else if (courseParts.length === 1) {
+          this.setState((prevState) => ({
+            formData: {
+              ...prevState.formData,
+              englishName: courseParts[0],
+              location: selectedLocation,
+              price: formattedPrice,
+              type,
+              courseDuration,
+              courseMode
+            },
+            loading: true
+          }));
+        }
+      } else {
+        console.log("No matching course found");
+        this.setState({ loading: true });
+      }
+    } else {
+      console.log("No course link provided, loading form without course data");
+      this.setState({ loading: true });
+    }
   }
-  
-  
+
+  // Add helper method to get SingPass user data safely
+  getSingPassUserData = () => {
+    try {
+      const userDataJson = sessionStorage.getItem('singpass_user_data_json');
+      return userDataJson ? JSON.parse(userDataJson) : null;
+    } catch (error) {
+      console.error('Error retrieving SingPass user data:', error);
+      return null;
+    }
+  }
+
   async fetchCourses(courseType) {
     try {
       var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/courses/`, {courseType});
       var courses = response.data.courses;
       return courses;
     }
-    catch(error)
-    {
+    catch(error) {
       console.error("Error:", error)
     }
   }
 
   handleDataChange = (newData) => {
-    try
-    {
+    try {
       this.setState((prevState) => {
         const updatedFormData = {
           ...prevState.formData,
@@ -164,7 +447,6 @@ class FormPage extends Component {
         if (updatedValidationErrors[key]) {
           delete updatedValidationErrors[key];
         }
-
     
         return {
           formData: updatedFormData,
@@ -172,8 +454,7 @@ class FormPage extends Component {
         };
       });
     }
-    catch(error)
-    {
+    catch(error) {
       console.log(error);
     }
   };
@@ -181,17 +462,30 @@ class FormPage extends Component {
   handleNext = () => {
     console.log("Pressed Next");
     const errors = this.validateForm();
-    const { currentSection } = this.state;
+    const { currentSection, isAuthenticated } = this.state;
     console.log("Current Section:", currentSection);
-  
+
+    // Special handling for section 0 (FormDetails with SingPass)
+    if (currentSection === 0) {
+      if (!isAuthenticated) {
+        // User must authenticate with SingPass first
+        this.setState({ 
+          validationErrors: { 
+            authentication: 'Please authenticate with SingPass to continue. 请使用SingPass认证以继续。' 
+          } 
+        });
+        return;
+      }
+      // If authenticated, proceed to next section without additional validation
+    }
+
+    // Existing validation logic for other sections
     if (currentSection === 2) {
       if (this.props.type === "NSA" && !this.courseDetailsRef.state.selectedPayment) {
-        // If type is NSA and no payment option is selected, set an error
         errors.selectedPayment = 'Please select a payment option.';
         this.courseDetailsRef.setState({ paymentTouched: true });
       } 
       else if (this.props.type === "ILP") {
-        // If type is ILP, just go on without 
         console.log("Go Next");
       }
     }
@@ -234,7 +528,6 @@ class FormPage extends Component {
     var residentalStatus = formData.rESIDENTIALSTATUS;
     var race = formData.rACE;
     var gender = formData.gENDER;
-    //var dateOfBirth = typeof formData.dOB === 'string' ? formData.dOB : formData.dOB.formattedDate;
     var dateOfBirth = formData.dOB;
     var contactNumber = formData.cNO;
     var email = formData.eMAIL;
@@ -293,6 +586,7 @@ class FormPage extends Component {
       .then((response) => {
         console.log('Form submitted successfully', response.data);
         if (response.data) {
+          sessionStorage.clear(); // Clear session storage after successful submission
           // Success alert
          // alert("Success");
     
@@ -390,6 +684,11 @@ class FormPage extends Component {
     console.log("formData:", formData);
     const errors = {};
 
+    // No validation needed for section 0 (FormDetails) - just SingPass authentication check
+    if (currentSection === 0) {
+      return errors; // Return empty errors for section 0
+    }
+
     if (currentSection === 1) {
       if (!formData.pName) {
         errors.pName = 'Name is required. 姓名是必填项。';
@@ -471,7 +770,7 @@ class FormPage extends Component {
   };
 
   render() {
-    const { currentSection, formData, validationErrors, bgColor, loading } = this.state;
+    const { currentSection, formData, validationErrors, bgColor, loading, isAuthenticated } = this.state;
   
     // Render the loading spinner or content depending on loading state
     if (loading === false) {
@@ -487,7 +786,15 @@ class FormPage extends Component {
       <div className="formwholepage" style={{ backgroundColor: bgColor }}>
         <div className="form-page">
           <div className="form-container">
-            {currentSection === 0 && <FormDetails courseType={formData.type} />}
+            {currentSection === 0 && (
+              <FormDetails 
+                courseType={formData.type} 
+                isAuthenticated={isAuthenticated}
+                onAuthenticationChange={(authStatus) => this.setState({ isAuthenticated: authStatus })}
+                onProceedWithoutSingPass={this.handleProceedWithoutSingPass}
+                validationErrors={validationErrors}
+              />
+            )}
             {currentSection === 1 && (
               <PersonalInfo
                 data={formData}
@@ -504,7 +811,7 @@ class FormPage extends Component {
                 coursePrice={formData.price}
                 courseType={formData.type}
                 courseDuration={formData.courseDuration}
-                courseMode = {formData.courseMode}
+                courseMode={formData.courseMode}
                 payment={formData.payment}
                 onChange={this.handleDataChange}
               />
@@ -520,15 +827,20 @@ class FormPage extends Component {
             {currentSection === 4 && <SubmitDetailsSection />}
           </div>
         </div>
-        {/* Conditionally render the button container */}
-        {currentSection < 4 && (
+        {/* Show Next/Back buttons for all sections */}
+        {isAuthenticated && currentSection < 4 && (
           <div className="button-container">
             <button onClick={this.handleBack} disabled={currentSection === 0}>
               Back 返回
             </button>
             <button onClick={this.handleNext}>
-              {currentSection === 4 ? 'Submit 提交' : 'Next 下一步'}
+              {currentSection === 3 ? 'Submit 提交' : 'Next 下一步'}
             </button>
+          </div>
+        )}
+         {!isAuthenticated && (
+           <div className="button-container">
+            <SingPassButton/>
           </div>
         )}
       </div>

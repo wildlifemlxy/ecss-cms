@@ -4,13 +4,15 @@ const moment = require('moment');
 const axios = require('axios');
 const path = require('path');
 
-// Constants defined at top level
+// Constants defined at top level - Azure SWA environment handling
 const CLIENT_ID = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
 const JWTTOKENURL = "https://stg-id.singpass.gov.sg";
 const SPTOKENURL = "https://stg-id.singpass.gov.sg/token";
+
+// Azure SWA environment-aware redirect URI
 const REDIRECT_URI = process.env.NODE_ENV === 'production' 
-  ? "https://salmon-wave-09f02b100.6.azurestaticapps.net/myinfo-redirect"  // Replace with your actual Azure frontend URL
-  : "http://localhost:3000/myinfo-redirect";
+  ? "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback"  // Updated to match frontend
+  : "http://localhost:3000/callback";
 
 const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
 
@@ -25,6 +27,74 @@ async function initializeJose() {
   }
   return jose;
 }
+
+// FIXED: Helper function to format date of birth to dd/mm/yyyy
+const formatDateOfBirth = (dateInput) => {
+  try {
+    console.log('Formatting date input:', dateInput, 'Type:', typeof dateInput);
+    
+    // Handle null, undefined, or empty values
+    if (!dateInput || dateInput === '') {
+      console.log('Empty date input, returning N/A');
+      return 'N/A';
+    }
+    
+    // Extract value from SingPass structured data if needed
+    const dateString = (typeof dateInput === 'object' && dateInput.value !== undefined) 
+      ? dateInput.value 
+      : dateInput;
+    
+    // Convert to string if it's not already
+    const dateStr = String(dateString).trim();
+    
+    // If it's already in dd/mm/yyyy format, return as is
+    if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      console.log('Date already in dd/mm/yyyy format:', dateStr);
+      return dateStr;
+    }
+    
+    // If it's in yyyy-mm-dd format (ISO format) - most common SingPass format
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateStr.split('-');
+      const formattedDate = `${day}/${month}/${year}`;
+      console.log('Converted yyyy-mm-dd to dd/mm/yyyy:', formattedDate);
+      return formattedDate;
+    }
+    
+    // If it's in dd-mm-yyyy format with dashes
+    if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
+      const [day, month, year] = dateStr.split('-');
+      const formattedDate = `${day}/${month}/${year}`;
+      console.log('Converted dd-mm-yyyy to dd/mm/yyyy:', formattedDate);
+      return formattedDate;
+    }
+    
+    // Try parsing as a Date object for other formats
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      const formattedDate = `${day}/${month}/${year}`;
+      console.log('Parsed date object to dd/mm/yyyy:', formattedDate);
+      return formattedDate;
+    }
+    
+    // If it's just a year (like "1960")
+    if (dateStr.match(/^\d{4}$/)) {
+      console.log('Only year provided:', dateStr);
+      return `01/01/${dateStr}`;
+    }
+    
+    // If all else fails, return the original string
+    console.log('Could not format date, returning original:', dateStr);
+    return dateStr;
+    
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateInput || 'N/A';
+  }
+};
 
 // Helper function to extract value from SingPass structured data
 function extractSingPassValue(data) {
@@ -86,45 +156,70 @@ async function signJwtAsJws(payload, signingJwk, kid) {
     .sign(privateKey);
 }
 
-// Enhanced UserInfo function to handle JWE responses
+// Enhanced UserInfo function with better debugging and error handling
 async function fetchUserInfo(accessToken, options = {}) {
-  const { retries = 1, timeout = 5000 } = options;
+  const { retries = 2, timeout = 15000 } = options; // Increased timeout for Azure SWA
   let attempt = 0;
+  
+  console.log('=== USERINFO DEBUG START ===');
+  console.log('Access Token (first 20 chars):', accessToken?.substring(0, 20) + '...');
+  console.log('UserInfo URL:', USERINFO_URL);
   
   while (attempt <= retries) {
     try {
       console.log(`UserInfo request attempt ${attempt + 1}/${retries + 1}`);
-      
-      // Check token type
-      const isJwt = accessToken.includes('.');
-      const tokenType = isJwt ? "JWT" : "opaque";
-      console.log(`Token appears to be ${tokenType} type`);
       
       const response = await axios.get(USERINFO_URL, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'User-Agent': 'SingPass-Integration/1.0'
+          'User-Agent': 'SingPass-Integration-AzureSWA/1.0'
         },
         timeout,
-        validateStatus: status => true
+        validateStatus: status => status < 600 // Accept all responses for debugging
       });
       
       console.log(`UserInfo response status: ${response.status}`);
+      console.log('UserInfo response headers:', JSON.stringify(response.headers, null, 2));
+      console.log('UserInfo response data type:', typeof response.data);
+      console.log('UserInfo response data preview:', 
+        typeof response.data === 'string' 
+          ? response.data.substring(0, 200) + '...'
+          : JSON.stringify(response.data).substring(0, 200) + '...'
+      );
       
-      // Check for successful response
       if (response.status === 200) {
         const userInfoResponse = response.data;
-        console.log("UserInfo response data:", userInfoResponse);
         
-        // Check if response is a JWE (encrypted)
+        // Check if response is empty or null
+        if (!userInfoResponse) {
+          console.error("UserInfo response is null or empty");
+          return {
+            success: false,
+            error: "Empty UserInfo response",
+            debug: { status: response.status, headers: response.headers }
+          };
+        }
+        
+        // Check if response is a JWE (encrypted) - 5 parts separated by dots
         if (typeof userInfoResponse === 'string' && userInfoResponse.split('.').length === 5) {
-          console.log("UserInfo response is JWE, decrypting...");
+          console.log("UserInfo response is JWE, attempting decryption...");
           
           try {
-            // Load encryption private key
-            const ENCRYPTION_PRIVATE_KEY = require("../Others/SingPass/Keys/private-ec-encryption-key.jwk.json");
+            // Load encryption private key with error handling
+            let ENCRYPTION_PRIVATE_KEY;
+            try {
+              ENCRYPTION_PRIVATE_KEY = require("../Others/SingPass/Keys/private-ec-encryption-key.jwk.json");
+              console.log("Encryption key loaded, kid:", ENCRYPTION_PRIVATE_KEY.kid);
+            } catch (keyError) {
+              console.error("Failed to load encryption key:", keyError.message);
+              return {
+                success: false,
+                error: "Encryption key not found",
+                message: keyError.message
+              };
+            }
             
             // Decrypt the JWE
             const joseLib = await initializeJose();
@@ -133,202 +228,533 @@ async function fetchUserInfo(accessToken, options = {}) {
             const { plaintext } = await joseLib.compactDecrypt(userInfoResponse, privateKey);
             const decryptedText = new TextDecoder().decode(plaintext);
             
-            console.log("Decrypted text:", decryptedText);
+            console.log("JWE decryption successful");
+            console.log("Decrypted content preview:", decryptedText.substring(0, 200) + '...');
+            
+            // Parse decrypted content
+            let decryptedUserInfo;
             
             // Check if decrypted content is a JWT
             if (decryptedText.startsWith('eyJ')) {
               console.log("Decrypted content is a JWT, decoding...");
-              const decryptedUserInfo = joseLib.decodeJwt(decryptedText);
-              console.log("Decoded JWT claims:", decryptedUserInfo);
-              
-              // Extract key user information from decrypted JWT claims - keeping original structure for now
-              const rawExtractedData = {
-                sub: decryptedUserInfo.sub,
-                uinfin: decryptedUserInfo.uinfin,
-                name: decryptedUserInfo.name,
-                dob: decryptedUserInfo.dob,
-                sex: decryptedUserInfo.sex,
-                nationality: decryptedUserInfo.nationality,
-                race: decryptedUserInfo.race,
-                residentialstatus: decryptedUserInfo.residentialstatus,
-                email: decryptedUserInfo.email,
-                mobileno: decryptedUserInfo.mobileno,
-                regadd: decryptedUserInfo.regadd
-              };
-              
-              // Process the extracted data to get clean values
-              const processedData = processExtractedData(rawExtractedData);
-              
-              return { 
-                success: true, 
-                userInfo: decryptedUserInfo,
-                extractedData: processedData,
-                uinfin: extractSingPassValue(decryptedUserInfo.uinfin) // Extract clean UINFIN value
-              };
-              
+              decryptedUserInfo = joseLib.decodeJwt(decryptedText);
             } else {
-              // Try parsing as JSON if it's not a JWT
+              // Parse as JSON
               try {
-                const decryptedUserInfo = JSON.parse(decryptedText);
-                console.log("Decrypted UserInfo (JSON):", decryptedUserInfo);
-                
-                // Extract key user information from decrypted data
-                const rawExtractedData = {
-                  sub: decryptedUserInfo.sub,
-                  uinfin: decryptedUserInfo.uinfin,
-                  name: decryptedUserInfo.name,
-                  dob: decryptedUserInfo.dob,
-                  sex: decryptedUserInfo.sex,
-                  nationality: decryptedUserInfo.nationality,
-                  race: decryptedUserInfo.race,
-                  residentialstatus: decryptedUserInfo.residentialstatus,
-                  email: decryptedUserInfo.email,
-                  mobileno: decryptedUserInfo.mobileno,
-                  regadd: decryptedUserInfo.regadd
-                };
-                
-                // Process the extracted data to get clean values
-                const processedData = processExtractedData(rawExtractedData);
-                
-                return { 
-                  success: true, 
-                  userInfo: decryptedUserInfo,
-                  extractedData: processedData,
-                  uinfin: extractSingPassValue(decryptedUserInfo.uinfin)
-                };
-                
+                decryptedUserInfo = JSON.parse(decryptedText);
+                console.log("Decrypted content parsed as JSON");
               } catch (jsonError) {
-                console.error("Failed to parse decrypted content as JSON:", jsonError);
+                console.error("Failed to parse decrypted content:", jsonError);
                 return {
                   success: false,
-                  error: "UserInfo decryption succeeded but content parsing failed",
+                  error: "Invalid decrypted content format",
                   message: jsonError.message,
-                  decryptedContent: decryptedText.substring(0, 100) + "..."
+                  decryptedPreview: decryptedText.substring(0, 100)
                 };
               }
             }
+            
+            console.log("Decrypted UserInfo fields:", Object.keys(decryptedUserInfo));
+            
+            // Extract and process user data
+            const rawExtractedData = {
+              sub: decryptedUserInfo.sub,
+              uinfin: decryptedUserInfo.uinfin,
+              name: decryptedUserInfo.name,
+              dob: decryptedUserInfo.dob ? formatDateOfBirth(decryptedUserInfo.dob) : null,
+              sex: decryptedUserInfo.sex,
+              race: decryptedUserInfo.race,
+              nationality: decryptedUserInfo.nationality,
+              residentialstatus: decryptedUserInfo.residentialstatus,
+              email: decryptedUserInfo.email,
+              mobileno: decryptedUserInfo.mobileno,
+              regadd: decryptedUserInfo.regadd
+            };
+            
+            console.log("Raw extracted data:", JSON.stringify(rawExtractedData, null, 2));
+            
+            const processedData = processExtractedData(rawExtractedData);
+            console.log("Processed data:", JSON.stringify(processedData, null, 2));
+            
+            return { 
+              success: true, 
+              userInfo: decryptedUserInfo,
+              extractedData: processedData,
+              uinfin: extractSingPassValue(decryptedUserInfo.uinfin),
+              debug: { decrypted: true, fields: Object.keys(decryptedUserInfo) }
+            };
             
           } catch (decryptError) {
             console.error("JWE decryption failed:", decryptError);
             return {
               success: false,
               error: "UserInfo JWE decryption failed",
-              message: decryptError.message
+              message: decryptError.message,
+              stack: decryptError.stack
             };
           }
           
         } else {
           // Handle plain JSON response
-          console.log("UserInfo response is plain JSON");
+          console.log("UserInfo response is plain JSON or other format");
+          
+          let parsedUserInfo;
+          if (typeof userInfoResponse === 'string') {
+            try {
+              parsedUserInfo = JSON.parse(userInfoResponse);
+            } catch (parseError) {
+              console.error("Failed to parse string response as JSON:", parseError);
+              return {
+                success: false,
+                error: "Invalid JSON response",
+                message: parseError.message,
+                responsePreview: userInfoResponse.substring(0, 200)
+              };
+            }
+          } else {
+            parsedUserInfo = userInfoResponse;
+          }
+          
+          console.log("Parsed UserInfo fields:", Object.keys(parsedUserInfo));
+          console.log("UserInfo sample data:", JSON.stringify(parsedUserInfo, null, 2).substring(0, 500));
           
           const rawExtractedData = {
-            sub: userInfoResponse.sub,
-            uinfin: userInfoResponse.uinfin,
-            name: userInfoResponse.name,
-            dob: userInfoResponse.dob,
-            sex: userInfoResponse.sex,
-            nationality: userInfoResponse.nationality,
-            race: userInfoResponse.race,
-            residentialstatus: userInfoResponse.residentialstatus,
-            email: userInfoResponse.email,
-            mobileno: userInfoResponse.mobileno,
-            regadd: userInfoResponse.regadd
+            sub: parsedUserInfo.sub,
+            uinfin: parsedUserInfo.uinfin,
+            name: parsedUserInfo.name,
+            dob: parsedUserInfo.dob ? formatDateOfBirth(parsedUserInfo.dob) : null,
+            sex: parsedUserInfo.sex,
+            nationality: parsedUserInfo.nationality,
+            race: parsedUserInfo.race,
+            residentialstatus: parsedUserInfo.residentialstatus,
+            email: parsedUserInfo.email,
+            mobileno: parsedUserInfo.mobileno,
+            regadd: parsedUserInfo.regadd
           };
           
-          // Process the extracted data to get clean values
+          console.log("Raw extracted data:", JSON.stringify(rawExtractedData, null, 2));
+          
           const processedData = processExtractedData(rawExtractedData);
+          console.log("Processed data:", JSON.stringify(processedData, null, 2));
           
           return { 
             success: true, 
-            userInfo: userInfoResponse,
+            userInfo: parsedUserInfo,
             extractedData: processedData,
-            uinfin: extractSingPassValue(userInfoResponse.uinfin)
+            uinfin: extractSingPassValue(parsedUserInfo.uinfin),
+            debug: { decrypted: false, fields: Object.keys(parsedUserInfo) }
           };
         }
       }
       
-      // Handle error responses
+      // Handle specific error responses
       if (response.status === 401) {
-        console.error("Authorization failed (401):", response.data);
+        console.error("UserInfo authorization failed (401)");
+        console.error("Response data:", response.data);
         return { 
           success: false,
           error: "UserInfo authorization failed", 
           status: response.status, 
           details: response.data,
-          tokenType,
-          recommendation: "Ensure 'openid uinfin' scopes are included in authorization request"
+          suggestion: "Check access token validity"
         };
       }
       
-      // Retry for server errors
+      if (response.status === 403) {
+        console.error("UserInfo access forbidden (403)");
+        return { 
+          success: false,
+          error: "UserInfo access forbidden", 
+          status: response.status, 
+          details: response.data,
+          suggestion: "Check client permissions and scopes"
+        };
+      }
+      
+      // Retry for server errors and rate limiting
       if (response.status === 429 || response.status >= 500) {
-        console.warn(`Retriable error (${response.status}), attempt ${attempt + 1}`);
-        await new Promise(r => setTimeout(r, 1000 * Math.min(3, attempt + 1)));
+        const waitTime = response.status === 429 ? 2000 : 1000 * Math.min(3, attempt + 1);
+        console.warn(`Retriable error (${response.status}), waiting ${waitTime}ms before retry ${attempt + 1}`);
+        await new Promise(r => setTimeout(r, waitTime));
         attempt++;
         continue;
       }
       
-      // Other errors
-      console.error("UserInfo request failed:", {
+      console.error("UserInfo request failed with unexpected status:", {
         status: response.status,
+        statusText: response.statusText,
         data: response.data
       });
       return { 
         success: false,
         error: "UserInfo request failed", 
         status: response.status, 
-        details: response.data,
-        tokenType
+        details: response.data
       };
       
     } catch (error) {
-      console.error("Error fetching UserInfo:", error.message);
+      console.error(`UserInfo request error (attempt ${attempt + 1}):`, {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data
+      });
       
       if (attempt < retries) {
+        const waitTime = 1000 * (attempt + 1);
+        console.log(`Retrying in ${waitTime}ms...`);
+        await new Promise(r => setTimeout(r, waitTime));
         attempt++;
-        await new Promise(r => setTimeout(r, 1000 * Math.min(3, attempt)));
         continue;
       }
       
       return { 
         success: false,
-        error: "UserInfo request error", 
+        error: "UserInfo network error", 
         message: error.message,
-        code: error.code || 'NETWORK_ERROR'
+        code: error.code || 'NETWORK_ERROR',
+        suggestion: "Check network connectivity and SingPass service status"
       };
     }
   }
   
+  console.log('=== USERINFO DEBUG END ===');
   return {
     success: false,
-    error: "UserInfo request failed after retries",
-    lastAttempt: attempt
+    error: "UserInfo request failed after all retries",
+    lastAttempt: attempt,
+    suggestion: "Check SingPass UserInfo endpoint availability"
   };
 }
 
-// Main endpoint handler
-router.post('/', async (req, res) => {
+// Enhanced Step 5: Invoke the User Endpoint following SingPass specification exactly
+async function invokeUserEndpoint(accessToken, options = {}) {
+  const { retries = 2, timeout = 15000 } = options;
+  let attempt = 0;
+  
+  // Step 5: SingPass User Endpoint - exact URL from documentation
+  const USER_ENDPOINT_URL = "https://stg-id.singpass.gov.sg/user";
+  
+  console.log('=== STEP 5: USER ENDPOINT DEBUG START ===');
+  console.log('User Endpoint URL:', USER_ENDPOINT_URL);
+  console.log('Access Token (first 20 chars):', accessToken?.substring(0, 20) + '...');
+  
+  while (attempt <= retries) {
+    try {
+      console.log(`Step 5 User endpoint request attempt ${attempt + 1}/${retries + 1}`);
+      
+      // Step 5: Make request to User endpoint with proper headers as per SingPass spec
+      const response = await axios.get(USER_ENDPOINT_URL, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'User-Agent': 'SingPass-Integration-AzureSWA/1.0'
+        },
+        timeout,
+        validateStatus: status => status < 600 // Accept all responses for debugging
+      });
+      
+      console.log(`Step 5 User endpoint response status: ${response.status}`);
+      console.log('User endpoint response headers:', JSON.stringify(response.headers, null, 2));
+      console.log('User endpoint response data type:', typeof response.data);
+      console.log('User endpoint response data preview:', 
+        typeof response.data === 'string' 
+          ? response.data.substring(0, 200) + '...'
+          : JSON.stringify(response.data).substring(0, 200) + '...'
+      );
+      
+      if (response.status === 200) {
+        const userEndpointResponse = response.data;
+        
+        // Check if response is empty or null
+        if (!userEndpointResponse) {
+          console.error("User endpoint response is null or empty");
+          return {
+            success: false,
+            error: "Empty User endpoint response",
+            debug: { status: response.status, headers: response.headers }
+          };
+        }
+        
+        // Step 5: Handle encrypted JWE response (most common for SingPass User endpoint)
+        if (typeof userEndpointResponse === 'string' && userEndpointResponse.split('.').length === 5) {
+          console.log("User endpoint response is JWE, attempting decryption...");
+          
+          try {
+            // Load encryption private key for Step 5
+            let ENCRYPTION_PRIVATE_KEY;
+            try {
+              ENCRYPTION_PRIVATE_KEY = require("../Others/SingPass/Keys/private-ec-encryption-key.jwk.json");
+              console.log("Encryption key loaded for Step 5, kid:", ENCRYPTION_PRIVATE_KEY.kid);
+            } catch (keyError) {
+              console.error("Failed to load encryption key for Step 5:", keyError.message);
+              return {
+                success: false,
+                error: "Step 5: Encryption key not found",
+                message: keyError.message
+              };
+            }
+            
+            // Decrypt the JWE using Step 5 methodology
+            const joseLib = await initializeJose();
+            const privateKey = await joseLib.importJWK(ENCRYPTION_PRIVATE_KEY, "ECDH-ES+A256KW");
+            
+            const { plaintext } = await joseLib.compactDecrypt(userEndpointResponse, privateKey);
+            const decryptedText = new TextDecoder().decode(plaintext);
+            
+            console.log("Step 5 JWE decryption successful");
+            console.log("Step 5 decrypted content preview:", decryptedText.substring(0, 200) + '...');
+            
+            // Parse decrypted user data
+            let decryptedUserData;
+            
+            // Check if decrypted content is a JWT
+            if (decryptedText.startsWith('eyJ')) {
+              console.log("Step 5 decrypted content is a JWT, decoding...");
+              decryptedUserData = joseLib.decodeJwt(decryptedText);
+            } else {
+              // Parse as JSON
+              try {
+                decryptedUserData = JSON.parse(decryptedText);
+                console.log("Step 5 decrypted content parsed as JSON");
+              } catch (jsonError) {
+                console.error("Step 5 failed to parse decrypted content:", jsonError);
+                return {
+                  success: false,
+                  error: "Step 5: Invalid decrypted content format",
+                  message: jsonError.message,
+                  decryptedPreview: decryptedText.substring(0, 100)
+                };
+              }
+            }
+            
+            console.log("Step 5 decrypted user data fields:", Object.keys(decryptedUserData));
+            
+            // Extract and process Step 5 user data following SingPass specification
+            const rawExtractedData = {
+              sub: decryptedUserData.sub,
+              uinfin: decryptedUserData.uinfin,
+              name: decryptedUserData.name,
+              dob: decryptedUserData.dob ? formatDateOfBirth(decryptedUserData.dob) : null,
+              sex: decryptedUserData.sex,
+              race: decryptedUserData.race,
+              nationality: decryptedUserData.nationality,
+              residentialstatus: decryptedUserData.residentialstatus,
+              email: decryptedUserData.email,
+              mobileno: decryptedUserData.mobileno,
+              regadd: decryptedUserData.regadd,
+              // Include any additional fields from Step 5 response
+              ...Object.fromEntries(
+                Object.entries(decryptedUserData).filter(([key]) => 
+                  !['sub', 'uinfin', 'name', 'dob', 'sex', 'race', 'nationality', 
+                    'residentialstatus', 'email', 'mobileno', 'regadd'].includes(key)
+                )
+              )
+            };
+            
+            console.log("Step 5 raw extracted data:", JSON.stringify(rawExtractedData, null, 2));
+            
+            const processedData = processExtractedData(rawExtractedData);
+            console.log("Step 5 processed data:", JSON.stringify(processedData, null, 2));
+            
+            return { 
+              success: true, 
+              userInfo: decryptedUserData,
+              extractedData: processedData,
+              uinfin: extractSingPassValue(decryptedUserData.uinfin),
+              debug: { 
+                step: 5,
+                decrypted: true, 
+                fields: Object.keys(decryptedUserData),
+                endpoint: 'user'
+              }
+            };
+            
+          } catch (decryptError) {
+            console.error("Step 5 JWE decryption failed:", decryptError);
+            return {
+              success: false,
+              error: "Step 5: User endpoint JWE decryption failed",
+              message: decryptError.message,
+              stack: decryptError.stack
+            };
+          }
+          
+        } else {
+          // Handle plain JSON response from Step 5
+          console.log("Step 5 User endpoint response is plain JSON");
+          
+          let parsedUserData;
+          if (typeof userEndpointResponse === 'string') {
+            try {
+              parsedUserData = JSON.parse(userEndpointResponse);
+            } catch (parseError) {
+              console.error("Step 5 failed to parse string response as JSON:", parseError);
+              return {
+                success: false,
+                error: "Step 5: Invalid JSON response",
+                message: parseError.message,
+                responsePreview: userEndpointResponse.substring(0, 200)
+              };
+            }
+          } else {
+            parsedUserData = userEndpointResponse;
+          }
+          
+          console.log("Step 5 parsed user data fields:", Object.keys(parsedUserData));
+          console.log("Step 5 user data sample:", JSON.stringify(parsedUserData, null, 2).substring(0, 500));
+          
+          const rawExtractedData = {
+            sub: parsedUserData.sub,
+            uinfin: parsedUserData.uinfin,
+            name: parsedUserData.name,
+            dob: parsedUserData.dob ? formatDateOfBirth(parsedUserData.dob) : null,
+            sex: parsedUserData.sex,
+            nationality: parsedUserData.nationality,
+            race: parsedUserData.race,
+            residentialstatus: parsedUserData.residentialstatus,
+            email: parsedUserData.email,
+            mobileno: parsedUserData.mobileno,
+            regadd: parsedUserData.regadd
+          };
+          
+          console.log("Step 5 raw extracted data:", JSON.stringify(rawExtractedData, null, 2));
+          
+          const processedData = processExtractedData(rawExtractedData);
+          console.log("Step 5 processed data:", JSON.stringify(processedData, null, 2));
+          
+          return { 
+            success: true, 
+            userInfo: parsedUserData,
+            extractedData: processedData,
+            uinfin: extractSingPassValue(parsedUserData.uinfin),
+            debug: { 
+              step: 5,
+              decrypted: false, 
+              fields: Object.keys(parsedUserData),
+              endpoint: 'user'
+            }
+          };
+        }
+      }
+      
+      // Handle Step 5 specific error responses
+      if (response.status === 401) {
+        console.error("Step 5 User endpoint authorization failed (401)");
+        console.error("Step 5 Response data:", response.data);
+        return { 
+          success: false,
+          error: "Step 5: User endpoint authorization failed", 
+          status: response.status, 
+          details: response.data,
+          suggestion: "Check access token validity and scope permissions for User endpoint"
+        };
+      }
+      
+      if (response.status === 403) {
+        console.error("Step 5 User endpoint access forbidden (403)");
+        return { 
+          success: false,
+          error: "Step 5: User endpoint access forbidden", 
+          status: response.status, 
+          details: response.data,
+          suggestion: "Check client permissions and scopes for User endpoint access"
+        };
+      }
+      
+      // Retry for server errors and rate limiting
+      if (response.status === 429 || response.status >= 500) {
+        const waitTime = response.status === 429 ? 2000 : 1000 * Math.min(3, attempt + 1);
+        console.warn(`Step 5 retriable error (${response.status}), waiting ${waitTime}ms before retry ${attempt + 1}`);
+        await new Promise(r => setTimeout(r, waitTime));
+        attempt++;
+        continue;
+      }
+      
+      console.error("Step 5 User endpoint request failed with unexpected status:", {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data
+      });
+      return { 
+        success: false,
+        error: "Step 5: User endpoint request failed", 
+        status: response.status, 
+        details: response.data
+      };
+      
+    } catch (error) {
+      console.error(`Step 5 User endpoint request error (attempt ${attempt + 1}):`, {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data
+      });
+      
+      if (attempt < retries) {
+        const waitTime = 1000 * (attempt + 1);
+        console.log(`Step 5 retrying in ${waitTime}ms...`);
+        await new Promise(r => setTimeout(r, waitTime));
+        attempt++;
+        continue;
+      }
+      
+      return { 
+        success: false,
+        error: "Step 5: User endpoint network error", 
+        message: error.message,
+        code: error.code || 'NETWORK_ERROR',
+        suggestion: "Check network connectivity and SingPass User endpoint service status"
+      };
+    }
+  }
+  
+  console.log('=== STEP 5: USER ENDPOINT DEBUG END ===');
+  return {
+    success: false,
+    error: "Step 5: User endpoint request failed after all retries",
+    lastAttempt: attempt,
+    suggestion: "Check SingPass User endpoint availability and access token validity"
+  };
+}
+
+// Update the main token endpoint to use Step 5: User Endpoint instead of UserInfo
+router.post('/token', async (req, res) => {
   try {
+    // Set CORS headers for Azure SWA
+    res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
+      ? 'https://salmon-wave-09f02b100.6.azurestaticapps.net' 
+      : 'http://localhost:3000');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    
     // Ensure jose is initialized
     await initializeJose();
     
-    // Get authorization code and code verifier
-    const code = req.body.code || req.query.code;
+    // Extract parameters from request body (following SingPass Step 4 exactly)
+    const { code, code_verifier, state } = req.body;
+    
+    // Validate required parameters
     if (!code) {
-      return res.status(400).json({ error: "Bad request", message: "Missing required parameter: code" });
+      return res.status(400).json({ 
+        error: "invalid_request", 
+        error_description: "Missing required parameter: code" 
+      });
     }
     
-    const code_verifier = req.body.code_verifier || req.query.code_verifier;
     if (!code_verifier) {
-      return res.status(400).json({ error: "Bad request", message: "Missing required parameter: code_verifier" });
+      return res.status(400).json({ 
+        error: "invalid_request", 
+        error_description: "Missing required parameter: code_verifier" 
+      });
     }
+    
+    console.log('Processing token exchange for SingPass Step 4...');
     
     // Load configuration and keys
     const SIGNATURE_PRIVATE_KEY = require("../Others/SingPass/Keys/private-signing-key.jwk.json");
-    const ENCRYPTION_PRIVATE_KEY = require("../Others/SingPass/Keys/private-ec-encryption-key.jwk.json");
     const KID = SIGNATURE_PRIVATE_KEY.kid;
     
-    // For JWT payload and signatures
+    // Create JWT payload for client assertion
     const nowTime = moment().unix();
     const futureTime = moment().add(2, "minutes").unix();
     
@@ -338,117 +764,240 @@ router.post('/', async (req, res) => {
       aud: JWTTOKENURL,
       iat: nowTime,
       exp: futureTime,
-      direct_pii_allowed: true
+      jti: `${CLIENT_ID}_${nowTime}` // Add unique identifier
     };
     
-    // Step 1: Sign JWT
-    let jws;
+    // Step 4.1: Sign JWT for client assertion
+    let clientAssertion;
     try {
-      console.log("KID:", KID);
-      jws = await signJwtAsJws(jwtPayload, SIGNATURE_PRIVATE_KEY, KID);
+      console.log("Creating client assertion JWT...");
+      clientAssertion = await signJwtAsJws(jwtPayload, SIGNATURE_PRIVATE_KEY, KID);
     } catch (err) {
-      return res.status(500).json({ error: "JWS signing failed", message: err.message });
+      console.error("JWT signing failed:", err);
+      return res.status(500).json({ 
+        error: "server_error", 
+        error_description: "Client assertion creation failed" 
+      });
     }
 
-    // Step 2: Token exchange
+    // Step 4.2: Exchange authorization code for tokens
     let tokenData;
     try {
+      console.log("Exchanging authorization code for tokens...");
+      
+      const tokenRequest = {
+        grant_type: "authorization_code",
+        client_id: CLIENT_ID,
+        code: code,
+        redirect_uri: REDIRECT_URI,
+        code_verifier: code_verifier,
+        client_assertion_type: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+        client_assertion: clientAssertion
+      };
+      
+      console.log("Token request parameters:", {
+        ...tokenRequest,
+        client_assertion: 'REDACTED',
+        code: 'REDACTED',
+        code_verifier: 'REDACTED'
+      });
+      
       const response = await axios.post(
         SPTOKENURL,
-        new URLSearchParams({
-          client_id: CLIENT_ID,
-          redirect_uri: REDIRECT_URI,
-          code: code,
-          client_assertion_type: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-          grant_type: "authorization_code",
-          client_assertion: jws,
-          code_verifier: code_verifier,
-          scope: "openid name uinfin residentialstatus race sex dob nationality mobileno email regadd"
-        }),
+        new URLSearchParams(tokenRequest),
         {
           headers: { 
             "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json"
           },
+          timeout: 15000 // Increased timeout for Azure SWA
         }
       );
+      
       tokenData = response.data;
-      console.log("Token exchange response:", tokenData);
-    } catch (e) {
+      console.log("Token exchange successful");
+      console.log("Token response fields:", Object.keys(tokenData));
+      
+    } catch (tokenError) {
+      console.error("Token exchange failed:", {
+        message: tokenError.message,
+        response: tokenError.response?.data,
+        status: tokenError.response?.status
+      });
       return res.status(500).json({ 
-        error: "Token exchange failed", 
-        message: e.message, 
-        details: e.response?.data 
+        error: "invalid_grant", 
+        error_description: "Authorization code exchange failed",
+        details: tokenError.response?.data
       });
     }
 
-    // Step 3: Process ID token to extract UUID and user data
+    // Step 4.3: Validate and process ID token
     try {
       if (!tokenData || !tokenData.id_token) {
-        return res.status(400).json({ error: "Missing id_token in response" });
+        return res.status(500).json({ 
+          error: "server_error", 
+          error_description: "Missing id_token in token response" 
+        });
       }
       
       const idToken = tokenData.id_token;
-      const tokenParts = idToken.split('.');
-      console.log("Token parts:", tokenParts.length);
+      console.log("Processing ID token...");
       
-      // Handle JWT (not JWE) token case
-      if (tokenParts.length === 3) {
-        try {
-          const joseLib = await initializeJose();
-          const claims = joseLib.decodeJwt(idToken);
-          console.log("Decoded JWT claims:", claims);
-          
-          // Extract UUID from JWT
-          const uuid = claims.sub;
-
-          console.log("Fetching user data from UserInfo endpoint...");  
-          const userInfoResult = await fetchUserInfo(tokenData.access_token);
-          console.log("UserInfo result:", userInfoResult);
-          
-          // Prepare response with UUID and user data
-          const response = {
-            success: true,
-            uuid: uuid
-          };
-          
-          // Add extracted user data if available
-          if (userInfoResult.success && userInfoResult.extractedData) {
-            response.userData = userInfoResult.extractedData;
-            response.uinfin = userInfoResult.uinfin;
-            console.log("User data retrieved from UserInfo:", userInfoResult.extractedData);
-          } else {
-            console.warn("Failed to fetch user data from UserInfo:", userInfoResult.error);
-          }
-          
-          return res.status(200).json(response);
-          
-        } catch (jwtError) {
-          return res.status(400).json({ 
-            error: "JWT decoding failed", 
-            message: jwtError.message
+      // Decode JWT ID token
+      const joseLib = await initializeJose();
+      const idTokenClaims = joseLib.decodeJwt(idToken);
+      console.log("ID token decoded successfully");
+      console.log("ID token claims:", Object.keys(idTokenClaims));
+      
+      // Extract user identifier
+      const userUuid = idTokenClaims.sub;
+      
+      // Step 5: Invoke the User Endpoint (replacing UserInfo endpoint)
+      let userProfile = null;
+      let userEndpointDebug = null;
+      let endpointUsed = 'none';
+      
+      if (tokenData.access_token) {
+        console.log("=== INVOKING STEP 5: USER ENDPOINT ===");
+        const userEndpointResult = await invokeUserEndpoint(tokenData.access_token, { 
+          retries: 2, 
+          timeout: 15000 
+        });
+        
+        userEndpointDebug = userEndpointResult.debug || {};
+        
+        if (userEndpointResult.success) {
+          userProfile = userEndpointResult.extractedData;
+          endpointUsed = 'user';
+          console.log("Step 5: User profile retrieved successfully");
+          console.log("Step 5: Profile fields:", Object.keys(userProfile || {}));
+        } else {
+          console.error("Step 5: User endpoint failed:", {
+            error: userEndpointResult.error,
+            message: userEndpointResult.message,
+            suggestion: userEndpointResult.suggestion
           });
+          
+          // Try fallback to UserInfo endpoint if User endpoint fails
+          console.log("Trying fallback to UserInfo endpoint...");
+          const userInfoResult = await fetchUserInfo(tokenData.access_token, { 
+            retries: 2, 
+            timeout: 15000 
+          });
+          
+          if (userInfoResult.success) {
+            userProfile = userInfoResult.extractedData;
+            endpointUsed = 'userinfo';
+            console.log("UserInfo fallback successful");
+            console.log("UserInfo Profile fields:", Object.keys(userProfile || {}));
+          } else {
+            console.error("Both User endpoint and UserInfo failed");
+            console.error("User endpoint error:", userEndpointResult.error);
+            console.error("UserInfo error:", userInfoResult.error);
+            
+            // Don't fail the entire request - return basic info from ID token
+            userProfile = {
+              sub: userUuid
+            };
+            endpointUsed = 'id_token_only';
+            console.log("Using ID token data only as fallback");
+          }
         }
+      } else {
+        console.warn("No access token available for Step 5: User endpoint");
+        userProfile = { sub: userUuid };
+        endpointUsed = 'no_access_token';
       }
       
-      return res.status(500).json({
-        error: "Invalid token format",
-        message: "Token is neither JWT nor JWE format"
-      });
+      // Ensure we have individual fields extracted properly - handle null userProfile
+      const extractedFields = {
+        name: userProfile?.name || null,
+        uinfin: userProfile?.uinfin || null,
+        residentialstatus: userProfile?.residentialstatus || null,
+        race: userProfile?.race || null,
+        sex: userProfile?.sex || null,
+        dob: userProfile?.dob || null,
+        mobileno: userProfile?.mobileno || null,
+        email: userProfile?.email || null,
+        regadd: userProfile?.regadd || null
+      };
       
-    } catch (e) {
+      console.log("Extracted individual fields:", extractedFields);
+      console.log("Endpoint used:", endpointUsed);
+      
+      // Return successful response with Step 5 data - always succeed even if user data is minimal
+      const response = {
+        success: true,
+        message: `SingPass authentication completed successfully (endpoint: ${endpointUsed})`,
+        data: {
+          uuid: userUuid,
+          access_token: tokenData.access_token,
+          token_type: tokenData.token_type || "Bearer",
+          expires_in: tokenData.expires_in,
+          scope: tokenData.scope,
+          userProfile: userProfile,
+          // Extract individual fields for frontend compatibility
+          ...extractedFields,
+          // Add metadata about what worked
+          endpointUsed: endpointUsed,
+          // Include debug info in development
+          ...(process.env.NODE_ENV !== 'production' && {
+            debug: {
+              step5Debug: userEndpointDebug,
+              idTokenClaims: Object.keys(idTokenClaims),
+              hasUserProfile: !!userProfile,
+              extractedFields: Object.keys(extractedFields).filter(key => extractedFields[key] !== null),
+              endpoint: endpointUsed
+            }
+          })
+        }
+      };
+      
+      console.log("SingPass Step 4 + Step 5 completed successfully");
+      console.log("Final response has userProfile:", !!userProfile);
+      console.log("Individual fields extracted:", Object.keys(extractedFields).filter(key => extractedFields[key] !== null));
+      console.log("Response data keys:", response.data);
+      
+      return res.status(200).json(response);
+      
+    } catch (tokenProcessingError) {
+      console.error("Token processing failed:", tokenProcessingError);
+      console.error("Token processing stack:", tokenProcessingError.stack);
       return res.status(500).json({ 
-        error: "Token processing failed", 
-        message: e.message
+        error: "server_error", 
+        error_description: "ID token processing failed",
+        message: tokenProcessingError.message,
+        details: process.env.NODE_ENV !== 'production' ? tokenProcessingError.stack : undefined
       });
     }
     
-  } catch (e) {
+  } catch (error) {
+    console.error("SingPass token endpoint error:", error);
+    console.error("SingPass token endpoint stack:", error.stack);
     return res.status(500).json({ 
-      error: "Internal server error", 
-      message: e.message
+      error: "server_error", 
+      error_description: "Internal server error",
+      message: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
     });
   }
 });
 
-// Export router
+// Handle CORS preflight requests
+router.options('/token', (req, res) => {
+  res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
+    ? 'https://salmon-wave-09f02b100.6.azurestaticapps.net' 
+    : 'http://localhost:3000');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.sendStatus(200);
+});
+
+// Legacy endpoint for backward compatibility
+router.post('/', async (req, res) => {
+  // Redirect to the new token endpoint
+  req.url = '/token';
+  return router.handle(req, res);
+});
+
 module.exports = router;
