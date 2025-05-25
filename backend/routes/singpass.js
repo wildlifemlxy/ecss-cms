@@ -724,14 +724,14 @@ router.post('/token', async (req, res) => {
     res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
       ? 'https://salmon-wave-09f02b100.6.azurestaticapps.net' 
       : 'http://localhost:3000');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Platform');
     res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     
     // Ensure jose is initialized
     await initializeJose();
     
     // Extract parameters from request body (following SingPass Step 4 exactly)
-    const { code, code_verifier, state } = req.body;
+    const { code, code_verifier, state, platform } = req.body;
     
     // Validate required parameters
     if (!code) {
@@ -749,6 +749,8 @@ router.post('/token', async (req, res) => {
     }
     
     console.log('Processing token exchange for SingPass Step 4...');
+    console.log('Platform detected:', platform || 'web');
+    console.log('Environment:', process.env.NODE_ENV);
     
     // Load configuration and keys
     const SIGNATURE_PRIVATE_KEY = require("../Others/SingPass/Keys/private-signing-key.jwk.json");
@@ -770,8 +772,9 @@ router.post('/token', async (req, res) => {
     // Step 4.1: Sign JWT for client assertion
     let clientAssertion;
     try {
-      console.log("Creating client assertion JWT...12");
+      console.log("Creating client assertion JWT...");
       clientAssertion = await signJwtAsJws(jwtPayload, SIGNATURE_PRIVATE_KEY, KID);
+      console.log("Client assertion created successfully");
     } catch (err) {
       console.error("JWT signing failed:", err);
       return res.status(500).json({ 
@@ -780,56 +783,153 @@ router.post('/token', async (req, res) => {
       });
     }
 
-    // Step 4.2: Exchange authorization code for tokens
+    // Step 4.2: Determine correct redirect URI based on platform and environment
+    const getCorrectRedirectUri = (platform, env) => {
+      console.log('Determining redirect URI for platform:', platform, 'env:', env);
+      
+      // Check if request came from Android app
+      if (platform === 'android') {
+        console.log('Using Android deep link redirect URI');
+        return "com.ecss.ecssapp://callback";
+      }
+      
+      // Web platform redirect URIs
+      if (env === 'production') {
+        console.log('Using production web redirect URI');
+        return "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
+      } else {
+        console.log('Using development web redirect URI');
+        return "http://localhost:3000/callback";
+      }
+    };
+
+    const correctRedirectUri = getCorrectRedirectUri(platform, process.env.NODE_ENV);
+    console.log('Using redirect URI:', correctRedirectUri);
+
+    // Step 4.2: Exchange authorization code for tokens with correct configuration
     let tokenData;
     try {
       console.log("Exchanging authorization code for tokens...");
       
+      // FIXED: Proper token request configuration
       const tokenRequest = {
         grant_type: "authorization_code",
         client_id: CLIENT_ID,
         code: code,
-        redirect_uri: REDIRECT_URI || "com.ecss.ecssapp://callback",
+        redirect_uri: correctRedirectUri, // Use dynamically determined redirect URI
         code_verifier: code_verifier,
         client_assertion_type: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
         client_assertion: clientAssertion
       };
 
-      console.log("Actual Token Request:", tokenRequest);
-      
+      console.log("Token request:", tokenRequest);
+
       console.log("Token request parameters:", {
-        ...tokenRequest,
-        client_assertion: 'REDACTED',
+        grant_type: tokenRequest.grant_type,
+        client_id: tokenRequest.client_id,
+        redirect_uri: tokenRequest.redirect_uri,
+        client_assertion_type: tokenRequest.client_assertion_type,
         code: 'REDACTED',
-        code_verifier: 'REDACTED'
+        code_verifier: 'REDACTED',
+        client_assertion: 'REDACTED'
       });
       
+      // Make the token exchange request with proper headers
       const response = await axios.post(
         SPTOKENURL,
         new URLSearchParams(tokenRequest),
         {
           headers: { 
             "Content-Type": "application/x-www-form-urlencoded",
-            "Accept": "application/json"
+            "Accept": "application/json",
+            "User-Agent": "SingPass-Integration-AzureSWA/1.0",
+            "Cache-Control": "no-cache"
           },
-          timeout: 15000 // Increased timeout for Azure SWA
+          timeout: 30000, // Increased timeout for Azure SWA
+          validateStatus: function (status) {
+            return status < 600; // Don't throw for any status code less than 600
+          }
         }
       );
+
+      console.log("Token exchange response received", response);
+
+      console.log("Token exchange response status:", response.status);
+      console.log("Token exchange response headers:", response.headers);
+      
+      if (response.status !== 200) {
+        console.error("Token exchange failed with status:", response.status);
+        console.error("Token exchange error response:", response.data);
+        
+        return res.status(response.status).json({ 
+          error: "token_exchange_failed", 
+          error_description: "SingPass token exchange failed",
+          status: response.status,
+          details: response.data,
+          requestDetails: {
+            redirect_uri: correctRedirectUri,
+            platform: platform || 'web'
+          }
+        });
+      }
       
       tokenData = response.data;
       console.log("Token exchange successful");
       console.log("Token response fields:", Object.keys(tokenData));
       
+      // Validate token response
+      if (!tokenData.access_token) {
+        console.error("Missing access_token in response:", tokenData);
+        return res.status(500).json({ 
+          error: "invalid_token_response", 
+          error_description: "Missing access_token in SingPass response" 
+        });
+      }
+      
+      if (!tokenData.id_token) {
+        console.error("Missing id_token in response:", tokenData);
+        return res.status(500).json({ 
+          error: "invalid_token_response", 
+          error_description: "Missing id_token in SingPass response" 
+        });
+      }
+      
     } catch (tokenError) {
       console.error("Token exchange failed:", {
         message: tokenError.message,
+        code: tokenError.code,
         response: tokenError.response?.data,
-        status: tokenError.response?.status
+        status: tokenError.response?.status,
+        config: {
+          url: tokenError.config?.url,
+          method: tokenError.config?.method,
+          headers: tokenError.config?.headers
+        }
       });
+      
+      // Provide more specific error messages
+      let errorDescription = "Authorization code exchange failed";
+      if (tokenError.code === 'ECONNABORTED') {
+        errorDescription = "Request timeout - SingPass service may be slow";
+      } else if (tokenError.code === 'ENOTFOUND') {
+        errorDescription = "Cannot connect to SingPass service";
+      } else if (tokenError.response?.status === 400) {
+        errorDescription = "Invalid request parameters";
+      } else if (tokenError.response?.status === 401) {
+        errorDescription = "Authentication failed - check client credentials";
+      } else if (tokenError.response?.status === 403) {
+        errorDescription = "Access forbidden - check client permissions";
+      }
+      
       return res.status(500).json({ 
         error: "invalid_grant", 
-        error_description: "Authorization code exchange failed",
-        details: tokenError.response?.data
+        error_description: errorDescription,
+        details: tokenError.response?.data,
+        code: tokenError.code,
+        requestDetails: {
+          redirect_uri: correctRedirectUri,
+          platform: platform || 'web'
+        }
       });
     }
 
@@ -840,8 +940,7 @@ router.post('/token', async (req, res) => {
           error: "server_error", 
           error_description: "Missing id_token in token response" 
         });
-      }
-      
+      } 
       const idToken = tokenData.id_token;
       console.log("Processing ID token...");
       
