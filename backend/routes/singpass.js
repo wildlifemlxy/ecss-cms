@@ -788,7 +788,7 @@ router.post('/token', async (req, res) => {
       console.log('Determining redirect URI for platform:', platform, 'env:', env);
       
       // Check if request came from Android app
-      if (platform === 'android') {
+      if (platform === 'undefined' || platform === 'android') {
         console.log('Using Android deep link redirect URI');
         return "com.ecss.ecssapp://callback";
       }
