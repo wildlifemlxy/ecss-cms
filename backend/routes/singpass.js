@@ -770,7 +770,7 @@ router.post('/token', async (req, res) => {
     // Step 4.1: Sign JWT for client assertion
     let clientAssertion;
     try {
-      console.log("Creating client assertion JWT...");
+      console.log("Creating client assertion JWT...12");
       clientAssertion = await signJwtAsJws(jwtPayload, SIGNATURE_PRIVATE_KEY, KID);
     } catch (err) {
       console.error("JWT signing failed:", err);
