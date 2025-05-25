@@ -794,13 +794,14 @@ router.post('/token', async (req, res) => {
         client_assertion_type: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
         client_assertion: clientAssertion
       };
+
+      console.log("Actual Token Request:", tokenRequest);
       
       console.log("Token request parameters:", {
         ...tokenRequest,
-        client_assertion: clientAssertion,
-        //client_assertion: 'REDACTED',
-        //code: 'REDACTED',
-        //code_verifier: 'REDACTED'
+        client_assertion: 'REDACTED',
+        code: 'REDACTED',
+        code_verifier: 'REDACTED'
       });
       
       const response = await axios.post(
