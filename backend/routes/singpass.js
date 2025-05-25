@@ -798,9 +798,9 @@ router.post('/token', async (req, res) => {
       console.log("Token request parameters:", {
         ...tokenRequest,
         client_assertion: clientAssertion,
-        client_assertion: 'REDACTED',
-        code: 'REDACTED',
-        code_verifier: 'REDACTED'
+        //client_assertion: 'REDACTED',
+        //code: 'REDACTED',
+        //code_verifier: 'REDACTED'
       });
       
       const response = await axios.post(
