@@ -789,7 +789,7 @@ router.post('/token', async (req, res) => {
         grant_type: "authorization_code",
         client_id: CLIENT_ID,
         code: code,
-        redirect_uri: REDIRECT_URI,
+        redirect_uri: REDIRECT_URI || "com.ecss.ecssapp://callback",
         code_verifier: code_verifier,
         client_assertion_type: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
         client_assertion: clientAssertion
@@ -797,6 +797,7 @@ router.post('/token', async (req, res) => {
       
       console.log("Token request parameters:", {
         ...tokenRequest,
+        client_assertion: clientAssertion,
         client_assertion: 'REDACTED',
         code: 'REDACTED',
         code_verifier: 'REDACTED'

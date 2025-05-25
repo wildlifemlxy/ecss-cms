@@ -194,146 +194,146 @@ class CourseSelectionPage extends Component {
     );
 }
 
-renderCourseDetails = (shortDescription)  => {
-  // First, clean the shortDescription by removing <br/>, <p> tags and the specific <div> tag
-  let processedDescription = shortDescription
-      .replace(/<br\/>/g, '') // Remove <br/>
-      .replace(/<p>/g, '') // Remove <p> tag
-      .replace(/<\/p>/g, '') // Remove closing </p> tag
-      .replace(/<div class="nta_wa_button"[^>]*>.*?<\/div>/g, ''); // Remove the specific <div> tag
+  renderCourseDetails = (shortDescription)  => {
+    // First, clean the shortDescription by removing <br/>, <p> tags and the specific <div> tag
+    let processedDescription = shortDescription
+        .replace(/<br\/>/g, '') // Remove <br/>
+        .replace(/<p>/g, '') // Remove <p> tag
+        .replace(/<\/p>/g, '') // Remove closing </p> tag
+        .replace(/<div class="nta_wa_button"[^>]*>.*?<\/div>/g, ''); // Remove the specific <div> tag
+    
+    // Now, remove any extra white spaces
+    processedDescription = processedDescription.replace(/\s+/g, ' ').trim();
+    console.log("Processed Description:", processedDescription);
+
+    // Find the phone number after the label "联系电话" or "Contact Number:"
+    const contactNumberMatch = processedDescription.match(/(?:联系电话 Contact Number:)[^\d]*(\d{4}[\s\-]?\d{4})(?:\s?\((Whatsapp only)\))?/i);
+    let contactNumber = "";
+    console.log("Contact Number Match:", contactNumberMatch);
+    if (contactNumberMatch) {
+        const phoneNumber = contactNumberMatch[1].trim(); // The phone number
+        const whatsappNote = contactNumberMatch[2] ? "(Whatsapp only)" : ""; // The "(Whatsapp only)" text if it exists
+    
+        // Combine phone number with whatsapp note (if available)
+        contactNumber = whatsappNote ? phoneNumber + " " + whatsappNote : phoneNumber;
+    }
+
+    const languageMatch = processedDescription.match(/语言 Language:<\/b><br \/>(.*?)<br \/>(.*?)<b>/i);
+
+    // If both Chinese and English content are found, extract them
+    let languages = [];
+    if (languageMatch) {
+        const chineseLanguage = languageMatch[1].trim(); // Extract Chinese content
+        const englishLanguage = languageMatch[2].trim(); // Extract English content
+        languages = [chineseLanguage, englishLanguage];
+    }
+
+    const locationMatch = processedDescription.match(/地点 Location:<\/b>(.*?)<b>/is);
+    let location = "";
+    if (locationMatch) {
+        location = locationMatch[1].replace(/<br\s*\/?>/g, ' ').trim(); // Replace <br/> with space and trim
+    }
   
-  // Now, remove any extra white spaces
-  processedDescription = processedDescription.replace(/\s+/g, ' ').trim();
-  console.log("Processed Description:", processedDescription);
+    const flvMatch = processedDescription.match(/学费\/课数\/名额 Fee\/Lesson\/Vacancy：<\/b>(.*?)<b>/is);
 
-  // Find the phone number after the label "联系电话" or "Contact Number:"
-  const contactNumberMatch = processedDescription.match(/(?:联系电话 Contact Number:)[^\d]*(\d{4}[\s\-]?\d{4})(?:\s?\((Whatsapp only)\))?/i);
-  let contactNumber = "";
-  console.log("Contact Number Match:", contactNumberMatch);
-  if (contactNumberMatch) {
-      const phoneNumber = contactNumberMatch[1].trim(); // The phone number
-      const whatsappNote = contactNumberMatch[2] ? "(Whatsapp only)" : ""; // The "(Whatsapp only)" text if it exists
-  
-      // Combine phone number with whatsapp note (if available)
-      contactNumber = whatsappNote ? phoneNumber + " " + whatsappNote : phoneNumber;
+    let feeLessonVacancyText = "";
+    let feeLessonVacancy = {};
+    if (flvMatch) {
+        let englishFeeLessonVacancy = '';
+        let mandarinFeeLessonVacancy = '';
+
+        feeLessonVacancyText = flvMatch[1].replace(/<br\s*\/?>/g, ' ').trim(); // Remove <br/> and trim spaces
+        const englishRegex = /\$?([\d\.]+)\/(\d+)\s*?Lesson(?:s)?\/(\d+)\s*?Vacanc(?:y|ies)/i;;
+        // Match the English part
+        const englishMatch = feeLessonVacancyText.match(englishRegex);
+        console.log("English Fee:", englishMatch);
+        
+        if (englishMatch) {
+            englishFeeLessonVacancy = englishMatch[0].trim();  // Extract the whole English schedule (day + time)
+        }
+
+        // Regular expression to match Chinese weekday and time format
+        const mandarinRegex = /\$([\d\.]+)\s*\/\s*(\d+)\s?堂课\s*\/\s*(\d+)\s?名额/;
+
+        // Match the Chinese part
+        const mandarinMatch = feeLessonVacancyText.match(mandarinRegex);
+
+        if (mandarinMatch) {
+            mandarinFeeLessonVacancy = mandarinMatch[0].trim();  // Extract the whole Chinese schedule (day + time)
+        }
+        console.log("Mandarin Fee:",  mandarinMatch);
+        feeLessonVacancy = <div style={{ whiteSpace: 'pre-line' }}>
+        {englishFeeLessonVacancy} <br />
+        {mandarinFeeLessonVacancy}
+    </div>  
+    }   
+
+    const lessonScheduleMatch = processedDescription.match(/课程表 Lesson Schedule:<\/b>(.*?)<strong>/is);
+    let lessonSchedule = "";
+
+    if (lessonScheduleMatch) 
+    {
+        const lessonScheduleText = lessonScheduleMatch[1].replace(/<br\s*\/?>/g, ' ').trim();
+
+        // Match the lesson schedule
+        const englishRegex = /(Every\s*)?([A-Za-z]+(?:day)?)\s*,\s*(\d{1,2}:\d{2}[apm]{2}\s*[-–]?\s*\d{1,2}:\d{2}[apm]{2})/;
+
+        // Match the English part
+        const englishMatch = lessonScheduleText.match(englishRegex);
+
+        let englishSchedule = '';
+
+        if (englishMatch) {
+            englishSchedule = englishMatch[0].trim();  // Extract the whole English schedule (day + time)
+        }
+
+        console.log("English Schedule:", englishSchedule);
+
+        // Regular expression to match Chinese weekday and time format
+        const mandarinRegex = /(每个\s*)?(星期一|星期二|星期三|星期四|星期五|星期六|星期日),\s*(上午|下午|中午)\d{1,2}点(\d{1,2}分)?到(上午|下午|中午)\d{1,2}点(\d{1,2}分)?/;
+        // Match the Chinese part
+        const mandarinMatch = lessonScheduleText.match(mandarinRegex);
+
+        let mandarinSchedule = '';
+
+        if (mandarinMatch) {
+            mandarinSchedule = mandarinMatch[0].trim();  // Extract the whole Chinese schedule (day + time)
+        }
+
+        console.log("Mandarin Schedule:", mandarinSchedule);
+
+        lessonSchedule = <div style={{ whiteSpace: 'pre-line' }}>
+                        {mandarinSchedule} <br />
+                        {englishSchedule}
+                    </div>  
+    }
+
+    // Match both Chinese and English Start Date
+    const startDateMatch = processedDescription.match(/开课日期 Start Date:<\/strong><br\s*\/?>\s*(.*?)<br\s*\/?>\s*(\d{1,2} [A-Za-z]+ \d{4})/is);
+
+    // Match both Chinese and English End Date
+    const endDateMatch = processedDescription.match(/课完日期 End Date:<\/strong><br\s*\/?>\s*(.*?)<br\s*\/?>\s*(\d{1,2} [A-Za-z]+ \d{4})/is);
+
+    let courseDateRange = "";
+
+    if (startDateMatch && endDateMatch) {
+        const startDateCN = startDateMatch[1].trim(); // Chinese Start Date
+        const startDateEN = startDateMatch[2].trim(); // English Start Date
+        const endDateCN = endDateMatch[1].trim(); // Chinese End Date
+        const endDateEN = endDateMatch[2].trim(); // English End Date
+    
+        // Using \n for console output (for debugging)
+        console.log(`${startDateCN} - ${endDateCN}\n${startDateEN} - ${endDateEN}`);
+    
+        // Using <br /> for HTML output (for displaying in React/HTML)
+        courseDateRange = <div style={{ whiteSpace: 'pre-line' }}>
+                        {startDateCN} - {endDateCN} <br />
+                        {startDateEN} - {endDateEN}
+                    </div>
+    }        
+
+    return {contactNumber, language:languages[0].trim()+" "+languages[1].trim(), location, feeLessonVacancy, lessonSchedule, courseDateRange};
   }
-
-  const languageMatch = processedDescription.match(/语言 Language:<\/b><br \/>(.*?)<br \/>(.*?)<b>/i);
-
-  // If both Chinese and English content are found, extract them
-  let languages = [];
-  if (languageMatch) {
-      const chineseLanguage = languageMatch[1].trim(); // Extract Chinese content
-      const englishLanguage = languageMatch[2].trim(); // Extract English content
-      languages = [chineseLanguage, englishLanguage];
-  }
-
-  const locationMatch = processedDescription.match(/地点 Location:<\/b>(.*?)<b>/is);
-  let location = "";
-  if (locationMatch) {
-      location = locationMatch[1].replace(/<br\s*\/?>/g, ' ').trim(); // Replace <br/> with space and trim
-  }
- 
-  const flvMatch = processedDescription.match(/学费\/课数\/名额 Fee\/Lesson\/Vacancy：<\/b>(.*?)<b>/is);
-
-  let feeLessonVacancyText = "";
-  let feeLessonVacancy = {};
-  if (flvMatch) {
-      let englishFeeLessonVacancy = '';
-      let mandarinFeeLessonVacancy = '';
-
-      feeLessonVacancyText = flvMatch[1].replace(/<br\s*\/?>/g, ' ').trim(); // Remove <br/> and trim spaces
-      const englishRegex = /\$?([\d\.]+)\/(\d+)\s*?Lesson(?:s)?\/(\d+)\s*?Vacanc(?:y|ies)/i;;
-      // Match the English part
-      const englishMatch = feeLessonVacancyText.match(englishRegex);
-      console.log("English Fee:", englishMatch);
-      
-      if (englishMatch) {
-          englishFeeLessonVacancy = englishMatch[0].trim();  // Extract the whole English schedule (day + time)
-      }
-
-       // Regular expression to match Chinese weekday and time format
-       const mandarinRegex = /\$([\d\.]+)\s*\/\s*(\d+)\s?堂课\s*\/\s*(\d+)\s?名额/;
-
-       // Match the Chinese part
-       const mandarinMatch = feeLessonVacancyText.match(mandarinRegex);
-
-       if (mandarinMatch) {
-           mandarinFeeLessonVacancy = mandarinMatch[0].trim();  // Extract the whole Chinese schedule (day + time)
-       }
-       console.log("Mandarin Fee:",  mandarinMatch);
-       feeLessonVacancy = <div style={{ whiteSpace: 'pre-line' }}>
-       {englishFeeLessonVacancy} <br />
-       {mandarinFeeLessonVacancy}
-   </div>  
-  }   
-
-  const lessonScheduleMatch = processedDescription.match(/课程表 Lesson Schedule:<\/b>(.*?)<strong>/is);
-  let lessonSchedule = "";
-
-  if (lessonScheduleMatch) 
-  {
-      const lessonScheduleText = lessonScheduleMatch[1].replace(/<br\s*\/?>/g, ' ').trim();
-
-      // Match the lesson schedule
-      const englishRegex = /(Every\s*)?([A-Za-z]+(?:day)?)\s*,\s*(\d{1,2}:\d{2}[apm]{2}\s*[-–]?\s*\d{1,2}:\d{2}[apm]{2})/;
-
-      // Match the English part
-      const englishMatch = lessonScheduleText.match(englishRegex);
-
-      let englishSchedule = '';
-
-      if (englishMatch) {
-          englishSchedule = englishMatch[0].trim();  // Extract the whole English schedule (day + time)
-      }
-
-      console.log("English Schedule:", englishSchedule);
-
-      // Regular expression to match Chinese weekday and time format
-      const mandarinRegex = /(每个\s*)?(星期一|星期二|星期三|星期四|星期五|星期六|星期日),\s*(上午|下午|中午)\d{1,2}点(\d{1,2}分)?到(上午|下午|中午)\d{1,2}点(\d{1,2}分)?/;
-      // Match the Chinese part
-      const mandarinMatch = lessonScheduleText.match(mandarinRegex);
-
-      let mandarinSchedule = '';
-
-      if (mandarinMatch) {
-          mandarinSchedule = mandarinMatch[0].trim();  // Extract the whole Chinese schedule (day + time)
-      }
-
-      console.log("Mandarin Schedule:", mandarinSchedule);
-
-      lessonSchedule = <div style={{ whiteSpace: 'pre-line' }}>
-                      {mandarinSchedule} <br />
-                      {englishSchedule}
-                  </div>  
-  }
-
-  // Match both Chinese and English Start Date
-  const startDateMatch = processedDescription.match(/开课日期 Start Date:<\/strong><br\s*\/?>\s*(.*?)<br\s*\/?>\s*(\d{1,2} [A-Za-z]+ \d{4})/is);
-
-  // Match both Chinese and English End Date
-  const endDateMatch = processedDescription.match(/课完日期 End Date:<\/strong><br\s*\/?>\s*(.*?)<br\s*\/?>\s*(\d{1,2} [A-Za-z]+ \d{4})/is);
-
-  let courseDateRange = "";
-
-  if (startDateMatch && endDateMatch) {
-      const startDateCN = startDateMatch[1].trim(); // Chinese Start Date
-      const startDateEN = startDateMatch[2].trim(); // English Start Date
-      const endDateCN = endDateMatch[1].trim(); // Chinese End Date
-      const endDateEN = endDateMatch[2].trim(); // English End Date
-  
-      // Using \n for console output (for debugging)
-      console.log(`${startDateCN} - ${endDateCN}\n${startDateEN} - ${endDateEN}`);
-  
-      // Using <br /> for HTML output (for displaying in React/HTML)
-      courseDateRange = <div style={{ whiteSpace: 'pre-line' }}>
-                      {startDateCN} - {endDateCN} <br />
-                      {startDateEN} - {endDateEN}
-                  </div>
-  }        
-
-  return {contactNumber, language:languages[0].trim()+" "+languages[1].trim(), location, feeLessonVacancy, lessonSchedule, courseDateRange};
-}
 
   handleCheckout = (coursesRegistered) =>
   {
