@@ -14,7 +14,7 @@ class FormPage extends Component {
     this.state = {
       currentSection: 0,
       loading: false,
-      isAuthenticated: false, // Track SingPass authentication status
+      isAuthenticated: true, // Track SingPass authentication status
       formData: {
         englishName: '',
         chineseName: '',
