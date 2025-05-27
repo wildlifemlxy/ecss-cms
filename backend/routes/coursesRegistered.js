@@ -8,38 +8,40 @@ router.post('/', async function(req, res, next)
     {
         try {
             const { nric } = req.body;
-            
+            console.log("Retrieving courses for NRIC:", nric);
+
             // Validate NRIC input
             if (!nric) {
                 return res.status(400).json({
                     success: false,
-                    message: "NRIC is required"
+                    message: "NRIC is required",
+                    courses: null
                 });
             }
 
             var controller = new CourseRegisteredController();
             var result = await controller.retrievedCourse({ nric });
             
-            // Enhanced response format
+            // Enhanced response format matching Kotlin data class
             return res.json({
                 success: result.success,
                 message: result.message,
-                data: result.courses,
-                count: result.courses ? result.courses.length : 0
+                courses: result.courses || [] // Changed from 'data' to 'courses' to match Kotlin model
             }); 
         } catch (error) {
             console.error("Retrieve courses error:", error);
             return res.status(500).json({
                 success: false,
                 message: "Error retrieving courses",
-                error: error.message
+                courses: null
             });
         }
     }
     else {
         res.status(400).json({
             success: false,
-            message: "Invalid purpose. Expected 'retrieve'"
+            message: "Invalid purpose. Expected 'retrieve'",
+            courses: null
         });
     }
 });

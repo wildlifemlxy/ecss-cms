@@ -22,7 +22,7 @@ class CourseRegisteredController {
                 );
 
                 if (registeredCourses && registeredCourses.length > 0) {
-                    // Format the response to include all course details
+                    // Format the response to match Kotlin RegisteredCourse data class
                     const formattedCourses = registeredCourses.map(course => ({
                         courseType: course.course?.courseType || "N/A",
                         courseEngName: course.course?.courseEngName || "N/A",
@@ -30,11 +30,10 @@ class CourseRegisteredController {
                         courseLocation: course.course?.courseLocation || "N/A",
                         coursePrice: course.course?.coursePrice || "N/A",
                         courseDuration: course.course?.courseDuration || "N/A",
-                        payment: course.payment?.method || course.payment || "N/A",
                         courseMode: course.course?.courseMode || "N/A",
-                        status: course.status || "N/A",
-                        registrationDate: course.registrationDate || "N/A",
-                        receiptNumber: course.receiptNumber || "N/A"
+                        status: course.official?.status || course.status || "N/A",
+                        registrationDate: course.registrationDate || "N/A"
+                        // Removed payment and receiptNumber to match Kotlin data class
                     }));
 
                     return {
@@ -61,7 +60,6 @@ class CourseRegisteredController {
             return {
                 success: false,
                 message: "Error retrieving courses",
-                error: error.message,
                 courses: []
             };
         } finally {
