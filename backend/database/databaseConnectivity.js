@@ -193,6 +193,25 @@ class DatabaseConnectivity {
             console.log(error);
         }
     }
+    
+    // Add this method to your DatabaseConnectivity class
+    async findCoursesRegisteredByNRIC(databaseName, collectionName, nric) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            // Find all courses registered by the participant with the given NRIC
+            const courses = await table.find({ 
+                "participant.nric": nric 
+            }).toArray();
+            
+            console.log(`Found ${courses.length} courses for NRIC: ${nric}`);
+            return courses;
+        } catch (error) {
+            console.error("Error retrieving courses by NRIC:", error);
+            throw error;
+        }
+    }
 
     async changePassword(dbname, collectionName, accountId, newPassword)
     {
