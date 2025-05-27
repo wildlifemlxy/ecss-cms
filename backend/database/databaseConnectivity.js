@@ -65,7 +65,7 @@ class DatabaseConnectivity {
         }
     }
 
-        async participantsLogin(dbname, collectionName, username, password)
+    async participantsLogin(dbname, collectionName, username, password)
     {
         const db = this.client.db(dbname);
         try
@@ -73,22 +73,16 @@ class DatabaseConnectivity {
             var table = db.collection(collectionName);
             
             // Find a user where contactNumber matches both username AND password
-            const user = await table.findOne({ 
-                contactNumber: username,
-                contactNumber: password  // This checks if contactNumber equals password too
+            const userByUsername = await table.findOne({ 
+                contactNumber: username // This checks if contactNumber equals password too
             });
 
-            if (user) {
+            if (userByUsername.contactNumber === password) {
                 // User found, login successful
                 return {
                     success: true,
                     message: 'Login successful',
-                    user: {
-                        id: user._id,
-                        name: user.name,
-                        contactNumber: user.contactNumber,
-                        email: user.email
-                    }
+                    user: userByUsername
                 };
             } else {
                 // No user found, login failed
