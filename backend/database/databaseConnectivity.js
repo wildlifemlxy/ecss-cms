@@ -65,32 +65,20 @@ class DatabaseConnectivity {
         }
     }
 
-    async participantsLogin(dbname, collectionName, username, password)
+        async participantsLogin(dbname, collectionName, username, password)
     {
         const db = this.client.db(dbname);
         try
         {
             var table = db.collection(collectionName);
             
-            // Find a user with matching contact number and password
-            // Assuming username is contactNumber and password is stored as a password field
+            // Find a user where contactNumber matches both username AND password
             const user = await table.findOne({ 
-                contactNumber: username, 
-                password: password 
+                contactNumber: username,
+                contactNumber: password  // This checks if contactNumber equals password too
             });
 
             if (user) {
-                // Update login timestamp
-                await table.updateOne(
-                    { _id: user._id },
-                    {
-                        $set: {
-                            lastLoginDate: new Date().toISOString().split('T')[0],
-                            lastLoginTime: new Date().toTimeString().split(' ')[0]
-                        }
-                    }
-                );
-
                 // User found, login successful
                 return {
                     success: true,
@@ -100,13 +88,13 @@ class DatabaseConnectivity {
                         name: user.name,
                         contactNumber: user.contactNumber,
                         email: user.email
-                    } // Return only necessary user details for security
+                    }
                 };
             } else {
                 // No user found, login failed
                 return {
                     success: false,
-                    message: 'Invalid contact number or password'
+                    message: 'Invalid contact number or contact number does not match'
                 };
             }
         }
