@@ -4,7 +4,7 @@ const CourseRegisteredController = require('../Controller/CourseRegistered/Cours
 
 router.post('/', async function(req, res, next) 
 {
-    if(req.body.purpose === "retrieve")
+    if(req.body.purpose === "getRegisteredCourses") // Changed from "retrieve" to "getRegisteredCourses"
     {
         try {
             const { nric } = req.body;
@@ -40,7 +40,7 @@ router.post('/', async function(req, res, next)
     else {
         res.status(400).json({
             success: false,
-            message: "Invalid purpose. Expected 'retrieve'",
+            message: "Invalid purpose. Expected 'getRegisteredCourses'", // Updated error message
             courses: null
         });
     }
