@@ -37,6 +37,8 @@ class CourseRegisteredController {
                         // Removed payment and receiptNumber to match Kotlin data class
                     }));
 
+                    console.log("Retrieved courses:", formattedCourses);
+
                     return {
                         success: true,
                         message: "Courses retrieved successfully",
