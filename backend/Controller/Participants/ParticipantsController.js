@@ -7,7 +7,8 @@ class ParticipantsController
   {
     this.databaseConnectivity = new DatabaseConnectivity(); // Create an instance of DatabaseConnectivity
   }
-    // Handle user login
+
+  // Handle user login
   async login(username, password)
   {
     try 
@@ -35,6 +36,50 @@ class ParticipantsController
     {
       await this.databaseConnectivity.close(); // Ensure the connection is closed
     }   
+  }
+
+    // In ParticipantsController.js
+  async update(updateData)
+  {
+      try 
+      {
+          console.log("Updating participant:", updateData);
+          var result = await this.databaseConnectivity.initialize();
+          if(result === "Connected to MongoDB Atlas!")
+          {
+              var databaseName = "Courses-Management-System";
+              var collectionName = "Participants";
+              
+              var updateResult = await this.databaseConnectivity.updateParticipant(
+                  databaseName, 
+                  collectionName, 
+                  updateData._id, 
+                  updateData
+              );
+              
+              return {
+                  "success": updateResult.success, 
+                  "message": updateResult.message, 
+              };   
+          } else {
+              return {
+                  success: false,
+                  message: "Database connection failed"
+              };
+          }
+      } 
+      catch (error) 
+      {
+          console.error("Update error:", error);
+          return {
+              success: false,
+              message: "Error updating participant"    
+          };
+      }
+      finally 
+      {
+          await this.databaseConnectivity.close();
+      }   
   }
 }
 

@@ -103,6 +103,59 @@ class DatabaseConnectivity {
         }
     }
 
+    async updateParticipant(databaseName, collectionName, participantId, updateData)
+    {
+        const db = this.client.db(databaseName);
+        try
+        {
+            var table = db.collection(collectionName);
+            
+            // Remove _id from updateData to avoid modifying the MongoDB _id field
+            const { _id, ...fieldsToUpdate } = updateData;
+            
+            // Filter out undefined or null values
+            const filteredUpdateData = {};
+            for (const key in fieldsToUpdate) {
+                if (fieldsToUpdate[key] !== undefined && fieldsToUpdate[key] !== null && fieldsToUpdate[key] !== '') {
+                    filteredUpdateData[key] = fieldsToUpdate[key];
+                }
+            }
+            
+            const filter = { _id: new ObjectId(participantId) };
+            const update = { $set: filteredUpdateData };
+            
+            console.log("Update filter:", filter);
+            console.log("Update operation:", update);
+            
+            const result = await table.updateOne(filter, update);
+            
+            if (result.modifiedCount === 1) {
+                return {
+                    success: true,
+                    message: "Participant updated successfully"
+                };
+            } else if (result.matchedCount === 1) {
+                return {
+                    success: true,
+                    message: "No changes made - data was already up to date"
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Participant not found with the provided ID"
+                };
+            }
+        }
+        catch(error)
+        {
+            console.error("Update participant error:", error);
+            return {
+                success: false,
+                message: "Error updating participant"
+            };
+        }
+    }
+
     async logout(dbname, collectionName, accountId, date, time)
     {
         const db = this.client.db(dbname);
