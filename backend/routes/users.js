@@ -10,7 +10,7 @@ router.post("/", async function(req, res)
     var controller = new ParticipantsController();
     var result = await controller.login(userName, password);
     console.log(result);
-    res.json({"message": result});
+    res.json({"success": result.success, "message": result.message, "details": result.details});
 });
 
 module.exports = router;

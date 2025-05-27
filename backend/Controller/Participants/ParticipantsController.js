@@ -20,7 +20,7 @@ class ParticipantsController
         var collectionName = "Participants";
         var connectedDatabase = await this.databaseConnectivity.participantsLogin(databaseName, collectionName, username, password);
         //console.log(connectedDatabase.message);
-        return {"message": connectedDatabase.message, "details": connectedDatabase.user};   
+        return {"success": connectedDatabase.success, "message": connectedDatabase.message, "details": connectedDatabase.user};   
       }
     } 
     catch (error) 
