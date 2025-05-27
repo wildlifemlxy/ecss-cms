@@ -1058,7 +1058,90 @@ class RegistrationPaymentSection extends Component {
               newCell.style = cell.style;
             });
           }
+          else if (detail.courseInfo.courseType === "ILP") {
+            const rowIndex = startRow + index;
+            const newDataRow = sourceSheet.getRow(rowIndex);
+            newDataRow.height = originalRow.height;
+
+            sourceSheet.getColumn('Q').hidden = true;
+            sourceSheet.getColumn('R').hidden = true;
+            sourceSheet.getColumn('S').hidden = true;
+            sourceSheet.getColumn('O').hidden = true;
+            sourceSheet.getColumn('V').hidden = true;
+            sourceSheet.getColumn('W').hidden = true;
+            sourceSheet.getColumn('X').hidden = true;
+            sourceSheet.getColumn('Y').hidden = true;
+            sourceSheet.getColumn('Z').hidden = true;
+            sourceSheet.getColumn('AD').hidden = true;
+    
+            // Populate cells with data from `detail`
+            sourceSheet.getCell(`A${rowIndex}`).value = rowIndex - startRow + 1;
+            sourceSheet.getCell(`B${rowIndex}`).value = detail.participantInfo.name;
+            sourceSheet.getCell(`C${rowIndex}`).value = detail.participantInfo.nric;
+            sourceSheet.getCell(`D${rowIndex}`).value = detail.participantInfo.residentialStatus.substring(0, 2);
+    
+            //console.log("Date of birth:", detail.participantInfo.name, detail?.participantInfo?.dateOfBirth.split("/"));
+            const dob = detail?.participantInfo?.dateOfBirth;
+
+            if (dob) {
+                const [day, month, year] = dob.split("/");
+                sourceSheet.getCell(`E${rowIndex}`).value = day.trim();
+              sourceSheet.getCell(`F${rowIndex}`).value = month.trim();
+              sourceSheet.getCell(`G${rowIndex}`).value = year.trim()
+            }
+    
+            sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.gender.split(" ")[0];
+            sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.race.split(" ")[0][0];
+            sourceSheet.getCell(`J${rowIndex}`).value = detail.participantInfo.contactNumber;
+            sourceSheet.getCell(`K${rowIndex}`).value = detail.participantInfo.email;
+            sourceSheet.getCell(`L${rowIndex}`).value = detail.participantInfo.postalCode;
+    
+            const educationParts = detail.participantInfo.educationLevel.split(" ");
+            let educationValue = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
+            console.log("Before Education Level:", educationValue);
+            if (educationValue === "Master's Degree") {
+                educationValue = "Masters/Doctorate";                      
+            }
+            console.log("After Education Level:", educationValue);
+            sourceSheet.getCell(`M${rowIndex}`).value = educationValue
+            const workParts = detail.participantInfo.workStatus.split(" ");
+            sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
+    
+            let courseEngName = detail.courseInfo.courseEngName;
+            let courseChiName = detail.courseInfo.courseChiName;
+            let courseCode = this.ecssChineseCourseCode(courseChiName) || this.ecssEnglishCourseCode(courseEngName);
+            sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
+           if (courseChiName && courseChiName.trim()) {
+            sourceSheet.getCell(`P${rowIndex}`).value = courseChiName.trim() + "\n" + courseEngName.trim();
+            } else {
+                sourceSheet.getCell(`P${rowIndex}`).value = courseEngName.trim();
+            }
+            sourceSheet.getCell(`P${rowIndex}`).value = courseChiName.trim() + "\n" + courseEngName.trim();
+            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;
+            let priceStr = detail.courseInfo.coursePrice; // e.g., "$12.34"
+            let numericValue = parseFloat(priceStr.replace('$', ''))// Step 2: Multiply by 5
+            let multiplied = numericValue * 5;
+            let formattedPrice = `$${multiplied.toFixed(2)}`;
+            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;        
+    
+            const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
+            sourceSheet.getCell(`S${rowIndex}`).value = this.convertDateFormat1(startDate);
+            sourceSheet.getCell(`T${rowIndex}`).value = this.convertDateFormat1(endDate);
+            sourceSheet.getCell(`U${rowIndex}`).value = detail.courseInfo.courseMode === "Face-to-Face" ? "F2F" : detail.courseInfo.courseMode;
+    
+            sourceSheet.getCell(`W${rowIndex}`).value = detail.courseInfo.coursePrice;
+            sourceSheet.getCell(`X${rowIndex}`).value = detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment;
+            sourceSheet.getCell(`AD${rowIndex}`).value = detail.officialInfo.receiptNo;
+            sourceSheet.getCell(`V${rowIndex}`).value = detail.courseInfo.courseLocation === "Pasir Ris West Wellness Centre" ? "510605," : "";
+    
+            // Copy styles from the original row
+            originalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+              const newCell = newDataRow.getCell(colNumber);
+              newCell.style = cell.style;
+            });
+          }
         });
+
 
         let total = selectedRows.reduce((sum, item) => {
           let priceStr = item?.courseInfo?.coursePrice || "$0";
