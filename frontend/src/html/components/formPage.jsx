@@ -32,7 +32,8 @@ class FormPage extends Component {
         courseDate: '',
         agreement: '',
         bgColor: '',
-        courseMode: ''
+        courseMode: '',
+        courseTime: ''
       },
       validationErrors: {}
     };
@@ -317,7 +318,7 @@ class FormPage extends Component {
 
       // Find the matching course
       var matchedCourse = findCourseByName(allCourses);
-      console.log("Matched Course:", matchedCourse);
+      console.log("Matched Course:", matchedCourse.short_description.split("<p>")[7]);
 
       if (matchedCourse) {
         const type = matchedCourse.categories[1].name.split(":")[1].trim();
@@ -346,6 +347,10 @@ class FormPage extends Component {
         const paragraphs = shortDescription.split("<p>");
         const startDateParagraph = paragraphs[paragraphs.length - 2];
         const endDateParagraph = paragraphs[paragraphs.length - 1];
+
+        const timingParagraph = paragraphs[paragraphs.length - 3];
+        const courseTime = timingParagraph.match(/(\d{1,2}:\d{2}[ap]m\s*[–-]\s*\d{1,2}:\d{2}[ap]m)/i)[0];
+        //console.log("Timing Paragraph:", cleanedTiming);
         
         const cleanedStartDate = startDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
         const cleanedEndDate = endDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
@@ -369,6 +374,7 @@ class FormPage extends Component {
               price: formattedPrice,
               type,
               courseDuration,
+              courseTime,
               courseMode
             },
             loading: true
@@ -383,6 +389,7 @@ class FormPage extends Component {
               price: formattedPrice,
               type,
               courseDuration,
+              courseTime,
               courseMode
             },
             loading: true
@@ -396,6 +403,7 @@ class FormPage extends Component {
               price: formattedPrice,
               type,
               courseDuration,
+              courseTime,
               courseMode
             },
             loading: true
@@ -543,6 +551,7 @@ class FormPage extends Component {
     var coursePrice = formData.price; 
     var courseDuration = formData.courseDuration;
     var courseMode = formData.courseMode;
+    var courseTime = formData.courseTime;
     var payment = formData.payment;
 
     // Agreement
@@ -570,6 +579,7 @@ class FormPage extends Component {
           coursePrice: coursePrice,
           courseDuration: courseDuration,
           courseMode: courseMode,
+          courseTime: courseTime,
           payment: payment
       },
       agreement: agreement,
@@ -592,7 +602,7 @@ class FormPage extends Component {
     
           // Set a 10-second timeout to close the window after success
           setTimeout(() => {
-            window.close(); // This will close the window after 10 seconds
+            //window.close(); // This will close the window after 10 seconds
           }, 10000);
         } else {
           // Handle failure if necessary

@@ -189,6 +189,7 @@ class WooCommerceAPI:
             # Parse short description to find "vacancy"
             short_description = product.get("short_description", "")
             array = short_description.split("<p>")
+            print("Short Description Array:", array)
             if array and array[0] == '':
                 array.pop(0)  # Remove empty first entry
 

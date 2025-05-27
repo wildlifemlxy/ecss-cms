@@ -10,9 +10,11 @@ const JWTTOKENURL = "https://stg-id.singpass.gov.sg";
 const SPTOKENURL = "https://stg-id.singpass.gov.sg/token";
 
 // Azure SWA environment-aware redirect URI
-const REDIRECT_URI = process.env.NODE_ENV === 'production' 
+/*const REDIRECT_URI = process.env.NODE_ENV === 'production' 
   ? "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback"  // Updated to match frontend
-  : "http://localhost:3000/callback";
+  : "http://localhost:3000/callback";*/
+
+  const REDIRECT_URI = "http://localhost:3000/callback";
 
 const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
 
@@ -1086,9 +1088,10 @@ router.post('/token', async (req, res) => {
 
 // Handle CORS preflight requests
 router.options('/token', (req, res) => {
-  res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
+  /*res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
     ? 'https://salmon-wave-09f02b100.6.azurestaticapps.net' 
-    : 'http://localhost:3000');
+    : 'http://localhost:3000');*/
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.sendStatus(200);

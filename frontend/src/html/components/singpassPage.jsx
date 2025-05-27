@@ -107,9 +107,10 @@ class SingpassPage extends Component {
       // Enhanced handling for mixed encoding scenarios
       if (redirectLink) {
         var decodedLink = this.decodeUrlSafely(redirectLink);
-        redirectLink = window.location.hostname === "localhost"
+        redirectLink = `http://localhost:3000/form}`;
+        /*redirectLink = window.location.hostname === "localhost"
                                                     ? `http://localhost:3000/form}`
-                                                    : `https://salmon-wave-09f02b100.6.azurestaticapps.net/form}`;
+                                                    : `https://salmon-wave-09f02b100.6.azurestaticapps.net/form}`;*/
         console.log('Processed redirect link with mixed encoding support:', redirectLink);
         
         // Additional Azure SWA environment logging
@@ -156,9 +157,10 @@ class SingpassPage extends Component {
         response_type: "code",
         // EXACT SingPass scope format - space-separated as approved by SingPass
         scope: "openid dob email mobileno name nationality race regadd residentialstatus sex uinfin",
-        redirect_uri: window.location.hostname === "localhost" 
+        redirect_uri: "http://localhost:3000/callback",
+        /*redirect_uri: window.location.hostname === "localhost" 
           ? "http://localhost:3000/callback" 
-          : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
+          : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",*/
         state: state,
         nonce: nonce,
         code_challenge: codeChallenge,
