@@ -32,7 +32,8 @@ class CourseRegisteredController {
                         courseDuration: course.course?.courseDuration || "N/A",
                         courseMode: course.course?.courseMode || "N/A",
                         status: course.official?.status || course.status || "N/A",
-                        registrationDate: course.registrationDate || "N/A"
+                        registrationDate: course.registrationDate || "N/A",
+                        time: course.courseTime || "N/A"
                         // Removed payment and receiptNumber to match Kotlin data class
                     }));
 
