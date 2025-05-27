@@ -53,7 +53,7 @@ app.use("/invoice", invoiceRouter);
 app.use('/', jwksRouter);
 app.use("/singpass", singpassRouter);
 app.use("/massimport", massimportRouter);
-app.use("/courseregistration", coursesRegisteredRouter);
+app.use("/coursesRegistered", coursesRegisteredRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
