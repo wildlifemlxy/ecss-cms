@@ -65,6 +65,62 @@ class DatabaseConnectivity {
         }
     }
 
+    async participantsLogin(dbname, collectionName, username, password)
+    {
+        const db = this.client.db(dbname);
+        try
+        {
+            var table = db.collection(collectionName);
+            
+            // Find a user with matching contact number and password
+            // Assuming username is contactNumber and password is stored as a password field
+            const user = await table.findOne({ 
+                contactNumber: username, 
+                password: password 
+            });
+
+            if (user) {
+                // Update login timestamp
+                await table.updateOne(
+                    { _id: user._id },
+                    {
+                        $set: {
+                            lastLoginDate: new Date().toISOString().split('T')[0],
+                            lastLoginTime: new Date().toTimeString().split(' ')[0]
+                        }
+                    }
+                );
+
+                // User found, login successful
+                return {
+                    success: true,
+                    message: 'Login successful',
+                    user: {
+                        id: user._id,
+                        name: user.name,
+                        contactNumber: user.contactNumber,
+                        email: user.email
+                    } // Return only necessary user details for security
+                };
+            } else {
+                // No user found, login failed
+                return {
+                    success: false,
+                    message: 'Invalid contact number or password'
+                };
+            }
+        }
+        catch(error)
+        {
+            console.error("Participants login error:", error);
+            return {
+                success: false,
+                message: 'Login error occurred',
+                error: error.message
+            };
+        }
+    }
+
     async logout(dbname, collectionName, accountId, date, time)
     {
         const db = this.client.db(dbname);
@@ -1141,8 +1197,73 @@ class DatabaseConnectivity {
             return { success: false, error };
         }
     }
-    
-    
+
+    async findAllParticipants(databaseName, collectionName) 
+    {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        const participantsSet = new Set();
+        var participantsDetails = [];
+        var duplicateStats = {
+            totalRecords: 0,
+            uniqueParticipants: 0,
+            duplicatesRemoved: 0
+        };
+
+        try {
+            // Retrieve all participants from the collection
+            const participants = await table.find({}).toArray();
+            duplicateStats.totalRecords = participants.length;
+            
+            console.log(`Found ${participants.length} participants in ${collectionName}`);
+            
+            for (const participant of participants) {
+                const participantDetails = participant.participant;
+                
+                if (!participantDetails) {
+                    console.log("Warning: Participant details not found in document:", participant._id);
+                    continue;
+                }
+                
+                // Create a unique key based on the entire participantDetails object
+                const participantDetailsKey = JSON.stringify(participantDetails);
+                
+                if (!participantsSet.has(participantDetailsKey)) {
+                    participantsSet.add(participantDetailsKey);
+                    participantsDetails.push({
+                        participantDetails,
+                        metadata: {
+                            documentId: participant._id,
+                            registrationDate: participant._id.getTimestamp()
+                        }
+                    });
+                } else {
+                    console.log(`Duplicate participant details found for document: ${participant._id}`);
+                    console.log("Duplicate participant details:", JSON.stringify(participantDetails, null, 2));
+                }
+            }
+            
+            // Calculate final statistics
+            duplicateStats.uniqueParticipants = participantsDetails.length;
+            duplicateStats.duplicatesRemoved = duplicateStats.totalRecords - duplicateStats.uniqueParticipants;
+            
+            // Log comprehensive summary
+            console.log("=== DUPLICATE PROCESSING SUMMARY ===");
+            console.log(`Total records processed: ${duplicateStats.totalRecords}`);
+            console.log(`Unique participants retained: ${duplicateStats.uniqueParticipants}`);
+            console.log(`Total duplicates removed: ${duplicateStats.duplicatesRemoved}`);
+            console.log("=====================================");
+            
+            return {
+                participants: participantsDetails,
+                statistics: duplicateStats
+            };
+            
+        } catch (error) {
+            console.error("Error retrieving all participants:", error);
+            throw error;
+        }   
+    }
 
     // Close the connection to the database
     async close() {
