@@ -213,30 +213,33 @@ class DatabaseConnectivity {
         }
     }
 
-    // Add these methods to your DatabaseConnectivity class
-    async insertAttendanceRecord(databaseName, collectionName, attendanceData) {
+        async deleteAttendanceRecord(databaseName, collectionName, attendanceId) {
         const db = this.client.db(databaseName);
         const table = db.collection(collectionName);
     
         try {
-            const result = await table.insertOne(attendanceData);
+            const filter = { _id: new ObjectId(attendanceId) };
+            const result = await table.deleteOne(filter);
             
-            if (result.insertedId) {
+            if (result.deletedCount === 1) {
                 return {
                     success: true,
-                    message: "Attendance record inserted successfully"
+                    message: "Attendance record deleted successfully",
+                    details: {
+                        deletedId: attendanceId
+                    }
                 };
             } else {
                 return {
                     success: false,
-                    message: "Failed to insert attendance record"
+                    message: "Attendance record not found with the provided ID"
                 };
             }
         } catch (error) {
-            console.error("Error inserting attendance record:", error);
+            console.error("Error deleting attendance record:", error);
             return {
                 success: false,
-                message: "Error inserting attendance record",
+                message: "Error deleting attendance record",
                 error: error.message
             };
         }

@@ -7,6 +7,7 @@ class AttendanceController {
 
     async insertAttendance(insertData) {
         try {
+            console.log("Inserting attendance record:", insertData);
             const result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
@@ -43,8 +44,9 @@ class AttendanceController {
         }   
     }
 
-    async getAttendance(filterData) {
+    async getAttendance(filterData = {}) {
         try {
+            console.log("Retrieving attendance records with filter:", filterData);
             const result = await this.databaseConnectivity.initialize();
             
             if (result === "Connected to MongoDB Atlas!") {
@@ -60,13 +62,14 @@ class AttendanceController {
                 return {
                     "success": attendanceRecords.success, 
                     "message": attendanceRecords.message, 
-                    "details": attendanceRecords.data
+                    "details": attendanceRecords.data || []
                 };   
             } else {
                 return {
                     success: false,
                     message: "Database connection failed",
-                    error: "Could not establish connection to MongoDB Atlas"
+                    error: "Could not establish connection to MongoDB Atlas",
+                    details: []
                 };
             }
         } catch (error) {
@@ -74,46 +77,8 @@ class AttendanceController {
             return {
                 success: false,
                 message: "Error retrieving attendance records",
-                error: error.message
-            };
-        } finally {
-            await this.databaseConnectivity.close();
-        }   
-    }
-
-    async updateAttendance(updateData) {
-        try {
-            const result = await this.databaseConnectivity.initialize();
-            
-            if (result === "Connected to MongoDB Atlas!") {
-                const databaseName = "Courses-Management-System";
-                const collectionName = "Attendance";
-                
-                const updateResult = await this.databaseConnectivity.updateAttendanceRecord(
-                    databaseName, 
-                    collectionName, 
-                    updateData._id,
-                    updateData
-                );
-                
-                return {
-                    "success": updateResult.success, 
-                    "message": updateResult.message, 
-                    "details": updateResult.details
-                };   
-            } else {
-                return {
-                    success: false,
-                    message: "Database connection failed",
-                    error: "Could not establish connection to MongoDB Atlas"
-                };
-            }
-        } catch (error) {
-            console.error("Update attendance error:", error);
-            return {
-                success: false,
-                message: "Error updating attendance record",
-                error: error.message
+                error: error.message,
+                details: []
             };
         } finally {
             await this.databaseConnectivity.close();

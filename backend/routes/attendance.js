@@ -51,12 +51,50 @@ router.post("/", async function(req, res)
                 "message": "Name and NRIC are required for attendance record"
             });
         }
+        
 
         console.log("Insert attendance data:", insertData);
         var controller = new AttendanceController();
         var result = await controller.insertAttendance(insertData);
         console.log(result);
         res.json({"success": result.success, "message": result.message});
+    }
+    else if(req.body.purpose === "retrieve")
+    {
+        try {
+            console.log("Received request to retrieve attendance records", req.body);
+            
+            var controller = new AttendanceController();
+            var result = await controller.getAttendance({});
+            
+            console.log("Retrieved attendance records:", result);
+            
+            if (result.success) {
+                res.json({
+                    "success": result.success, 
+                    "message": result.message,
+                    "data": result.details,
+                    "count": result.details ? result.details.length : 0
+                });
+            } else {
+                res.json({
+                    "success": result.success, 
+                    "message": result.message,
+                    "data": [],
+                    "count": 0
+                });
+            }
+            
+        } catch (error) {
+            console.error("Retrieve attendance error:", error);
+            res.status(500).json({
+                "success": false,
+                "message": "Error retrieving attendance records",
+                "error": error.message,
+                "data": [],
+                "count": 0
+            });
+        }
     }
     else
     {
