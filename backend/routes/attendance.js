@@ -2,22 +2,26 @@ var express = require("express");
 var router = express.Router();
 var AttendanceController = require('../Controller/Attendance/AttendanceController');
 
-// Helper function to format date as dd/mm/yyyy
-function getCurrentDate() {
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    return `${day}/${month}/${year}`;
-}
-
-// Helper function to format time as hh:mm:ss (24-hour format)
+// Helper function to format time as hh:mm:ss in Singapore Standard Time (SST)
 function getCurrentTime() {
     const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
+    // Convert to Singapore timezone (UTC+8)
+    const singaporeTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
+    const hours = String(singaporeTime.getHours()).padStart(2, '0');
+    const minutes = String(singaporeTime.getMinutes()).padStart(2, '0');
+    const seconds = String(singaporeTime.getSeconds()).padStart(2, '0');
     return `${hours}:${minutes}:${seconds}`;
+}
+
+// Helper function to format date as dd/mm/yyyy in Singapore Standard Time (SST)
+function getCurrentDate() {
+    const now = new Date();
+    // Convert to Singapore timezone (UTC+8)
+    const singaporeTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Singapore"}));
+    const day = String(singaporeTime.getDate()).padStart(2, '0');
+    const month = String(singaporeTime.getMonth() + 1).padStart(2, '0');
+    const year = singaporeTime.getFullYear();
+    return `${day}/${month}/${year}`;
 }
 
 router.post("/", async function(req, res) 
