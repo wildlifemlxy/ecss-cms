@@ -9,12 +9,14 @@ const CLIENT_ID = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
 const JWTTOKENURL = "https://stg-id.singpass.gov.sg";
 const SPTOKENURL = "https://stg-id.singpass.gov.sg/token";
 
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
 // Azure SWA environment-aware redirect URI
 /*const REDIRECT_URI = process.env.NODE_ENV === 'production' 
   ? "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback"  // Updated to match frontend
   : "http://localhost:3000/callback";*/
 
-  const REDIRECT_URI = "http://localhost:3000/callback";
+  //const REDIRECT_URI = "http://localhost:3000/callback";
 
 const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
 
@@ -733,7 +735,8 @@ router.post('/token', async (req, res) => {
     await initializeJose();
     
     // Extract parameters from request body (following SingPass Step 4 exactly)
-    const { code, code_verifier, state, platform } = req.body;
+    const { code, code_verifier, state, platform, href } = req.body;
+    console.log("Request body parameters:", req)
     
     // Validate required parameters
     if (!code) {
@@ -750,9 +753,9 @@ router.post('/token', async (req, res) => {
       });
     }
     
-    console.log('Processing token exchange for SingPass Step 4...');
-    console.log('Platform detected:', platform || 'web');
-    console.log('Environment:', process.env.NODE_ENV);
+    //console.log('Processing token exchange for SingPass Step 4...');
+    //console.log('Platform detected:', platform || 'web');
+    //console.log('Environment:', process.env.NODE_ENV);
     
     // Load configuration and keys
     const SIGNATURE_PRIVATE_KEY = require("../Others/SingPass/Keys/private-signing-key.jwk.json");
@@ -774,11 +777,11 @@ router.post('/token', async (req, res) => {
     // Step 4.1: Sign JWT for client assertion
     let clientAssertion;
     try {
-      console.log("Creating client assertion JWT...");
+      //log("Creating client assertion JWT...");
       clientAssertion = await signJwtAsJws(jwtPayload, SIGNATURE_PRIVATE_KEY, KID);
-      console.log("Client assertion created successfully");
+      //console.log("Client assertion created successfully");
     } catch (err) {
-      console.error("JWT signing failed:", err);
+      //console.error("JWT signing failed:", err);
       return res.status(500).json({ 
         error: "server_error", 
         error_description: "Client assertion creation failed" 
@@ -787,10 +790,10 @@ router.post('/token', async (req, res) => {
 
     // Step 4.2: Determine correct redirect URI based on platform and environment
     const getCorrectRedirectUri = (platform, env) => {
-      console.log('Determining redirect URI for platform:', platform, 'env:', env);
-      
+      //console.log('Determining redirect URI for platform:', platform, 'env:', env);
+
       // Check if request came from Android app
-      if ((platform === undefined || platform === 'android') || env === undefined ) {
+      if ((platform === undefined || platform === 'android') && env === undefined ) {
         console.log('Using Android deep link redirect URI');
         return "com.ecss.ecssapp://callback";
       }
@@ -805,26 +808,40 @@ router.post('/token', async (req, res) => {
       }
     };
 
-    const correctRedirectUri = getCorrectRedirectUri(platform, process.env.NODE_ENV);
-    console.log('Using redirect URI:', correctRedirectUri);
+    console.log("href:", href);
+    // Helper to determine redirect URI based on href
+    const getRedirectUriFromHref = (href) => {
+      if (typeof href === 'string' && href.includes('localhost')) {
+        return "http://localhost:3000/callback";
+      }
+      if (typeof href === 'string' && href.includes('salmon-wave')) {
+        return "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
+      }
+      // Default to production if not localhost
+      return "com.ecss.ecssapp://callback";
+    };
+
+    // Usage: Dynamically set REDIRECT_URI based on req.body.href
+    const dynamicRedirectUri = getRedirectUriFromHref(href);
+    console.log('Using dynamic redirect URI:', dynamicRedirectUri);
 
     // Step 4.2: Exchange authorization code for tokens with correct configuration
     let tokenData;
     try {
-      console.log("Exchanging authorization code for tokens...");
+      //console.log("Exchanging authorization code for tokens...");
       
       // FIXED: Proper token request configuration
       const tokenRequest = {
         grant_type: "authorization_code",
         client_id: CLIENT_ID,
         code: code,
-        redirect_uri: correctRedirectUri, // Use dynamically determined redirect URI
+        redirect_uri: dynamicRedirectUri, // Use dynamically determined redirect URI
         code_verifier: code_verifier,
         client_assertion_type: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
         client_assertion: clientAssertion
       };
 
-      console.log("Token request:", tokenRequest);
+      /*console.log("Token request:", tokenRequest);
 
       console.log("Token request parameters:", {
         grant_type: tokenRequest.grant_type,
@@ -834,7 +851,7 @@ router.post('/token', async (req, res) => {
         code: 'REDACTED',
         code_verifier: 'REDACTED',
         client_assertion: 'REDACTED'
-      });
+      });*/
       
       // Make the token exchange request with proper headers
       const response = await axios.post(
@@ -854,14 +871,14 @@ router.post('/token', async (req, res) => {
         }
       );
 
-      console.log("Token exchange response received", response);
+     // console.log("Token exchange response received", response);
 
-      console.log("Token exchange response status:", response.status);
-      console.log("Token exchange response headers:", response.headers);
+     // console.log("Token exchange response status:", response.status);
+      //console.log("Token exchange response headers:", response.headers);
       
       if (response.status !== 200) {
-        console.error("Token exchange failed with status:", response.status);
-        console.error("Token exchange error response:", response.data);
+        //console.error("Token exchange failed with status:", response.status);
+        //console.error("Token exchange error response:", response.data);
         
         return res.status(response.status).json({ 
           error: "token_exchange_failed", 
@@ -869,7 +886,7 @@ router.post('/token', async (req, res) => {
           status: response.status,
           details: response.data,
           requestDetails: {
-            redirect_uri: correctRedirectUri,
+            redirect_uri: dynamicRedirectUri,
             platform: platform || 'web'
           }
         });
@@ -929,7 +946,7 @@ router.post('/token', async (req, res) => {
         details: tokenError.response?.data,
         code: tokenError.code,
         requestDetails: {
-          redirect_uri: correctRedirectUri,
+          redirect_uri: dynamicRedirectUri,
           platform: platform || 'web'
         }
       });
@@ -1101,6 +1118,7 @@ router.options('/token', (req, res) => {
 router.post('/', async (req, res) => {
   // Redirect to the new token endpoint
   req.url = '/token';
+  console.log("Request123:", req.body.href);
   return router.handle(req, res);
 });
 

@@ -67,16 +67,20 @@ class CallbackPage extends Component {
         nonce: nonce ? 'PRESENT' : 'MISSING'
       });
 
+      const href = window.location.href;
       // Prepare request data for your backend API
       const requestData = {
         code: authorizationCode,
         code_verifier: codeVerifier,
         state: returnedState,
-        nonce: nonce
+        nonce: nonce,
+        href
       };
 
+      
+
       // Call your backend API endpoint that handles SingPass token exchange
-      const response = await axios.post(backendUrl, requestData, {
+      const response = await axios.post(backendUrl, requestData,  {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'

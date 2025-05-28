@@ -14,7 +14,8 @@ class FormPage extends Component {
     this.state = {
       currentSection: 0,
       loading: false,
-      isAuthenticated: true, // Track SingPass authentication status
+      isAuthenticated: false, // Track SingPass authentication status
+      //isAuthenticated: true, // Track SingPass authentication status
       formData: {
         englishName: '',
         chineseName: '',
@@ -848,11 +849,11 @@ class FormPage extends Component {
             </button>
           </div>
         )}
-         {!isAuthenticated && (
-           <div className="button-container">
-            <SingPassButton/>
-          </div>
-        )}
+        {!isAuthenticated && window.location.href.includes('localhost') && (
+        <div className="button-container">
+          <SingPassButton/>
+        </div>
+      )}
       </div>
     );
   }  
