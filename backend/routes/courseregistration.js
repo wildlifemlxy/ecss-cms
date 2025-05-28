@@ -66,7 +66,7 @@ router.post('/', async function(req, res, next)
                 await sendOneSignalNotification({
                     title: 'New Course Registration',
                     message: `${participantsParticulars.participant.name} has registered for ${participantsParticulars.course.courseEngName}`,
-                    url: "https://salmon-wave-09f02b100.6.azurestaticapps.net/"
+                    web_url: "https://salmon-wave-09f02b100.6.azurestaticapps.net/"
                 });
                 console.log('Registration notification sent successfully');
             } catch (error) {

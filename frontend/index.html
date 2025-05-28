@@ -56,13 +56,12 @@
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       OneSignalDeferred.push(async function(OneSignal) {
-         console.log("OneSignal SDK loaded");
         try {
           await OneSignal.init({
             appId: "01b56852-4a5c-4ccc-9733-11aa47d27400",
             allowLocalhostAsSecureOrigin: true,
             notifyButton: {
-              enable: true,  // Shows the bell icon
+              enable: true,
             },
             promptOptions: {
               slidedown: {
@@ -73,6 +72,12 @@
             }
           });
           console.log("OneSignal initialized successfully");
+
+          // Force the prompt if not already subscribed
+          const permission = await OneSignal.Notification.permission;
+          if (permission !== "granted") {
+            await OneSignal.User.PushSubscription.optIn();
+          }
         } catch (error) {
           console.error("OneSignal init error:", error);
         }
