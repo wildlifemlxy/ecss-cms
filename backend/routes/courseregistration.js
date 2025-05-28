@@ -40,38 +40,41 @@ router.post('/', async function(req, res, next)
     if(req.body.purpose === "insert")
     {
         var participantsParticulars = req.body.participantDetails;
-        
-        var controller = new RegistrationController();
+
+        // Set registration date and official info
         participantsParticulars.registrationDate = getCurrentDateTime().date;
         participantsParticulars.official = {
-            name: "", // You can set a default or dynamic value
-            date: "", // You can set this to the current date using new Date() or any format
-            time: "",  // Set the current time or any specific time value
+            name: "", // Set as needed
+            date: getCurrentDateTime().date,
+            time: getCurrentDateTime().time,
             receiptNo: "",
             remarks: ""
-          };
-        var result = await controller.newParticipant(participantsParticulars);
+        };
+
+        // Register participant
+        const registrationController = new RegistrationController();
+        const result = await registrationController.newParticipant(participantsParticulars);
         console.log("Registration Result:", result);
-        var controller = new ParticipantsController();
-        var result1 = await controller.addParticipant(participantsParticulars.participant); 
+
+        // Add participant to participants collection (avoid duplicate controller variable)
+        const participantsController = new ParticipantsController();
+        const result1 = await participantsController.addParticipant(participantsParticulars.participant); 
+
         // Send notification after successful registration
         if (result) {
             try {
                 await sendOneSignalNotification({
                     title: 'New Course Registration',
                     message: `${participantsParticulars.participant.name} has registered for ${participantsParticulars.course.courseEngName}`,
-                    //url: "http://localhost:3000", // Replace with your actual URL
-                    url: "https://salmon-wave-09f02b100.6.azurestaticapps.net/", // Replace with your actual URL
-                    //url: `${process.env.FRONTEND_URL || 'https://salmon-wave-09f02b100.6.azurestaticapps.net'}`,
-                    //excludePaths: ['/form'] // Don't send to users on form page
+                    url: "https://salmon-wave-09f02b100.6.azurestaticapps.net/"
                 });
                 console.log('Registration notification sent successfully');
-                return res.json({"result": result});
             } catch (error) {
                 console.error('Failed to send notification:', error);
                 // Continue with the response even if notification fails
             }
-       }  
+            return res.json({ "result": result });
+        }  
     }
     else if(req.body.purpose === "retrieve")
     {

@@ -319,7 +319,7 @@ class FormPage extends Component {
 
       // Find the matching course
       var matchedCourse = findCourseByName(allCourses);
-      console.log("Matched Course:", matchedCourse.short_description.split("<p>")[7]);
+      console.log("Matched Course:", matchedCourse);
 
       if (matchedCourse) {
         const type = matchedCourse.categories[1].name.split(":")[1].trim();
@@ -341,17 +341,30 @@ class FormPage extends Component {
         console.log("Selected Course Details:", matchedCourse.name.split(/<br\s*\/?>/));
         console.log("Selected Course Price:", matchedCourse.price);
         const shortDescription = matchedCourse.short_description;
+        console.log(" :", shortDescription);
 
-        var courseMode = matchedCourse?.attributes?.[2]?.options?.[0];
+        let courseMode = '';
+        if (
+          matchedCourse &&
+          Array.isArray(matchedCourse.attributes) &&
+          matchedCourse.attributes[2] &&
+          Array.isArray(matchedCourse.attributes[2].options) &&
+          matchedCourse.attributes[2].options.length > 0
+        ) {
+          courseMode = matchedCourse.attributes[2].options[0];
+        }
+
+        console.log("Course Mode:", courseMode);
 
         // Parse course duration
         const paragraphs = shortDescription.split("<p>");
         const startDateParagraph = paragraphs[paragraphs.length - 2];
         const endDateParagraph = paragraphs[paragraphs.length - 1];
 
-        const timingParagraph = paragraphs[paragraphs.length - 3];
+        const timingParagraph = this.decodeHtmlEntities(paragraphs[paragraphs.length - 3]);
+        console.log("Timing Paragraph", timingParagraph);
         const courseTime = timingParagraph.match(/(\d{1,2}:\d{2}[ap]m\s*[–-]\s*\d{1,2}:\d{2}[ap]m)/i)[0];
-        //console.log("Timing Paragraph:", cleanedTiming);
+        console.log("Timing:", courseTime);
         
         const cleanedStartDate = startDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
         const cleanedEndDate = endDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
