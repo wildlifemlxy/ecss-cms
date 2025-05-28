@@ -213,6 +213,97 @@ class DatabaseConnectivity {
         }
     }
 
+    // Add these methods to your DatabaseConnectivity class
+    async insertAttendanceRecord(databaseName, collectionName, attendanceData) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const result = await table.insertOne(attendanceData);
+            
+            if (result.insertedId) {
+                return {
+                    success: true,
+                    message: "Attendance record inserted successfully"
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Failed to insert attendance record"
+                };
+            }
+        } catch (error) {
+            console.error("Error inserting attendance record:", error);
+            return {
+                success: false,
+                message: "Error inserting attendance record",
+                error: error.message
+            };
+        }
+    }
+    
+    async getAttendanceRecords(databaseName, collectionName, filterData = {}) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const records = await table.find(filterData).toArray();
+            
+            return {
+                success: true,
+                message: `Found ${records.length} attendance records`,
+                data: records
+            };
+        } catch (error) {
+            console.error("Error retrieving attendance records:", error);
+            return {
+                success: false,
+                message: "Error retrieving attendance records",
+                error: error.message
+            };
+        }
+    }
+    
+    async updateAttendanceRecord(databaseName, collectionName, attendanceId, updateData) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const { _id, ...fieldsToUpdate } = updateData;
+            
+            const filter = { _id: new ObjectId(attendanceId) };
+            const update = { $set: fieldsToUpdate };
+            
+            const result = await table.updateOne(filter, update);
+            
+            if (result.modifiedCount === 1) {
+                return {
+                    success: true,
+                    message: "Attendance record updated successfully",
+                    details: fieldsToUpdate
+                };
+            } else if (result.matchedCount === 1) {
+                return {
+                    success: true,
+                    message: "No changes made - data was already up to date",
+                    details: fieldsToUpdate
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Attendance record not found with the provided ID"
+                };
+            }
+        } catch (error) {
+            console.error("Error updating attendance record:", error);
+            return {
+                success: false,
+                message: "Error updating attendance record",
+                error: error.message
+            };
+        }
+    }
+
     async changePassword(dbname, collectionName, accountId, newPassword)
     {
         const db = this.client.db(dbname);

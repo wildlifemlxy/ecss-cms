@@ -18,6 +18,7 @@ var invoiceRouter = require("./routes/invoice");
 var singpassRouter = require("./routes/singpass");
 var massimportRouter = require("./routes/massimport");
 var coursesRegisteredRouter = require("./routes/coursesRegistered");
+var attendanceRouter = require('./routes/attendance');
 const jwksRouter = require('./routes/jwks');
 
 app.use(cors()); // Enable CORS
@@ -54,6 +55,7 @@ app.use('/', jwksRouter);
 app.use("/singpass", singpassRouter);
 app.use("/massimport", massimportRouter);
 app.use("/coursesRegistered", coursesRegisteredRouter);
+app.use("/attendance", attendanceRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
