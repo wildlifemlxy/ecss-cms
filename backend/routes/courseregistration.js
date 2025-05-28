@@ -3,6 +3,7 @@ var router = express.Router();
 var RegistrationController = require('../Controller/Registration/RegistrationController');
 var receiptGenerator = require('../Others/Pdf/receiptGenerator');
 var invoiceGenerator = require('../Others/Pdf/invoiceGenerator');
+var ParticipantsController = require('../Controller/Participants/ParticipantsController');
 const { sendOneSignalNotification } = require('../services/notificationService');
 
 function getCurrentDateTime() {
@@ -51,7 +52,8 @@ router.post('/', async function(req, res, next)
           };
         var result = await controller.newParticipant(participantsParticulars);
         console.log("Registration Result:", result);
-        
+        var controller = new ParticipantsController();
+        var result1 = await controller.addParticipant(participantsParticulars.participant); 
         // Send notification after successful registration
         if (result) {
             try {

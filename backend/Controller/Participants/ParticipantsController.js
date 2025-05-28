@@ -81,6 +81,40 @@ class ParticipantsController
           await this.databaseConnectivity.close();
       }   
   }
+
+    async addParticipant(participantData) {
+      try {
+          console.log("Adding participant:", participantData);
+          var result = await this.databaseConnectivity.initialize();
+          if(result === "Connected to MongoDB Atlas!") {
+              var databaseName = "Courses-Management-System";
+              var collectionName = "Participants";
+              var insertResult = await this.databaseConnectivity.insertParticipant(
+                  databaseName,
+                  collectionName,
+                  participantData
+              );
+              return {
+                  success: insertResult.success,
+                  message: insertResult.message,
+                  details: insertResult.details
+              };
+          } else {
+              return {
+                  success: false,
+                  message: "Database connection failed"
+              };
+          }
+      } catch (error) {
+          console.error("Add participant error:", error);
+          return {
+              success: false,
+              message: "Error adding participant"
+          };
+      } finally {
+          await this.databaseConnectivity.close();
+      }
+  }
 }
 
 module.exports = ParticipantsController;

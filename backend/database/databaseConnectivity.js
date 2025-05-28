@@ -244,6 +244,38 @@ class DatabaseConnectivity {
             };
         }
     }
+
+    async insertParticipant(databaseName, collectionName, participantData) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const result = await table.insertOne(participantData);
+    
+            if (result.insertedId) {
+                return {
+                    success: true,
+                    message: "Participant inserted successfully",
+                    details: {
+                        insertedId: result.insertedId,
+                        participantData: participantData
+                    }
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Failed to insert participant"
+                };
+            }
+        } catch (error) {
+            console.error("Error inserting participant:", error);
+            return {
+                success: false,
+                message: "Error inserting participant",
+                error: error.message
+            };
+        }
+    }
     
     async getAttendanceRecords(databaseName, collectionName, filterData = {}) {
         const db = this.client.db(databaseName);
