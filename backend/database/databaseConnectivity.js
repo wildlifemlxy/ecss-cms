@@ -248,10 +248,10 @@ class DatabaseConnectivity {
     async insertParticipant(databaseName, collectionName, participantData) {
         const db = this.client.db(databaseName);
         const table = db.collection(collectionName);
-    
+
         try {
             const result = await table.insertOne(participantData);
-    
+
             if (result.insertedId) {
                 return {
                     success: true,
@@ -960,6 +960,18 @@ class DatabaseConnectivity {
             
         // Return the formatted receipt number ok 
        return `${courseLocation}${nextNumber}/${currentYear.toString()}`;
+    }
+
+      // Add to DatabaseConnectivity class
+    async findParticipant(databaseName, collectionName, query) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        try {
+            return await table.findOne(query);
+        } catch (error) {
+            console.error("Error finding participant:", error);
+            return null;
+        }
     }
     
     
