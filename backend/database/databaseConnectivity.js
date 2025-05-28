@@ -213,33 +213,33 @@ class DatabaseConnectivity {
         }
     }
 
-        async deleteAttendanceRecord(databaseName, collectionName, attendanceId) {
+    async insertAttendanceRecord(databaseName, collectionName, attendanceData) {
         const db = this.client.db(databaseName);
         const table = db.collection(collectionName);
     
         try {
-            const filter = { _id: new ObjectId(attendanceId) };
-            const result = await table.deleteOne(filter);
-            
-            if (result.deletedCount === 1) {
+            const result = await table.insertOne(attendanceData);
+    
+            if (result.insertedId) {
                 return {
                     success: true,
-                    message: "Attendance record deleted successfully",
+                    message: "Attendance record inserted successfully",
                     details: {
-                        deletedId: attendanceId
+                        insertedId: result.insertedId,
+                        attendanceData: attendanceData
                     }
                 };
             } else {
                 return {
                     success: false,
-                    message: "Attendance record not found with the provided ID"
+                    message: "Failed to insert attendance record"
                 };
             }
         } catch (error) {
-            console.error("Error deleting attendance record:", error);
+            console.error("Error inserting attendance record:", error);
             return {
                 success: false,
-                message: "Error deleting attendance record",
+                message: "Error inserting attendance record",
                 error: error.message
             };
         }
