@@ -61,7 +61,7 @@ router.post('/', async function(req, res, next)
         const result1 = await participantsController.addParticipant(participantsParticulars.participant); 
 
         // Send notification after successful registration
-        if (result) {
+        if (result && result1) {
             try {
                 await sendOneSignalNotification({
                     title: 'New Course Registration',
