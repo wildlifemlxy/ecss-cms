@@ -124,6 +124,10 @@ class SideBarContent extends Component {
        {
         this.props.toggleReportComponent(subKey);
        }
+       else if(subKey === "View Attendance")
+       {
+        this.props.toggleAttendanceComponent(subKey);
+       }
     }
 
     closeSubMenu = () =>
