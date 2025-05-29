@@ -1013,14 +1013,9 @@
                   <div className="search-section">
                       <Search
                         locations={locations}
-                        selectedLocation={selectedLocation}
                         types={types}
-                        selectedCourseType={selectedCourseType}
                         courses={names}
-                        selectedCourseName={selectedCourseName}
                         quarters={quarters}
-                        selectedQuarter={selectedQuarter}
-                        searchQuery={searchQuery}
                         resetSearch={resetSearch}
                         section={section}
                         passSelectedValueToParent={this.handleRegPaymentSelectFromChild}
