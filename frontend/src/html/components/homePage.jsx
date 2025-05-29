@@ -1211,7 +1211,6 @@ import React, { Component } from 'react';
                   </>} 
                   {attendanceVisibility && 
                     <>
-                      <div className="attendance-container">
                         <div className="search-section">
                           <Search
                             section="attendance"
@@ -1237,7 +1236,6 @@ import React, { Component } from 'react';
                             onTypesLoaded={this.handleAttendanceTypesLoaded}
                           />
                         </div>
-                      </div>
                     </>
           }             
               </div>

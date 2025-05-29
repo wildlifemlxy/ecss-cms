@@ -45,8 +45,8 @@ router.post('/', async function(req, res, next)
         participantsParticulars.registrationDate = getCurrentDateTime().date;
         participantsParticulars.official = {
             name: "", // Set as needed
-            date: getCurrentDateTime().date,
-            time: getCurrentDateTime().time,
+            date: "",
+            time: "",
             receiptNo: "",
             remarks: ""
         };
