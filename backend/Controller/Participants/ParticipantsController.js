@@ -1,4 +1,4 @@
-//const Account = require("../../Entity/Account"); // Import the Account class
+ //const Account = require("../../Entity/Account"); // Import the Account class
 var DatabaseConnectivity = require("../../database/databaseConnectivity");
 
 class ParticipantsController 
@@ -115,71 +115,6 @@ class ParticipantsController
           await this.databaseConnectivity.close();
       }
   }
-
-  async findByNricAndContact(nric, contactNumber) {
-    try {
-        var result = await this.databaseConnectivity.initialize();
-        if(result === "Connected to MongoDB Atlas!") {
-            var databaseName = "Courses-Management-System";
-            var collectionName = "Participants";
-            // Use a case-insensitive search for NRIC
-            const query = {
-                nric: { $regex: new RegExp(`^${nric}$`, 'i') },
-                contactNumber: contactNumber
-            };
-            const found = await this.databaseConnectivity.findParticipant(
-                databaseName,
-                collectionName,
-                query
-            );
-            return found; // Return the found participant or null/undefined
-        } else {
-            return null;
-        }
-    } catch (error) {
-        console.error("Find participant error:", error);
-        return null;
-    } finally {
-        await this.databaseConnectivity.close();
-    }
-}
-
-async addOrUpdateParticipant(participantData) {
-    try {
-        // Normalize NRIC and contact number
-        const nricKey = participantData.nric.replace(/[^a-zA-Z0-9]/g, '').trim().toLowerCase();
-        const contactKey = (participantData.contactNumber || '').replace(/\s+/g, '');
-
-        // Check for existing participant
-        const existing = await this.findByNricAndContact(nricKey, contactKey);
-
-        if (!existing) {
-            // No duplicate, safe to add
-            return await this.addParticipant(participantData);
-        } else {
-            // Compare registrationDate, update if new data is later
-            if (
-                participantData.registrationDate &&
-                (!existing.registrationDate || new Date(participantData.registrationDate) > new Date(existing.registrationDate))
-            ) {
-                // Update existing participant with latest data
-                const updateData = { ...existing, ...participantData, _id: existing._id };
-                return await this.update(updateData);
-            } else {
-                // No update needed, return existing
-                return { success: true, message: "No update needed", details: existing };
-            }
-        }
-    } catch (error) {
-        console.error("Add or update participant error:", error);
-        return {
-            success: false,
-            message: "Error adding or updating participant"
-        };
-    }
-}
 }
 
 module.exports = ParticipantsController;
-
-

@@ -54,7 +54,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3002',
     'https://ecss-backend-django-backup.azurewebsites.net', #https://ecss-backend-django-backup.azurewebsites.net/
     'https://ecss-backend-django.azurewebsites.net',
-    'https://169.254.130.2',
+    'https://169.254.130.2'
     'https://ecss.org.sg'
 ]
 
@@ -64,7 +64,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3002',
     'https://ecss-backend-django-backup.azurewebsites.net', #https://ecss-backend-django-backup.azurewebsites.net/
     'https://ecss-backend-django.azurewebsites.net',
-    'https://169.254.130.2',
+    'https://169.254.130.2'
     'https://ecss.org.sg'
 ]
 

@@ -34,19 +34,19 @@ function getCurrentDateTime() {
     };
 }
 
+
 router.post('/', async function(req, res, next) 
 {
     if(req.body.purpose === "insert")
     {
-        const io = req.app.get('io');
         var participantsParticulars = req.body.participantDetails;
 
         // Set registration date and official info
         participantsParticulars.registrationDate = getCurrentDateTime().date;
         participantsParticulars.official = {
             name: "", // Set as needed
-            date: "",
-            time: "",
+            date: getCurrentDateTime().date,
+            time: getCurrentDateTime().time,
             receiptNo: "",
             remarks: ""
         };
@@ -56,13 +56,9 @@ router.post('/', async function(req, res, next)
         const result = await registrationController.newParticipant(participantsParticulars);
         console.log("Registration Result:", result);
 
-        // Add or update participant in participants collection (cleaner)
+        // Add participant to participants collection (avoid duplicate controller variable)
         const participantsController = new ParticipantsController();
-        const participant = participantsParticulars.participant;
-        console.log("Participant Details:", participant);
-
-        // Use the new helper method
-        const result1 = await participantsController.addOrUpdateParticipant(participant);
+        const result1 = await participantsController.addParticipant(participantsParticulars.participant); 
 
         // Send notification after successful registration
         if (result && result1) {
@@ -77,16 +73,6 @@ router.post('/', async function(req, res, next)
                 console.error('Failed to send notification:', error);
                 // Continue with the response even if notification fails
             }
-
-            if (io) {
-                console.log("Emitting registration event to all connected clients");
-                io.emit('registration', {
-                    participant: participantsParticulars.participant,
-                    course: participantsParticulars.course,
-                    registrationDate: participantsParticulars.registrationDate
-                });
-            }
-
             return res.json({ "result": result });
         }  
     }

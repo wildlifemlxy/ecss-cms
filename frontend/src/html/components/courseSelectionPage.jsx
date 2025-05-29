@@ -1,17 +1,11 @@
 import React, { Component } from "react";
 import axios from "axios";
-import { io } from 'socket.io-client';
 import "../../css/courseSelectionPage.css";
 import CoursesList from "../components/sub/coursePage/coursesList"; // Import CoursesList component
 import AddToCartBar from "../components/sub/coursePage/addToCartBar"; // Import CartBar component
 import CartPopup from "../components/sub/coursePage/cartPopup"; // Import CartPopup component
 import LeftBar from "../components/sub/coursePage/leftBar"; 
 import MoreInfoPopup from "../components/sub/coursePage/moreInfoPopup";
-
-const API_BASE_URL =
-  window.location.hostname === "localhost"
-    ? "http://localhost:3001"
-    : "https://ecss-performance-night-2025.azurewebsites.net";
 
 class CourseSelectionPage extends Component {
   state = {
