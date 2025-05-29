@@ -44,9 +44,15 @@ class SearchSection extends Component {
     quarter: '',
     attendanceType: '',
     activityCode: '',
-    attendanceTypes: ['All Types'],  // Initialize with just the default option
-    filteredAttendanceTypes: ['All Types'],  // Initialize with just the default option
+    attendanceLocation: '',
+    attendanceTypes: [],  // Initialize with just the default option
+    filteredAttendanceTypes: [],  // Initialize with just the default option
+    attendanceLocations: [],  // Initialize attendance locations
+    filteredAttendanceLocations: [],  // Initialize filtered attendance locations
     showAttendanceTypeDropdown: false,
+    showAttendanceLocationDropdown: false,
+    showActivityCodeDropdown: false,
+    filteredActivityCodes: []  // Add this for filtered activity codes
   };
   this.locationDropdownRef = React.createRef();
   this.languageDropdownRef = React.createRef();
@@ -55,6 +61,8 @@ class SearchSection extends Component {
   this.courseDropdownRef = React.createRef();
   this.quarterDropdownRef = React.createRef();
   this.attendanceTypeDropdownRef = React.createRef(); // Add this ref for the attendance type dropdown
+  this.attendanceLocationDropdownRef = React.createRef(); // Add this ref for the attendance location dropdown
+  this.activityCodeDropdownRef = React.createRef(); // Add this ref for the activity code dropdown
 }
 
 
@@ -135,89 +143,61 @@ handleChange = (event) => {
         attendanceType: value
       });
     }
+    else if (name === 'attendanceLocation') {
+      this.setState({
+        filteredAttendanceLocations: this.state.attendanceLocations.filter(location =>
+          location.toLowerCase().includes(value.toLowerCase())
+        ),
+        attendanceLocation: value
+      }, () => {
+        // After location changes, filter activity codes based on location
+        this.filterActivityCodesByLocation(value);
+      });
+    }
   });
 };
 
 handleDropdownToggle = (dropdown) =>
 {
   console.log("Dropdown:", dropdown);
+  // Only toggle the requested dropdown, do not close the other
   if(dropdown === 'showLocationDropdown')
   {
-    this.setState({
-      showLocationDropdown: true,
-      showLanguageDropdown: false,
-      showTypeDropdown: false,
-      showCourseDropdown: false,
-      showAccountTypeDropdown: false
-    });
+    this.setState({ showLocationDropdown: true });
   }
   else if(dropdown === 'showLanguageDropdown')
     {
-      this.setState({
-        showLocationDropdown: false,
-        showLanguageDropdown: true,
-        showTypeDropdown: false,
-        showCourseDropdown: false,
-        showAccountTypeDropdown: false
-      });
+      this.setState({ showLanguageDropdown: true });
     }
     else if(dropdown === 'showTypeDropdown')
     {
-        this.setState({
-          showLocationDropdown: false,
-          showLanguageDropdown: false,
-          showTypeDropdown: true,
-          showCourseDropdown: false,
-          showAccountTypeDropdown: false,
-          showQuarterDropdown: false
-        });
+        this.setState({ showTypeDropdown: true });
     }
     else if(dropdown === 'showCourseDropdown')
     {
         console.log("Show");
-        this.setState({
-          showLocationDropdown: false,
-          showLanguageDropdown: false,
-          showTypeDropdown: false,
-          showCourseDropdown: true,
-          showAccountTypeDropdown: false,
-          showQuarterDropdown: false
-        });
+        this.setState({ showCourseDropdown: true });
     }
     else if(dropdown === 'showCourseQuarter')
     {
         console.log("Show");
-        this.setState({
-          showLocationDropdown: false,
-          showLanguageDropdown: false,
-          showTypeDropdown: false,
-          showCourseDropdown:false,
-          showAccountTypeDropdown: false,
-          showQuarterDropdown: true
-        });
+        this.setState({ showQuarterDropdown: true });
     }
     else if(dropdown === 'showAccountTypeDropdown')
       {
-        this.setState({
-          showLocationDropdown: false,
-          showLanguageDropdown: false,
-          showTypeDropdown: false,
-          showCourseDropdown: false,
-          showAccountTypeDropdown: true,
-          showQuarterDropdown: false
-        });
+        this.setState({ showAccountTypeDropdown: true });
     }
     else if(dropdown === 'showAttendanceTypeDropdown')
     {
-      this.setState({
-        showLocationDropdown: false,
-        showLanguageDropdown: false,
-        showTypeDropdown: false,
-        showCourseDropdown: false,
-        showAccountTypeDropdown: false,
-        showQuarterDropdown: false,
-        showAttendanceTypeDropdown: true
-      });
+      this.setState({ showAttendanceTypeDropdown: true });
+    }
+    else if(dropdown === 'showAttendanceLocationDropdown')
+    {
+      this.setState({ showAttendanceLocationDropdown: true });
+    }
+    else if(dropdown === 'showActivityCodeDropdown')
+    {
+      this.setState({ showActivityCodeDropdown: true });
     }
 }
 
@@ -304,7 +284,34 @@ handleOptionSelect = (value, dropdown) => {
         showCourseDropdown: false,
         showAccountTypeDropdown: false,
         showQuarterDropdown: false,
-        showAttendanceTypeDropdown: false
+        showAttendanceTypeDropdown: false,
+        showAttendanceLocationDropdown: false
+      };
+    }
+    else if (dropdown === 'showAttendanceLocationDropdown') {
+      updatedState = {
+        attendanceLocation: value,
+        showLocationDropdown: false,
+        showLanguageDropdown: false,
+        showTypeDropdown: false,
+        showCourseDropdown: false,
+        showAccountTypeDropdown: false,
+        showQuarterDropdown: false,
+        showAttendanceTypeDropdown: false,
+        showAttendanceLocationDropdown: false
+      };
+      
+      // After setting the state, filter activity codes by location
+      this.setState(updatedState, () => {
+        this.filterActivityCodesByLocation(value);
+        this.props.passSelectedValueToParent(updatedState, dropdown);
+      });
+      return; // Early return to prevent duplicate state setting
+    }
+    else if (dropdown === 'showActivityCodeDropdown') {
+      updatedState = {
+        activityCode: value,
+        showActivityCodeDropdown: false
       };
     }
 
@@ -317,6 +324,7 @@ handleOptionSelect = (value, dropdown) => {
 }
 
 handleClickOutside = (event) => {
+  // Only close dropdowns if click is outside their respective refs
   if (
     this.locationDropdownRef.current &&
     !this.locationDropdownRef.current.contains(event.target) &&
@@ -331,7 +339,11 @@ handleClickOutside = (event) => {
     this.quarterDropdownRef.current &&
     !this.quarterDropdownRef.current.contains(event.target) &&
     this.attendanceTypeDropdownRef.current &&
-    !this.attendanceTypeDropdownRef.current.contains(event.target)
+    !this.attendanceTypeDropdownRef.current.contains(event.target) &&
+    this.attendanceLocationDropdownRef.current &&
+    !this.attendanceLocationDropdownRef.current.contains(event.target) &&
+    this.activityCodeDropdownRef.current &&
+    !this.activityCodeDropdownRef.current.contains(event.target)
   ) {
     this.setState({
       showLocationDropdown: false,
@@ -340,14 +352,42 @@ handleClickOutside = (event) => {
       showAccountTypeDropdown: false,
       showCourseDropdown: false,
       showQuarterDropdown: false,
-      showAttendanceTypeDropdown: false
+      showAttendanceTypeDropdown: false,
+      showAttendanceLocationDropdown: false,
+      showActivityCodeDropdown: false
     });
+  }
+
+  if (
+    this.attendanceTypeDropdownRef.current &&
+    !this.attendanceTypeDropdownRef.current.contains(event.target)
+  ) {
+    this.setState({ showAttendanceTypeDropdown: false });
+  }
+  if (
+    this.attendanceLocationDropdownRef &&
+    this.attendanceLocationDropdownRef.current &&
+    !this.attendanceLocationDropdownRef.current.contains(event.target)
+  ) {
+    this.setState({ showAttendanceLocationDropdown: false });
+  }
+  if (
+    this.activityCodeDropdownRef &&
+    this.activityCodeDropdownRef.current &&
+    !this.activityCodeDropdownRef.current.contains(event.target)
+  ) {
+    this.setState({ showActivityCodeDropdown: false });
   }
 };
 
   componentDidMount() {
     document.addEventListener('mousedown', this.handleClickOutside);
     this.updateUniqueLocationsLanguagesRolesTypes(this.props);
+    
+    // Initialize filtered activity codes
+    this.setState({
+      filteredActivityCodes: this.props.activityCodes || []
+    });
   }
 
   componentDidUpdate(prevProps) {
@@ -435,6 +475,32 @@ handleClickOutside = (event) => {
         filteredAttendanceTypes: types
       });
     }
+
+    // Check if attendance locations from props have changed
+    if (this.props.attendanceLocations !== prevProps.attendanceLocations) {
+      // Make sure we have the 'All Locations' as first option
+      const locations = this.props.attendanceLocations || ['All Locations'];
+      if (!locations.includes('All Locations')) {
+        locations.unshift('All Locations');
+      }
+      
+      this.setState({
+        attendanceLocations: locations,
+        filteredAttendanceLocations: locations
+      });
+    }
+
+    // Check if activity codes from props have changed
+    if (this.props.activityCodes !== prevProps.activityCodes) {
+      this.setState({
+        filteredActivityCodes: this.props.activityCodes || []
+      }, () => {
+        // If a location is already selected, filter the activity codes
+        if (this.state.attendanceLocation && this.state.attendanceLocation !== 'All Locations') {
+          this.filterActivityCodesByLocation(this.state.attendanceLocation);
+        }
+      });
+    }
   }
   
   // Method to handle updating locations and languages
@@ -460,8 +526,54 @@ updateUniqueLocationsLanguagesRolesTypes(props) {
     quarters: uniqueCoursesQuarters, 
     filteredQuarters: uniqueCoursesQuarters,
     filteredCoursesName: this.translateLanguages(uniqueCoursesName), // Translate if necessary
+    filteredActivityCodes: props.activityCodes || [] // Initialize filtered activity codes
   });
 } 
+
+// Method to filter activity codes based on selected location
+filterActivityCodesByLocation = (selectedLocation) => {
+  const allActivityCodes = this.props.activityCodes || [];
+
+  console.log("Filtered Activity Codes:", allActivityCodes);
+  
+  if (!selectedLocation || selectedLocation === 'All Locations') {
+    // If no location selected or "All Locations" selected, show all activity codes
+    this.setState({
+      filteredActivityCodes: allActivityCodes
+    });
+    return;
+  }
+
+  // Map location display names to their corresponding codes that appear in activity codes
+  const locationCodeMap = {
+    'CT Hub': 'CTH',
+    'Tampines 253': '253',
+    'Tampines North Community Centre': 'TNC', 
+    'Pasir Ris West Wellness Centre': 'PRW'
+  };
+
+  const locationCode = locationCodeMap[selectedLocation];
+  
+  if (locationCode) {
+    // Filter activity codes that start with the location code
+    const filteredCodes = allActivityCodes.filter(code => 
+      code && code.startsWith(locationCode)
+    );
+    
+    this.setState({
+      filteredActivityCodes: filteredCodes,
+      activityCode: '' // Clear the current activity code selection when location changes
+    });
+    
+    // Notify parent about the activity code being cleared
+    this.props.passSelectedValueToParent({ activityCode: '' }, 'activityCode');
+  } else {
+    // If location not recognized, show all codes
+    this.setState({
+      filteredActivityCodes: allActivityCodes
+    });
+  }
+};
 
 componentWillUnmount() {
   document.removeEventListener('mousedown', this.handleClickOutside);
@@ -746,9 +858,41 @@ render()
                   {this.state.filteredAttendanceTypes.map((type, index) => (
                     <li
                       key={index}
-                      onClick={() => this.handleOptionSelect(type, 'showAttendanceTypeDropdown')}
+                      onMouseDown={() => this.handleOptionSelect(type, 'showAttendanceTypeDropdown')}
                     >
                       {type}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <i className="fas fa-angle-down dropdown-icon"></i>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="attendanceLocation">{this.props.language === 'zh' ? '地点' : 'Location'}</label>
+            <div
+              className={`dropdown-container ${this.state.showAttendanceLocationDropdown ? 'open' : ''}`}
+              ref={this.attendanceLocationDropdownRef}
+            >
+              <input
+                type="text"
+                id="attendanceLocation"
+                name="attendanceLocation"
+                value={this.state.attendanceLocation}
+                onChange={this.handleChange}
+                onClick={() => this.handleDropdownToggle('showAttendanceLocationDropdown')}
+                placeholder={this.props.language === 'zh' ? '按地点筛选' : 'Filter by location'}
+                autoComplete="off"
+              />
+              {this.state.showAttendanceLocationDropdown && (
+                <ul className="dropdown-list">
+                  {this.state.filteredAttendanceLocations.map((location, index) => (
+                    <li
+                      key={index}
+                      onMouseDown={() => this.handleOptionSelect(location, 'showAttendanceLocationDropdown')}
+                    >
+                      {location}
                     </li>
                   ))}
                 </ul>
@@ -759,19 +903,46 @@ render()
           
           <div className="form-group">
             <label htmlFor="activityCode">{this.props.language === 'zh' ? '活动代码' : 'Activity Code'}</label>
-            <div className="search-container">
+            <div  className={`dropdown-container ${this.state.showActivityCodeDropdown ? 'open' : ''}`} style={{ position: 'relative' }} ref={this.activityCodeDropdownRef}>
               <input
                 type="text"
                 id="activityCode"
                 name="activityCode"
                 value={this.state.activityCode}
-                onChange={this.handleChange}
+                onChange={e => {
+                  const value = e.target.value;
+                  this.setState({ activityCode: value, showActivityCodeDropdown: true });
+                }}
+                onFocus={() => this.setState({ showActivityCodeDropdown: true })}
+                onBlur={() => setTimeout(() => this.setState({ showActivityCodeDropdown: false }, () => {
+                  this.props.passSelectedValueToParent({ activityCode: this.state.activityCode }, 'activityCode');
+                }), 150)}
                 placeholder={this.props.language === 'zh' ? '按活动代码筛选' : 'Filter by activity code'}
                 autoComplete="off"
-                onBlur={() => {
-                  this.props.passSelectedValueToParent({ activityCode: this.state.activityCode }, 'activityCode');
-                }}
+                style={{ padding: '6px 12px', fontSize: 16, borderRadius: 4, border: '1px solid #ccc', minWidth: 160 }}
               />
+              {this.state.showActivityCodeDropdown && this.state.filteredActivityCodes.filter(code =>
+                !this.state.activityCode || code.toLowerCase().includes(this.state.activityCode.toLowerCase())
+              ).length > 0 && (
+                <ul className="dropdown-list" style={{ position: 'absolute', zIndex: 10, width: '100%' }}>
+                  {this.state.filteredActivityCodes.filter(code =>
+                    !this.state.activityCode || code.toLowerCase().includes(this.state.activityCode.toLowerCase())
+                  ).map((code, idx) => (
+                    <li
+                      key={code + idx}
+                      onMouseDown={() => {
+                        this.setState({ activityCode: code, showActivityCodeDropdown: false }, () => {
+                          this.props.passSelectedValueToParent({ activityCode: code }, 'activityCode');
+                        });
+                      }}
+                      style={{ cursor: 'pointer', padding: '6px 12px' }}
+                    >
+                      {code}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <i className="fas fa-angle-down dropdown-icon"></i>
             </div>
           </div>
           

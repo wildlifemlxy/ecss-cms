@@ -1,8 +1,13 @@
 .attendance-container{
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
+    width:  80vw;
     padding: 50px 20px;
     text-align: center;
     box-sizing: border-box;
+    margin-left: 0%;
+    margin-right: auto;
 }
+
+svg {
+    display: none !important;
+}
+

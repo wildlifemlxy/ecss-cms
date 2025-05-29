@@ -23,7 +23,7 @@ import React, { Component } from 'react';
       super(props);
 
       const savedState = localStorage.getItem('myComponentState');
-       var initialState = savedState ? JSON.parse(savedState) : {
+      var initialState = savedState ? JSON.parse(savedState) : {
         submenuVisible: null,
         language: 'en',
         courseType: null,
@@ -71,13 +71,21 @@ import React, { Component } from 'react';
         reportVisibility: false,
         reportType: "",
         quarters: [],
-        attendanceFilterType: '',
-        attendanceFilterCode: '',
+        attendanceFilterType: 'All Types',
+        attendanceFilterCode: 'All Codes',
+        attendanceFilterLocation: 'All Locations',
         attendanceSearchQuery: '',
-        attendanceTypes: ['All Types'],
-        activityCodes: ['All Codes']
+        attendanceTypes: [],
+        activityCodes: [],
+        attendanceLocations: []
       };
   
+      // Always reset attendance filter/search state to defaults on page load
+      initialState.attendanceFilterType = 'All Types';
+      initialState.attendanceFilterCode = 'All Codes';
+      initialState.attendanceFilterLocation = 'All Locations';
+      initialState.attendanceSearchQuery = '';
+
       // Set the initial state
       this.state = initialState;
 
@@ -929,7 +937,7 @@ import React, { Component } from 'react';
       });
     }
 
-    // Handle attendance type and activity code selection
+    // Handle attendance type, activity code, and location selection
     handleAttendanceSelectFromChild = (updateState, dropdown) => {
       console.log("Selected Attendance Filter:", updateState, dropdown);
       
@@ -940,6 +948,10 @@ import React, { Component } from 'react';
       } else if (dropdown === 'activityCode') {
         this.setState({
           attendanceFilterCode: updateState.activityCode
+        });
+      } else if (dropdown === 'showAttendanceLocationDropdown') {
+        this.setState({
+          attendanceFilterLocation: updateState.attendanceLocation
         });
       }
     };
@@ -952,14 +964,16 @@ import React, { Component } from 'react';
       });
     };
     
-    // Add this method to receive attendance types and codes from AttendanceSection
-    handleAttendanceTypesLoaded = (types, activityCodes) => {
+    // Add this method to receive attendance types, codes, and locations from AttendanceSection
+    handleAttendanceTypesLoaded = (types, activityCodes, locations) => {
       console.log("Received attendance types:", types);
       console.log("Received activity codes:", activityCodes);
+      console.log("Received attendance locations:", locations);
       
       this.setState({
         attendanceTypes: types || ['All Types'],
-        activityCodes: activityCodes || ['All Codes']
+        activityCodes: activityCodes || ['All Codes'],
+        attendanceLocations: locations || ['All Locations']
       });
     };
 
@@ -969,7 +983,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const { attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceSearchQuery, attendanceTypes, activityCodes} = this.state;
+      const { attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
 
       return (
         <>
@@ -1095,7 +1109,7 @@ import React, { Component } from 'react';
                         language={language}
                         courseType={courseType}
                         closePopup={this.closePopup}
-                        passData toParent={this.handleDataFromChild}
+                        passDataToParent={this.handleDataFromChild}
                         selectedLanguage={selectedLanguage}
                         selectedLocation={selectedLocation}
                         searchQuery={searchQuery}
@@ -1211,27 +1225,27 @@ import React, { Component } from 'react';
                   </>} 
                   {attendanceVisibility && 
                     <>
-                        <div className="search-section">
-                          <Search
+                        <Search
                             section="attendance"
                             language={language}
                             resetSearch={resetSearch}
                             passSelectedValueToParent={this.handleAttendanceSelectFromChild}
                             passSearchedValueToParent={this.handleAttendanceSearchFromChild}
-                            attendanceTypes={this.state.attendanceTypes}
-                            activityCodes={this.state.activityCodes}
+                            attendanceTypes={attendanceTypes}
+                            attendanceLocations={attendanceLocations}
+                            activityCodes={activityCodes}
                             item="attendance"
                           />
-                        </div>
                         <div className="attendance-section">
                           <AttendanceSection 
                             userName={userName}
-                            loadingPopup1={this.loadingPopup1}
+                            loadingPopup1 = {this.loadingPopup1}
                             role={role}
                             siteIC={siteIC}
                             closePopup1={this.closePopup}
                             attendanceType={this.state.attendanceFilterType}
                             activityCode={this.state.attendanceFilterCode}
+                            selectedLocation={this.state.attendanceFilterLocation}
                             searchQuery={this.state.attendanceSearchQuery}
                             onTypesLoaded={this.handleAttendanceTypesLoaded}
                           />

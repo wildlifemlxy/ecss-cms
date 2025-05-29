@@ -7,6 +7,7 @@ import { saveAs } from 'file-saver';
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
 import JSZip from 'jszip';
+import { io } from 'socket.io-client';
 
 class RegistrationPaymentSection extends Component {
     constructor(props) {
@@ -134,7 +135,7 @@ class RegistrationPaymentSection extends Component {
       return array;
     }
 
-    async componentDidMount() { 
+    /*async componentDidMount() { 
      // this.props.onResetSearch();
       const { language, siteIC, role } = this.props;
       const {data, data1} = await this.fetchCourseRegistrations(language);
@@ -181,7 +182,86 @@ class RegistrationPaymentSection extends Component {
       }
     
       this.props.closePopup();
+    }*/
+
+    async componentDidMount() {
+    await this.fetchAndSetRegistrationData();
+
+    // --- Live update via Socket.IO ---
+    this.socket = io(
+      window.location.hostname === "localhost"
+        ? "http://localhost:3001"
+        : "https://ecss-backend-node.azurewebsites.net"
+    );
+    this.socket.on('registration', (data) => {
+      console.log("Socket event received", data);
+      this.fetchAndSetRegistrationData();
+    });
+  }
+
+  componentWillUnmount() {
+    if (this.socket) {
+      this.socket.disconnect();
     }
+  }
+
+  async fetchAndSetRegistrationData() {
+    // Save current scroll position and page
+    const gridContainer = document.querySelector('.ag-body-viewport');
+    const currentScrollTop = gridContainer ? gridContainer.scrollTop : 0;
+    const currentPage = this.gridApi ? this.gridApi.paginationGetCurrentPage() : 0;
+
+    const { language, siteIC, role } = this.props;
+    const { data, data1 } = await this.fetchCourseRegistrations(language);
+
+    var locations = await this.getAllLocations(data);
+    var types = await this.getAllTypes(data);
+    var names = await this.getAllNames(data);
+    var quarters = await this.getAllQuarters(data);
+    this.props.passDataToParent(locations, types, names, quarters);
+
+    const statuses = data.map(item => item.status);
+    console.log('Statuses:', statuses);
+
+    await this.props.getTotalNumberofDetails(data.length);
+
+    const inputValues = {};
+    data.forEach((item, index) => {
+      inputValues[index] = item.status || "Pending";
+    });
+
+    const inputValues1 = {};
+    data.forEach((item, index) => {
+      inputValues1[index] = item.official.remarks;
+      console.log("Current Remarks: ", item.official.remarks)
+    });
+
+    this.setState({
+      originalData: data,
+      registerationDetails: data,
+      isLoading: false,
+      inputValues: inputValues,
+      remarks: inputValues1,
+      locations: locations,
+      names: names,
+    }, async () => {
+      await this.getRowData(data);
+
+      // Restore scroll position and page after data is set
+      if (gridContainer) {
+        gridContainer.scrollTop = currentScrollTop;
+      }
+      if (this.gridApi && this.gridApi.paginationGoToPage) {
+        this.gridApi.paginationGoToPage(currentPage);
+      }
+
+      if (!this.state.isAlertShown) {
+        await this.anomalitiesAlert(data1);
+        this.setState({ isAlertShown: true });
+      }
+      this.props.closePopup();
+    });
+  }
 
     getAnomalyRowStyles = (data) => {
       const styles = {};

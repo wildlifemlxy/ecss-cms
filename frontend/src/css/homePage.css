@@ -2,9 +2,70 @@
   .dashboard {
     display: grid;
     grid-template-rows: auto 1fr auto auto; /* Header, content, and footer */
-    height: 100vh; /* Full viewport height */
+    height: 100vh; /* Full viewport height */ 
   }
 
+  #wdr-pivot-view .wdr-credits {
+    display: none !important;
+    height: 14px;
+    position: absolute;
+    right: 0;
+    bottom: -18px;
+    opacity: .5;
+    filter: grayscale(1);
+    transition: opacity .5s;
+}
+
+  #wdr-pivot-view .wdr-fields-view-wrap {
+      position: absolute;
+      z-index: 11;
+      right: 0;
+      top: 0;
+      display: none !important;
+  }
+
+    .wdr-icon.wdr-filter-icon
+  {
+    display: none !important; /* Hide the filter icon */
+  }
+
+  .wdr-ui-element.wdr-filters {
+    background-color: #fab9b9 !important;
+  }
+
+  #wdr-pivot-view .wdr-grid-layout div.wdr-scroll-pane div.wdr-scroll-content .wdr-cell {
+      position: relative;
+      border: none !important;
+  }
+
+  /* Remove all borders from pivot table cells */
+  #wdr-pivot-view .wdr-cell,
+  #wdr-pivot-view .wdr-grid-layout .wdr-cell,
+  #wdr-pivot-view .wdr-scroll-content .wdr-cell {
+      border: none !important;
+      border-top: none !important;
+      border-bottom: none !important;
+      border-left: none !important;
+      border-right: none !important;
+  }
+
+  /* Remove borders from the grid layout itself */
+  #wdr-pivot-view .wdr-grid-layout,
+  #wdr-pivot-view .wdr-scroll-pane,
+  #wdr-pivot-view .wdr-scroll-content {
+      border: none !important;
+  }
+
+  .wdr-cell[data-r="0"] {
+    font-weight: bold !important;
+    position: relative;
+    border: none;
+    background-color: #fab9b9 !important;
+  }
+
+  .wdr-cell:not([data-r="0"]) {
+    background-color: #EBC0A3 !important;
+}
 
   .header {
     display: flex;
@@ -117,8 +178,6 @@
 
   .attendance-section {
     width: 100%;
-    flex: 1;
-    display: flex;
     flex-direction: column;
   }
 
@@ -189,8 +248,7 @@
   .attendance-section
   {
     grid-row: 1; /* Bottom section */
-    z-index: 0;
-    margin-left: -8.5rem;
+    z-index: 0; 
   }
 
   .receipt-section
@@ -222,6 +280,8 @@
     grid-row: 4;
     margin-left: 8.5rem;
   }
+
+  
 
 
   .footer {
@@ -277,7 +337,40 @@
     cursor: pointer;
   }
 
-  /* Responsive Styles */
+  /* Prevent tab buttons from wrapping and ensure consistent sizing */
+.button-row5 {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  width: 100%;
+  overflow: visible; /* Ensure content is not clipped */
+  margin-left: 9%;
+  margin-right: auto;
+  margin-bottom: 1% !important;
+}
+
+#activityCode
+{
+  border: none !important;
+}
+
+.button-row5 .view-btn {
+  min-width: 90px;
+  min-height: 36px; /* Ensure enough height for text */
+  white-space: nowrap;
+  text-align: center;
+  margin: 2px 0;
+  font-size: 16px; /* Corrected font size for readability */
+  line-height: 1.4; /* Prevent text clipping */
+  overflow: visible; /* Prevent text from being cut off */
+  padding: 8px 16px; /* More padding for better appearance */
+}
+
+/* Responsive Styles */
   @media (max-width: 1024px) {
     .sidebar-toggle {
       display: block; /* Show toggle button for screens 1024px and below */
@@ -379,6 +472,9 @@
       z-index: 3;
     }
   }
+  
+
+
 
 
   /*@media (max-width: 480px) {
@@ -439,6 +535,63 @@
   }*/
 
 
+/* Make WebDataRocks pivot table 80% width and centered */
+#wdr-pivot-view {
+  width: 100% !important;
+  overflow-y: auto !important;
+  margin: 0 auto !important;
+  display: block !important;
+}
+
+#wdr-pivot-view .wdr-grid-layout,
+#wdr-pivot-view .wdr-scroll-pane {
+  width: 100% !important;
+}
+
+
+
+/* Force WebDataRocks pivot table and all inner containers to 80% width and centered */
+#pivotContainer,
+#wdr-pivot-view,
+#wdr-pivot-view .wdr-ui-container,
+#wdr-pivot-view .wdr-grid-layout,
+#wdr-pivot-view .wdr-sheet-canvas,
+#wdr-pivot-view .wdr-scroll-pane {
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Remove fixed pixel widths from inner elements */
+#wdr-pivot-view,
+#wdr-pivot-view .wdr-ui-container,
+#wdr-pivot-view .wdr-grid-layout,
+#wdr-pivot-view .wdr-sheet-canvas,
+#wdr-pivot-view .wdr-scroll-pane {
+  height: 500px !important; /* or your preferred height */
+  width: 100% !important;
+}
+
+/* Optionally, make sure the parent container doesn't restrict width */
+.attendance-section {
+  width: 100% !important;
+}
+
+/* Make the font for columns 1-3 bigger in all rows using data-c attribute */
+#wdr-pivot-view .wdr-cell[data-c="1"],
+#wdr-pivot-view .wdr-cell[data-c="2"],
+#wdr-pivot-view .wdr-cell[data-c="3"],
+#wdr-pivot-view .wdr-cell[data-c="4"],
+#wdr-pivot-view .wdr-cell[data-c="5"]   {
+  font-size: 1.5em !important;
+}
+
+/* Make the font for columns 1-3 bigger in all rows using data-c attribute */
+#wdr-pivot-view .wdr-cell[data-c="0"] {
+  font-size: 1.5em !important;
+  font-weight: bold !important;
+}
 
 
 

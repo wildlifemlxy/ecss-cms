@@ -134,7 +134,8 @@ class CoursesSection extends Component {
     getAllLanguages= async(courses)  =>  {
       return [...new Set(courses.map(course => {
         var courseDetails = this.getSelectedDetails(course.short_description);
-        return courseDetails.language;
+        console.log("Course Details123:", JSON.parse(courseDetails).language);
+        return JSON.parse(courseDetails).language;
       }))];
     }
 
@@ -143,12 +144,15 @@ class CoursesSection extends Component {
         this.setState({ loading: true });
         var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/courses/`, { courseType });
         var courses = response.data.courses;
-        console.log("From Django:", response);
+        console.log("From Django:", courses);
         
 
         // Extract locations and languages
         var locations = await this.getAllLocations(courses);
         var languages = await this.getAllLanguages(courses);
+
+        console.log("Locations123:", locations);
+        console.log("Languages123:", languages);
 
         this.props.passDataToParent(locations, languages);
 
@@ -174,7 +178,7 @@ class CoursesSection extends Component {
 
   getRowData = (filteredCourse) => 
   {
-    console.log("Get Row Data");
+    console.log("Get Row Data", filteredCourse);
     const locationMap = {
       "Tampines 253 Centre": "T-253",
       "Pasir Ris West Wellness Centre": "PRW",

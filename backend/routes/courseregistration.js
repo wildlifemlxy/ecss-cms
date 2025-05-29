@@ -39,6 +39,7 @@ router.post('/', async function(req, res, next)
 {
     if(req.body.purpose === "insert")
     {
+        const io = req.app.get('io');
         var participantsParticulars = req.body.participantDetails;
 
         // Set registration date and official info
@@ -69,6 +70,14 @@ router.post('/', async function(req, res, next)
                     web_url: "https://salmon-wave-09f02b100.6.azurestaticapps.net/"
                 });
                 console.log('Registration notification sent successfully');
+                if (io) {
+                    console.log("Emitting registration event to all connected clients");
+                    io.emit('registration', {
+                        participant: participantsParticulars.participant,
+                        course: participantsParticulars.course,
+                        registrationDate: participantsParticulars.registrationDate
+                    });
+                }
             } catch (error) {
                 console.error('Failed to send notification:', error);
                 // Continue with the response even if notification fails
