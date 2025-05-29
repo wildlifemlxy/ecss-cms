@@ -1,4 +1,4 @@
-  import React, { Component } from 'react';
+import React, { Component } from 'react';
   import { withRouter } from 'react-router-dom';
   import '../../css/homePage.css'; // Ensure your CSS paths are correct
   import AccountsSection from './sub/accountsSection';
@@ -12,6 +12,7 @@
   import ReceiptSection from './sub/receiptSection';
   import SideBarContent from './sub/sideBarContent';
   import DashboardSection from './sub/dashboardSection';
+  import AttendanceSection from './sub/AttendanceSection';
   import ReportSection from './sub/reportSection';
   import { withAuth } from '../../AuthContext';
   import axios from 'axios';  
@@ -61,6 +62,7 @@
         displayedName: '',
         isDropdownOpen: false,
         isReceiptVisible: false,
+        attendanceVisibility: false,
         item: '',
         isInactive: false,
         refreshKey: 0,
@@ -68,7 +70,12 @@
         deleteId: "",
         reportVisibility: false,
         reportType: "",
-        quarters: []
+        quarters: [],
+        attendanceFilterType: '',
+        attendanceFilterCode: '',
+        attendanceSearchQuery: '',
+        attendanceTypes: ['All Types'],
+        activityCodes: ['All Codes']
       };
   
       // Set the initial state
@@ -208,12 +215,56 @@
             accountType: null,
             createAccount: false,
             reportVisibility: true, 
-            reportType: reportType
+            reportType: reportType,
+            attendanceVisibility: false
           });
       } 
       catch (error) 
       {
         console.log(error);
+      }
+    }
+
+    toggleAttendanceComponent = async(attendanceType) =>
+    {
+      try 
+      {
+          this.setState({ resetSearch: true, }, () => {
+            this.setState({ resetSearch: false });
+          });
+
+      
+          // First show loading popup
+          this.setState({
+            isPopupOpen: true,
+            popupMessage: "Loading Attendance",
+            popupType: "loading",
+          }, () => {
+            // After loading popup is shown, update the visibility states
+            this.setState({
+              courseType: null,
+              sidebarVisible: false,
+              isRegistrationPaymentVisible: false,
+              isReceiptVisible: false, // Added this - was missing
+              section: "attendance", // Set section name
+              accountType: null,
+              createAccount: false,
+              reportVisibility: false,
+              dashboard: false, // Added this - was missing
+              attendanceVisibility: true,
+              attendanceType: attendanceType // Added parameter to store attendance type
+            });
+          });
+      } 
+      catch (error) 
+      {
+        console.log(error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading attendance view",
+          popupType: "error-message"
+        });
       }
     }
 
@@ -324,34 +375,45 @@
      localStorage.removeItem('myComponentState');
     }
 
-    toggleDashboardComponent = async () => 
-    {
-        try 
-        {
-          console.log("Dashboard Page");
-            this.setState({ resetSearch: true, }, () => {
-              this.setState({ resetSearch: false });
-            });
-  
-           
-            this.setState({
-              courseType: null,
-              sidebarVisible: false,
-              isRegistrationPaymentVisible: false ,
-              section: "",
-              accountType: null,
-              createAccount: false,
-              reportVisibility: false,
-              dashboard: true,
-              isPopupOpen: true,
-              popupMessage: "Loading Dashboard",
-              popupType: "loading",
-            });
-        } 
-        catch (error) 
-        {
-          console.log(error);
-        }
+    toggleDashboardComponent = () => {  // Removed async since it's not needed
+      try {
+        console.log("Dashboard Page");
+        
+        // Set the loading popup first
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Loading Dashboard",
+          popupType: "loading",
+        }, () => {
+          // After the popup is shown, reset all component visibility flags
+          this.setState({
+            // Reset all section visibility flags
+            courseType: null,
+            sidebarVisible: false,
+            isRegistrationPaymentVisible: false,
+            isReceiptVisible: false,  // Added this - was missing
+            section: "",
+            accountType: null,
+            createAccount: false,
+            reportVisibility: false,
+            attendanceVisibility: false,
+            
+            // Set dashboard to true
+            dashboard: true,
+            
+            // Reset search state in a single operation
+            resetSearch: false
+          });
+        });
+      } catch (error) {
+        console.log(error);
+        // Consider showing an error message to the user
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading dashboard",
+          popupType: "error-message"
+        });
+      }
     };
 
     toggleAccountsComponent = async (accountType) => 
@@ -376,7 +438,8 @@
             section: "accounts",
             accountType: accountType,
             createAccount: false,
-            reportVisibility: false
+            reportVisibility: false,
+            attendanceVisibility: false
           });
         }
         else
@@ -391,7 +454,8 @@
             section: "accounts",
             accountType: null,
             createAccount: true,
-            reportVisibility: false
+            reportVisibility: false,
+             attendanceVisibility: false
           });
         }
       } 
@@ -653,7 +717,8 @@
             createAccount: false,
             isReceiptVisible: false,
             item: item,
-            reportVisibility: false
+            reportVisibility: false,
+            attendanceVisibility: false
             //viewMode: "full"
         }));
       }
@@ -674,7 +739,8 @@
               accountType: null,
               createAccount: false,
               isReceiptVisible: !prevState.isReceiptVisible,
-              item: item
+              item: item,
+              attendanceVisibility: false
               //viewMode: "full"
           }));
       }
@@ -863,13 +929,47 @@
       });
     }
 
+    // Handle attendance type and activity code selection
+    handleAttendanceSelectFromChild = (updateState, dropdown) => {
+      console.log("Selected Attendance Filter:", updateState, dropdown);
+      
+      if (dropdown === 'showAttendanceTypeDropdown') {
+        this.setState({
+          attendanceFilterType: updateState.attendanceType
+        });
+      } else if (dropdown === 'activityCode') {
+        this.setState({
+          attendanceFilterCode: updateState.activityCode
+        });
+      }
+    };
+    
+    // Handle attendance search query
+    handleAttendanceSearchFromChild = (data) => {
+      console.log("Attendance Search Query:", data);
+      this.setState({
+        attendanceSearchQuery: data
+      });
+    };
+    
+    // Add this method to receive attendance types and codes from AttendanceSection
+    handleAttendanceTypesLoaded = (types, activityCodes) => {
+      console.log("Received attendance types:", types);
+      console.log("Received activity codes:", activityCodes);
+      
+      this.setState({
+        attendanceTypes: types || ['All Types'],
+        activityCodes: activityCodes || ['All Codes']
+      });
+    };
+
     render() 
     {
       console.log("Props History Push", this.props);
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const { reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters} = this.state;
+      const { attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceSearchQuery, attendanceTypes, activityCodes} = this.state;
 
       return (
         <>
@@ -912,6 +1012,7 @@
                   toggleCourseComponent = {this.toggleCourseComponent}
                   toggleRegistrationPaymentComponent = {this.toggleRegistrationPaymentComponent}
                   toggleReportComponent = {this.toggleReportComponent}
+                  toggleAttendanceComponent = {this.toggleAttendanceComponent}
                   key={this.state.refreshKey}
                 />
               </div>
@@ -994,7 +1095,7 @@
                         language={language}
                         courseType={courseType}
                         closePopup={this.closePopup}
-                        passDataToParent={this.handleDataFromChild}
+                        passData toParent={this.handleDataFromChild}
                         selectedLanguage={selectedLanguage}
                         selectedLocation={selectedLocation}
                         searchQuery={searchQuery}
@@ -1108,7 +1209,37 @@
                         />
                     </div>
                   </>} 
-                  {/* Conditionally render the section */}
+                  {attendanceVisibility && 
+                    <>
+                      <div className="attendance-container">
+                        <div className="search-section">
+                          <Search
+                            section="attendance"
+                            language={language}
+                            resetSearch={resetSearch}
+                            passSelectedValueToParent={this.handleAttendanceSelectFromChild}
+                            passSearchedValueToParent={this.handleAttendanceSearchFromChild}
+                            attendanceTypes={this.state.attendanceTypes}
+                            activityCodes={this.state.activityCodes}
+                            item="attendance"
+                          />
+                        </div>
+                        <div className="attendance-section">
+                          <AttendanceSection 
+                            userName={userName}
+                            loadingPopup1={this.loadingPopup1}
+                            role={role}
+                            siteIC={siteIC}
+                            closePopup1={this.closePopup}
+                            attendanceType={this.state.attendanceFilterType}
+                            activityCode={this.state.attendanceFilterCode}
+                            searchQuery={this.state.attendanceSearchQuery}
+                            onTypesLoaded={this.handleAttendanceTypesLoaded}
+                          />
+                        </div>
+                      </div>
+                    </>
+          }             
               </div>
             </div>
             <div className="footer">

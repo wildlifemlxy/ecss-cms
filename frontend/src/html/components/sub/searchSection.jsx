@@ -42,6 +42,11 @@ class SearchSection extends Component {
     role: '',
     staffName: '',
     quarter: '',
+    attendanceType: '',
+    activityCode: '',
+    attendanceTypes: ['All Types'],  // Initialize with just the default option
+    filteredAttendanceTypes: ['All Types'],  // Initialize with just the default option
+    showAttendanceTypeDropdown: false,
   };
   this.locationDropdownRef = React.createRef();
   this.languageDropdownRef = React.createRef();
@@ -49,6 +54,7 @@ class SearchSection extends Component {
   this.typeDropdownRef = React.createRef();
   this.courseDropdownRef = React.createRef();
   this.quarterDropdownRef = React.createRef();
+  this.attendanceTypeDropdownRef = React.createRef(); // Add this ref for the attendance type dropdown
 }
 
 
@@ -121,6 +127,14 @@ handleChange = (event) => {
       console.log(name, value);
       this.props.passSearchedValueToParent(value);
     }
+    else if (name === 'attendanceType') {
+      this.setState({
+        filteredAttendanceTypes: this.state.attendanceTypes.filter(type =>
+          type.toLowerCase().includes(value.toLowerCase())
+        ),
+        attendanceType: value
+      });
+    }
   });
 };
 
@@ -192,6 +206,18 @@ handleDropdownToggle = (dropdown) =>
           showAccountTypeDropdown: true,
           showQuarterDropdown: false
         });
+    }
+    else if(dropdown === 'showAttendanceTypeDropdown')
+    {
+      this.setState({
+        showLocationDropdown: false,
+        showLanguageDropdown: false,
+        showTypeDropdown: false,
+        showCourseDropdown: false,
+        showAccountTypeDropdown: false,
+        showQuarterDropdown: false,
+        showAttendanceTypeDropdown: true
+      });
     }
 }
 
@@ -269,6 +295,18 @@ handleOptionSelect = (value, dropdown) => {
           showQuarterDropdown: false
         });
     }
+    else if (dropdown === 'showAttendanceTypeDropdown') {
+      updatedState = {
+        attendanceType: value,
+        showLocationDropdown: false,
+        showLanguageDropdown: false,
+        showTypeDropdown: false,
+        showCourseDropdown: false,
+        showAccountTypeDropdown: false,
+        showQuarterDropdown: false,
+        showAttendanceTypeDropdown: false
+      };
+    }
 
 
     this.setState(updatedState, () => {
@@ -291,7 +329,9 @@ handleClickOutside = (event) => {
     this.accountTypeDropdownRef.current &&
     !this.accountTypeDropdownRef.current.contains(event.target) &&
     this.quarterDropdownRef.current &&
-    !this.quarterDropdownRef.current.contains(event.target)
+    !this.quarterDropdownRef.current.contains(event.target) &&
+    this.attendanceTypeDropdownRef.current &&
+    !this.attendanceTypeDropdownRef.current.contains(event.target)
   ) {
     this.setState({
       showLocationDropdown: false,
@@ -299,7 +339,8 @@ handleClickOutside = (event) => {
       showTypeDropdown: false,
       showAccountTypeDropdown: false,
       showCourseDropdown: false,
-      showQuarterDropdown: false
+      showQuarterDropdown: false,
+      showAttendanceTypeDropdown: false
     });
   }
 };
@@ -377,6 +418,23 @@ handleClickOutside = (event) => {
         filteredQuarters: uniqueQuarters
       }); 
     }  
+
+
+      console.log("Attendance Types:", this.props.attendanceTypes);
+      
+    // Check if attendance types from props have changed
+    if (this.props.attendanceTypes !== prevProps.attendanceTypes) {
+      // Make sure we have the 'All Types' as first option
+      const types = this.props.attendanceTypes || ['All Types'];
+      if (!types.includes('All Types')) {
+        types.unshift('All Types');
+      }
+      
+      this.setState({
+        attendanceTypes: types,
+        filteredAttendanceTypes: types
+      });
+    }
   }
   
   // Method to handle updating locations and languages
@@ -663,6 +721,76 @@ render()
             </div>
           </div>
         </>            
+      )}
+
+      {section === "attendance" && (
+        <>
+          <div className="form-group">
+            <label htmlFor="attendanceType">{this.props.language === 'zh' ? '类型' : 'Type'}</label>
+            <div
+              className={`dropdown-container ${this.state.showAttendanceTypeDropdown ? 'open' : ''}`}
+              ref={this.attendanceTypeDropdownRef}
+            >
+              <input
+                type="text"
+                id="attendanceType"
+                name="attendanceType"
+                value={this.state.attendanceType}
+                onChange={this.handleChange}
+                onClick={() => this.handleDropdownToggle('showAttendanceTypeDropdown')}
+                placeholder={this.props.language === 'zh' ? '按类型筛选' : 'Filter by type'}
+                autoComplete="off"
+              />
+              {this.state.showAttendanceTypeDropdown && (
+                <ul className="dropdown-list">
+                  {this.state.filteredAttendanceTypes.map((type, index) => (
+                    <li
+                      key={index}
+                      onClick={() => this.handleOptionSelect(type, 'showAttendanceTypeDropdown')}
+                    >
+                      {type}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <i className="fas fa-angle-down dropdown-icon"></i>
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="activityCode">{this.props.language === 'zh' ? '活动代码' : 'Activity Code'}</label>
+            <div className="search-container">
+              <input
+                type="text"
+                id="activityCode"
+                name="activityCode"
+                value={this.state.activityCode}
+                onChange={this.handleChange}
+                placeholder={this.props.language === 'zh' ? '按活动代码筛选' : 'Filter by activity code'}
+                autoComplete="off"
+                onBlur={() => {
+                  this.props.passSelectedValueToParent({ activityCode: this.state.activityCode }, 'activityCode');
+                }}
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
+            <div className="search-container">
+              <input
+                type="text"
+                id="searchQuery"
+                name="searchQuery"
+                value={searchQuery}
+                onChange={this.handleChange}
+                placeholder={this.props.language === 'zh' ? '搜索' : 'Search'}
+                autoComplete="off"
+              />
+              <i className="fas fa-search search-icon"></i>
+            </div>
+          </div>
+        </>
       )}
     </div>
   </div>

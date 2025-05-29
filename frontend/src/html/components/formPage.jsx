@@ -361,11 +361,46 @@ class FormPage extends Component {
         const startDateParagraph = paragraphs[paragraphs.length - 2];
         const endDateParagraph = paragraphs[paragraphs.length - 1];
 
-        const timingParagraph = this.decodeHtmlEntities(paragraphs[paragraphs.length - 3]);
-        console.log("Timing Paragraph", timingParagraph);
-        const courseTime = timingParagraph.match(/(\d{1,2}:\d{2}[ap]m\s*[–-]\s*\d{1,2}:\d{2}[ap]m)/i)[0];
-        console.log("Timing:", courseTime);
-        
+        // Replace the existing timing extraction code with this more robust version
+        let courseTime = '';
+        try {
+          if (paragraphs && paragraphs.length >= 3) {
+            let timingParagraph = paragraphs[paragraphs.length - 3];
+            console.log("Timing Paragraph", timingParagraph);
+            
+            // Decode entities if needed
+            if (!timingParagraph.includes("–")) {
+              timingParagraph = this.decodeHtmlEntities(timingParagraph);
+            }
+            
+            // Updated regex to match both colon and period formats
+            const timePattern = /(\d{1,2}[:.]\d{2}[ap]m\s*[–-]\s*\d{1,2}[:.]\d{2}[ap]m)/i;
+            const timeMatch = timingParagraph.match(timePattern);
+            
+            if (timeMatch && timeMatch[0]) {
+              courseTime = timeMatch[0];
+              console.log("Successfully extracted timing:", courseTime);
+            } else {
+              console.log("No time pattern found with standard format, trying alternative pattern");
+              
+              // Try an alternative pattern that's more flexible
+              const altPattern = /(\d{1,2}[:.]\d{2}[ap]m).+?(\d{1,2}[:.]\d{2}[ap]m)/i;
+              const altMatch = timingParagraph.match(altPattern);
+              
+              if (altMatch) {
+                courseTime = `${altMatch[1]} – ${altMatch[2]}`;
+                console.log("Found time with alternative pattern:", courseTime);
+              } else {
+                console.log("Could not extract timing from paragraph:", timingParagraph);
+              }
+            }
+          } else {
+            console.warn("Not enough paragraphs to extract timing information");
+          }
+        } catch (error) {
+          console.error("Error extracting course time:", error);
+        }
+
         const cleanedStartDate = startDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
         const cleanedEndDate = endDateParagraph.replace("<strong>", "").replace("</strong>", "").replace("</p>", "").split("<br />")[2];
         

@@ -64,7 +64,7 @@ class SideBarContent extends Component {
                     "accountId": accountId
                 }
             );          
-            console.log(response);
+            console.log("Access Rights Response:", response);
 
             // Store the access rights in state
             this.setState({ accessRights: response.data.result });
@@ -87,7 +87,7 @@ class SideBarContent extends Component {
     handleSubKeyClick = (subKey) => {
         // Add any additional functionality you want to execute on sub-menu item click
        // console.log(`${subKey} clicked`); // Example of handling sub-key click
-       console.log(subKey);
+       console.log("Selected:", subKey);
        if(subKey === "Create Account")
        {
          this.props.toggleAccountsComponent(subKey);
@@ -126,6 +126,7 @@ class SideBarContent extends Component {
        }
        else if(subKey === "View Attendance")
        {
+        console.log("View Attendance clicked");
         this.props.toggleAttendanceComponent(subKey);
        }
     }
@@ -137,6 +138,7 @@ class SideBarContent extends Component {
 
     render() {
         const { accessRights, openKey } = this.state;
+        console.log("Access Rights:", accessRights);
 
         // Map of icons for each main item
         const iconMap = {

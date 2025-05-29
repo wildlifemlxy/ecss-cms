@@ -96,6 +96,41 @@ router.post("/", async function(req, res)
             });
         }
     }
+    else if(req.body.purpose === "retrieveAll")
+    {
+        try {
+            console.log("Received request to retrieve all attendance records", req.body);
+            
+            var controller = new AttendanceController();
+            var result = await controller.getAttendanceAll();
+
+            console.log("Retrieved all attendance records:", result);
+
+            if (result.success) {
+                res.json({
+                    "success": result.success, 
+                    "message": result.message,
+                    "data": result.details,
+                });
+            } else {
+                res.json({
+                    "success": result.success, 
+                    "message": result.message,
+                });
+            }
+            
+        } catch (error) {
+            console.error("Retrieve attendance error:", error);
+            res.status(500).json({
+                "success": false,
+                "message": "Error retrieving attendance records",
+                "error": error.message,
+                "data": [],
+                "count": 0
+            });
+        }
+    }
+ 
     else
     {
         res.status(400).json({

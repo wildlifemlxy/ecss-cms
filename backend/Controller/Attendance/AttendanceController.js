@@ -84,6 +84,48 @@ class AttendanceController {
             await this.databaseConnectivity.close();
         }   
     }
+
+    async getAttendanceAll() {
+        try {
+            const result = await this.databaseConnectivity.initialize();
+            
+            if (result === "Connected to MongoDB Atlas!") {
+                const databaseName = "Courses-Management-System";
+                const collectionName = "Attendance";
+                console.log("Retrieving all attendance records without filter");
+
+                const attendanceRecords = await this.databaseConnectivity.getAllAttendanceRecords(
+                    databaseName, 
+                    collectionName
+                );
+
+                console.log("Retrieved all attendance records:", attendanceRecords);
+                
+                return {
+                    "success": attendanceRecords.success, 
+                    "message": attendanceRecords.message, 
+                    "details": attendanceRecords.data
+                };   
+            } else {
+                return {
+                    success: false,
+                    message: "Database connection failed",
+                    error: "Could not establish connection to MongoDB Atlas",
+                    details: []
+                };
+            }
+        } catch (error) {
+            console.error("Get attendance error:", error);
+            return {
+                success: false,
+                message: "Error retrieving attendance records",
+                error: error.message,
+                details: []
+            };
+        } finally {
+            await this.databaseConnectivity.close();
+        }   
+    }
 }
 
 module.exports = AttendanceController;

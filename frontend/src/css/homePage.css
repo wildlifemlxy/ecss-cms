@@ -172,6 +172,13 @@
     margin-left: -8.5rem;
   }
 
+  .attendance-section
+  {
+    grid-row: 1; /* Bottom section */
+    z-index: 0;
+    margin-left: -8.5rem;
+  }
+
   .receipt-section
   {
     grid-row: 3; /* Botom section */

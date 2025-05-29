@@ -276,6 +276,28 @@ class DatabaseConnectivity {
             };
         }
     }
+
+    async getAllAttendanceRecords(databaseName, collectionName) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const records = await table.find().toArray(); // Convert cursor to array
+            
+            return {
+                success: true,
+                message: `Found ${records.length} attendance records`,
+                data: records
+            };
+        } catch (error) {
+            console.error("Error retrieving attendance records:", error);
+            return {
+                success: false,
+                message: "Error retrieving attendance records",
+                error: error.message
+            };
+        }
+    }
     
     async getAttendanceRecords(databaseName, collectionName, filterData = {}) {
         const db = this.client.db(databaseName);
