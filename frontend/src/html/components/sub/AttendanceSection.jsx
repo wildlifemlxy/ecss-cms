@@ -4,8 +4,7 @@ import AttendanceTableView from './AttendanceTableView';
 import AttendancePivotView from './AttendancePivotView';
 import "../../../css/sub/attendance.css";
 import "../../../css/homePage.css";
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
+
 
 
 class AttendanceSection extends Component {
