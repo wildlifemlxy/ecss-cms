@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx'; // Add this import
 import AttendanceTableView from './AttendanceTableView';
 import AttendancePivotView from './AttendancePivotView';
 import "../../../css/sub/attendance.css";
@@ -713,6 +714,128 @@ class AttendanceSection extends Component {
     this.cachedFilteredData = null;
     this.lastFilterParams = null;
     console.log('Filter cache cleared');
+  };
+
+  // Method to export data to Excel
+  saveData = () => {
+    try {
+      const filteredData = this.getFilteredAttendanceData();
+      
+      if (!filteredData || filteredData.length === 0) {
+        alert('No data to export');
+        return;
+      }
+
+      // Create a new workbook
+      const workbook = XLSX.utils.book_new();
+
+      // Sheet 1: Raw Data
+      const dataSheet = XLSX.utils.json_to_sheet(
+        filteredData.map(record => ({
+          Date: record.date || '',
+          Name: record.name || '',
+          NRIC: record.nric || '',
+          'Class ID': record.qrCode || '',
+          Type: record.type || '',
+          Location: this.getLocationFromClassId(record.qrCode),
+          'Created At': record.createdAt || '',
+          'Updated At': record.updatedAt || ''
+        }))
+      );
+
+      // Add the data sheet to workbook
+      XLSX.utils.book_append_sheet(workbook, dataSheet, 'Data');
+
+      // Sheet 2: Pivot Table
+      const pivotData = this.createPivotTableData(filteredData);
+      const pivotSheet = XLSX.utils.aoa_to_sheet(pivotData);
+
+      // Add the pivot sheet to workbook
+      XLSX.utils.book_append_sheet(workbook, pivotSheet, 'Pivot');
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const filename = `attendance-report-${timestamp}.xlsx`;
+
+      // Write and download the file
+      XLSX.writeFile(workbook, filename);
+      
+      console.log('Excel file exported successfully:', filename);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      alert('Failed to export data to Excel. Please try again.');
+    }
+  };
+
+  // Helper method to create pivot table data structure
+  createPivotTableData = (filteredData) => {
+    // Group data by date and class ID
+    const grouped = {};
+    const allDates = new Set();
+    const allClassIds = new Set();
+
+    // First pass: collect all unique dates and class IDs
+    filteredData.forEach(record => {
+      const date = record.date || 'Unknown Date';
+      const classId = record.qrCode || 'Unknown Class';
+      
+      allDates.add(date);
+      allClassIds.add(classId);
+      
+      if (!grouped[classId]) {
+        grouped[classId] = {};
+      }
+      if (!grouped[classId][date]) {
+        grouped[classId][date] = [];
+      }
+      grouped[classId][date].push(record.name || 'Unknown Name');
+    });
+
+    // Sort dates and class IDs for consistent output
+    const sortedDates = Array.from(allDates).sort();
+    const sortedClassIds = Array.from(allClassIds).sort();
+
+    // Create pivot table structure
+    const pivotData = [];
+    
+    // Header row
+    const headerRow = ['Class ID / Date', ...sortedDates, 'Total'];
+    pivotData.push(headerRow);
+
+    // Data rows
+    sortedClassIds.forEach(classId => {
+      const row = [classId];
+      let rowTotal = 0;
+      
+      sortedDates.forEach(date => {
+        const count = grouped[classId] && grouped[classId][date] ? grouped[classId][date].length : 0;
+        row.push(count);
+        rowTotal += count;
+      });
+      
+      row.push(rowTotal);
+      pivotData.push(row);
+    });
+
+    // Total row
+    const totalRow = ['Total'];
+    let grandTotal = 0;
+    
+    sortedDates.forEach(date => {
+      let dateTotal = 0;
+      sortedClassIds.forEach(classId => {
+        if (grouped[classId] && grouped[classId][date]) {
+          dateTotal += grouped[classId][date].length;
+        }
+      });
+      totalRow.push(dateTotal);
+      grandTotal += dateTotal;
+    });
+    
+    totalRow.push(grandTotal);
+    pivotData.push(totalRow);
+
+    return pivotData;
   };
 
   render() {
