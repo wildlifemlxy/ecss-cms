@@ -20,6 +20,7 @@ var massimportRouter = require("./routes/massimport");
 var coursesRegisteredRouter = require("./routes/coursesRegistered");
 var attendanceRouter = require('./routes/attendance');
 const jwksRouter = require('./routes/jwks');
+const excelRouter = require('./routes/excel');
 
 app.use(cors()); // Enable CORS
 app.use(logger('dev')); // HTTP request logger
@@ -56,6 +57,19 @@ app.use("/singpass", singpassRouter);
 app.use("/massimport", massimportRouter);
 app.use("/coursesRegistered", coursesRegisteredRouter);
 app.use("/attendance", attendanceRouter);
+app.use("/", excelRouter);
+
+// Increase payload limits for Azure App Service
+app.use(express.json({ 
+  limit: '10mb',
+  extended: true 
+}));
+
+app.use(express.urlencoded({ 
+  limit: '10mb',
+  extended: true,
+  parameterLimit: 50000
+}));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

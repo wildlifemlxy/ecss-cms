@@ -1,11 +1,17 @@
 import React, { Component } from 'react';
 import axios from 'axios';
-import * as XLSX from 'xlsx'; // Add this import
+import * as XLSX from 'xlsx';
+import { useMsal } from '@azure/msal-react';
+import { InteractionRequiredAuthError } from '@azure/msal-browser';
+import { graphScopes } from '../../../utils/authConfig';
 import AttendanceTableView from './AttendanceTableView';
 import AttendancePivotView from './AttendancePivotView';
 import "../../../css/sub/attendance.css";
 import "../../../css/homePage.css";
 
+const baseURL = window.location.hostname === "localhost" 
+  ? "http://localhost:3001" 
+  : "https://ecss-backend-node.azurewebsites.net";
 
 
 class AttendanceSection extends Component {
@@ -34,6 +40,9 @@ class AttendanceSection extends Component {
     this.isChangingTab = false; // Flag to prevent multiple rapid tab changes
     this.cachedFilteredData = null; // Cache for filtered data
     this.lastFilterParams = null; // Track last filter parameters
+    
+    // Add reference to store pivot export functions
+    this.pivotExportFunctions = null;
   }
 
   // Handle grid ready from child component
@@ -76,8 +85,8 @@ class AttendanceSection extends Component {
         // Extract unique types and activity codes
         const uniqueTypes = ['All Types', ...new Set(attendanceData.map(record => record.type).filter(Boolean))];
         
-        // Get unique activity codes from filtered location data (limiting to a reasonable number to avoid overwhelming the dropdown)
-        // First filter data to only show the 3 specific locations
+        // Get unique activity codes from filtered location data
+        // Filter data to show specific locations
         const allowedLocations = [
           'CT Hub',
           'Tampines 253',
@@ -92,7 +101,7 @@ class AttendanceSection extends Component {
         
         // Get unique activity codes from filtered data only
         const allUniqueActivityCodes = [...new Set(filteredLocationData.map(record => record.qrCode).filter(Boolean))];
-        const uniqueActivityCodes = ['All Codes', ...allUniqueActivityCodes.slice(0, 50)]; // Limit to first 50 unique codes
+        const uniqueActivityCodes = ['All Codes', ...allUniqueActivityCodes.slice(0, 50)];
 
         // Extract unique locations
         const uniqueLocations = this.getUniqueLocations(attendanceData);
@@ -220,7 +229,7 @@ class AttendanceSection extends Component {
     });
   };
 
-  // Render external tabs above the table (horizontal, styled like button-row4/view-btn)
+  // Render external tabs above the table
   renderExternalTabs = () => {
     const { activeTab } = this.state;
     const tabs = this.getPivotTabs();
@@ -397,7 +406,7 @@ class AttendanceSection extends Component {
           </tr>
         );
         
-        // Add all individual name rows (fully expanded)
+        // Add all individual name rows
         names.forEach((name, i) => {
           rows.push(
             <tr key={`${date}-${class_id}-${i}`}>
@@ -488,7 +497,7 @@ class AttendanceSection extends Component {
     });
   };
 
-  // Method to trigger a parent refresh (if provided)
+  // Method to trigger a parent refresh
   refreshChild = async () => {
     try {
       // Keep current view preference on refresh, don't force table view
@@ -565,7 +574,7 @@ class AttendanceSection extends Component {
     }
   }
 
-  // Optional: Method to reset view preferences (useful for debugging or user reset)
+  // Method to reset view preferences
   resetViewPreferences = () => {
     localStorage.removeItem('attendanceViewMode');
     localStorage.removeItem('attendanceActiveTab');
@@ -652,7 +661,7 @@ class AttendanceSection extends Component {
 
     let filteredData = [...attendanceData];
 
-    // FIRST: Filter to only show the 3 specific locations
+    // Filter to show specific locations
     const allowedLocations = [
       'CT Hub',
       'Tampines 253',
@@ -709,182 +718,903 @@ class AttendanceSection extends Component {
     return filteredData;
   };
 
-  // Method to manually clear the filtered data cache (useful for debugging)
+  // Method to manually clear the filtered data cache
   clearFilterCache = () => {
     this.cachedFilteredData = null;
     this.lastFilterParams = null;
     console.log('Filter cache cleared');
   };
 
-  // Method to export data to Excel
-  saveData = () => {
-    try {
-      const filteredData = this.getFilteredAttendanceData();
-      
-      if (!filteredData || filteredData.length === 0) {
-        alert('No data to export');
-        return;
+  // Create summary sheet for Excel export
+  createSummarySheet = (data) => {
+    const specificLocations = ['CT Hub', 'Tampines 253', 'Tampines North Community Centre', 'Pasir Ris West Wellness Centre'];
+    const summaryData = [];
+    
+    // Overall summary
+    summaryData.push({
+      'Metric': 'Total Attendance Records',
+      'Count': data.length,
+      'Percentage': '100%'
+    });
+    
+    // Location summary
+    const locationTotals = {};
+    data.forEach(record => {
+      const location = this.getLocationFromClassId(record.qrCode);
+      locationTotals[location] = (locationTotals[location] || 0) + 1;
+    });
+    
+    summaryData.push({
+      'Metric': '',
+      'Count': '',
+      'Percentage': ''
+    });
+    
+    summaryData.push({
+      'Metric': 'LOCATION BREAKDOWN',
+      'Count': '',
+      'Percentage': ''
+    });
+    
+    Object.entries(locationTotals)
+      .sort(([,a], [,b]) => b - a)
+      .forEach(([location, count]) => {
+        const percentage = ((count / data.length) * 100).toFixed(1);
+        summaryData.push({
+          'Metric': location,
+          'Count': count,
+          'Percentage': `${percentage}%`
+        });
+      });
+    
+    // Date summary (top 10 dates)
+    const dateTotals = {};
+    data.forEach(record => {
+      const date = record.date || 'Unknown Date';
+      dateTotals[date] = (dateTotals[date] || 0) + 1;
+    });
+    
+    summaryData.push({
+      'Metric': '',
+      'Count': '',
+      'Percentage': ''
+    });
+    
+    summaryData.push({
+      'Metric': 'TOP EVENT DATES',
+      'Count': '',
+      'Percentage': ''
+    });
+    
+    Object.entries(dateTotals)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .forEach(([date, count]) => {
+        const percentage = ((count / data.length) * 100).toFixed(1);
+        summaryData.push({
+          'Metric': date,
+          'Count': count,
+          'Percentage': `${percentage}%`
+        });
+      });
+    
+    // Class summary (top 10 classes)
+    const classTotals = {};
+    data.forEach(record => {
+      const classId = record.qrCode || 'Unknown Class';
+      classTotals[classId] = (classTotals[classId] || 0) + 1;
+    });
+    
+    summaryData.push({
+      'Metric': '',
+      'Count': '',
+      'Percentage': ''
+    });
+    
+    summaryData.push({
+      'Metric': 'TOP CLASSES',
+      'Count': '',
+      'Percentage': ''
+    });
+    
+    Object.entries(classTotals)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .forEach(([classId, count]) => {
+        const percentage = ((count / data.length) * 100).toFixed(1);
+        summaryData.push({
+          'Metric': classId,
+          'Count': count,
+          'Percentage': `${percentage}%`
+        });
+      });
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(summaryData);
+    
+    // Auto-width columns
+    const colWidths = [
+      { wch: 40 }, // Metric column
+      { wch: 15 }, // Count column
+      { wch: 15 }  // Percentage column
+    ];
+    worksheet['!cols'] = colWidths;
+
+    // Apply styling
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!worksheet[cellAddress]) continue;
+        
+        const cellValue = worksheet[cellAddress].v;
+        
+        // Header row styling (first row)
+        if (R === range.s.r) {
+          worksheet[cellAddress].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "2E7D32" } },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top: { style: "medium", color: { rgb: "000000" } },
+              bottom: { style: "medium", color: { rgb: "000000" } },
+              left: { style: "thin", color: { rgb: "000000" } },
+              right: { style: "thin", color: { rgb: "000000" } }
+            }
+          };
+        }
+        // Section headers (LOCATION BREAKDOWN, TOP EVENT DATES, etc.)
+        else if (cellValue && typeof cellValue === 'string' && (cellValue.includes('BREAKDOWN') || cellValue.includes('TOP '))) {
+          worksheet[cellAddress].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "1565C0" } },
+            alignment: { horizontal: "left", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "CCCCCC" } },
+              bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+              left: { style: "thin", color: { rgb: "CCCCCC" } },
+              right: { style: "thin", color: { rgb: "CCCCCC" } }
+            }
+          };
+        }
+        // Regular data cells
+        else if (cellValue !== '') {
+          worksheet[cellAddress].s = {
+            alignment: { horizontal: C === 0 ? "left" : "center", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "CCCCCC" } },
+              bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+              left: { style: "thin", color: { rgb: "CCCCCC" } },
+              right: { style: "thin", color: { rgb: "CCCCCC" } }
+            }
+          };
+          
+          // Alternate row background for data rows
+          if ((R - 1) % 2 === 1) {
+            worksheet[cellAddress].s.fill = { fgColor: { rgb: "F5F5F5" } };
+          }
+        }
       }
+    }
 
-      // Create a new workbook
-      const workbook = XLSX.utils.book_new();
+    return worksheet;
+  };
 
-      // Sheet 1: Raw Data
-      const dataSheet = XLSX.utils.json_to_sheet(
-        filteredData.map(record => ({
-          Date: record.date || '',
-          Name: record.name || '',
-          NRIC: record.nric || '',
-          'Class ID': record.qrCode || '',
-          Type: record.type || '',
-          Location: this.getLocationFromClassId(record.qrCode),
-          'Created At': record.createdAt || '',
-          'Updated At': record.updatedAt || ''
-        }))
-      );
+  
 
-      // Add the data sheet to workbook
-      XLSX.utils.book_append_sheet(workbook, dataSheet, 'Data');
+  // Direct download method - simplified
+  exportDirectDownload = async (data) => {
+    const loadingDiv = this.createLoadingIndicator('Generating Excel file...', data.length);
+    document.body.appendChild(loadingDiv);
 
-      // Sheet 2: Pivot Table
-      const pivotData = this.createPivotTableData(filteredData);
-      const pivotSheet = XLSX.utils.aoa_to_sheet(pivotData);
-
-      // Add the pivot sheet to workbook
-      XLSX.utils.book_append_sheet(workbook, pivotSheet, 'Pivot');
-
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-      const filename = `attendance-report-${timestamp}.xlsx`;
-
-      // Write and download the file
-      XLSX.writeFile(workbook, filename);
+    try {
+      console.log('🔄 Starting direct Excel download...');
       
-      console.log('Excel file exported successfully:', filename);
+      const response = await axios.post(`${baseURL}/export-excel-direct`, {
+        data: data
+      }, {
+        responseType: 'blob',
+        timeout: 60000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+      link.download = `attendance_report_${timestamp}.xlsx`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      alert(`✅ Excel file downloaded successfully!\n\n📊 ${data.length.toLocaleString()} records exported`);
+      
     } catch (error) {
-      console.error('Error exporting to Excel:', error);
-      alert('Failed to export data to Excel. Please try again.');
+      console.error('❌ Direct download error:', error);
+      
+      if (error.response?.status === 413) {
+        alert('❌ Dataset too large for direct export.\nTry filtering the data to reduce size.');
+      } else if (error.code === 'ECONNABORTED') {
+        alert('⏱️ Export timeout. The dataset might be too large.');
+      } else {
+        alert(`❌ Direct download failed: ${error.message}`);
+      }
+    } finally {
+      if (document.body.contains(loadingDiv)) {
+        document.body.removeChild(loadingDiv);
+      }
     }
   };
 
-  // Helper method to create pivot table data structure
-  createPivotTableData = (filteredData) => {
-    // Group data by date and class ID
-    const grouped = {};
-    const allDates = new Set();
-    const allClassIds = new Set();
-
-    // First pass: collect all unique dates and class IDs
-    filteredData.forEach(record => {
-      const date = record.date || 'Unknown Date';
-      const classId = record.qrCode || 'Unknown Class';
-      
-      allDates.add(date);
-      allClassIds.add(classId);
-      
-      if (!grouped[classId]) {
-        grouped[classId] = {};
-      }
-      if (!grouped[classId][date]) {
-        grouped[classId][date] = [];
-      }
-      grouped[classId][date].push(record.name || 'Unknown Name');
-    });
-
-    // Sort dates and class IDs for consistent output
-    const sortedDates = Array.from(allDates).sort();
-    const sortedClassIds = Array.from(allClassIds).sort();
-
-    // Create pivot table structure
-    const pivotData = [];
-    
-    // Header row
-    const headerRow = ['Class ID / Date', ...sortedDates, 'Total'];
-    pivotData.push(headerRow);
-
-    // Data rows
-    sortedClassIds.forEach(classId => {
-      const row = [classId];
-      let rowTotal = 0;
-      
-      sortedDates.forEach(date => {
-        const count = grouped[classId] && grouped[classId][date] ? grouped[classId][date].length : 0;
-        row.push(count);
-        rowTotal += count;
-      });
-      
-      row.push(rowTotal);
-      pivotData.push(row);
-    });
-
-    // Total row
-    const totalRow = ['Total'];
-    let grandTotal = 0;
-    
-    sortedDates.forEach(date => {
-      let dateTotal = 0;
-      sortedClassIds.forEach(classId => {
-        if (grouped[classId] && grouped[classId][date]) {
-          dateTotal += grouped[classId][date].length;
-        }
-      });
-      totalRow.push(dateTotal);
-      grandTotal += dateTotal;
-    });
-    
-    totalRow.push(grandTotal);
-    pivotData.push(totalRow);
-
-    return pivotData;
+  // Helper method to create loading indicator
+  createLoadingIndicator = (message, recordCount) => {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.innerHTML = `
+      <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                  background: white; padding: 20px; border: 2px solid #0078d4; border-radius: 8px; 
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; text-align: center;">
+        <div style="margin-bottom: 15px;">
+          <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #0078d4; 
+                      border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        </div>
+        <p style="margin: 10px 0; font-weight: bold; color: #0078d4;">${message}</p>
+        <p style="font-size: 12px; color: #666;">${recordCount.toLocaleString()} records</p>
+        <style>
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          </style>
+        </div>
+      `;
+    return loadingDiv;
   };
 
-  render() {
-    const { attendanceData, loading, error, isPivotView } = this.state;
-    const filteredData = this.getFilteredAttendanceData();
-    const gridKey = `attendance-grid-${this.props.attendanceType}-${this.props.activityCode}-${this.props.searchQuery}-${this.props.selectedLocation}`;
+ // Helper function to create column-based pivot table
+createColumnBasedPivotTable = (data, sheetName) => {
+  const grouped = this.getGroupedPivotData(data);
+  const pivotData = [];
+  
+  // Create rows with structure: Location, Date, Class_ID, Name, Count
+  Object.entries(grouped).forEach(([date, classGroups]) => {
+    Object.entries(classGroups).forEach(([class_id, names]) => {
+      const location = this.getLocationFromClassId(class_id);
+      
+      // Create one row for each name
+      names.forEach(name => {
+        pivotData.push({
+          'Location': location,
+          'Date': date,
+          'Class_ID': class_id,
+          'Name': name,
+          'Count': 1
+        });
+      });
+    });
+  });
 
-    console.log('attendanceData:', this.state.attendanceData);
-    console.log('filteredData:', filteredData);
-    console.log('isPivotView:', isPivotView);
+  // Create worksheet
+  const worksheet = XLSX.utils.json_to_sheet(pivotData);
+  
+  // Auto-width all columns based on content
+  const sheetRange = XLSX.utils.decode_range(worksheet['!ref']);
+  const colWidths = [];
+  
+  for (let C = sheetRange.s.c; C <= sheetRange.e.c; ++C) {
+    let maxWidth = 10; // minimum width
     
-    return (
-      <div className="attendance-container">
-        <div className="attendance-heading">
-          <h1>{this.props.language === 'zh' ? '' : 'View Attendance'}</h1>
-          <div className="button-row4" style={{marginLeft: '0px', width: '20%'}}>
-            <button 
-              className="view-btn" 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.changeView();
-              }}
-              disabled={this.isChangingView}
-            >
-              {isPivotView ? 'Table View' : 'Pivot Table'}
-            </button>
-            <button className="save-btn" onClick={() => this.saveData()}>
-              Export To Excel
-            </button>
-          </div>
-        </div>
-        
-        {/* Use the separated components for clean conditional rendering */}
-        {isPivotView ? (
-          <AttendancePivotView 
-            filteredData={filteredData}
-          />
-        ) : (
-          <AttendanceTableView 
-            ref={this.tableViewRef}
-            filteredData={filteredData}
-            gridKey={gridKey}
-            onGridReady={this.onGridReady}
-          />
-        )}
-      </div>
-    );
+    for (let R = sheetRange.s.r; R <= sheetRange.e.r; ++R) {
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+      if (worksheet[cellAddress] && worksheet[cellAddress].v) {
+        const cellLength = String(worksheet[cellAddress].v).length;
+        maxWidth = Math.max(maxWidth, cellLength + 2);
+      }
+    }
+    
+    colWidths.push({ wch: Math.min(maxWidth, 50) }); // max width 50
   }
+  
+  worksheet['!cols'] = colWidths;
+
+  // Apply styling
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+      if (!worksheet[cellAddress]) continue;
+      
+      const cellValue = worksheet[cellAddress].v;
+      
+      // Header row styling (first row)
+      if (R === range.s.r) {
+        worksheet[cellAddress].s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "4CAF50" } },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "medium", color: { rgb: "000000" } },
+            bottom: { style: "medium", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "000000" } },
+            right: { style: "thin", color: { rgb: "000000" } }
+          }
+        };
+      }
+      // Data cells styling
+      else if (R >= 0 && R < range.e.r) {
+        worksheet[cellAddress].s = {
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "CCCCCC" } },
+            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        };
+        
+        // Alternate row background
+        if ((R - 1) % 2 === 1) {
+          worksheet[cellAddress].s.fill = { fgColor: { rgb: "F5F5F5" } };
+        }
+      }
+    }
+  }
+
+  return worksheet;
+};
+
+// Create raw data sheet for a specific location
+createRawDataSheet = (data) => {
+  const rawData = data.map(record => ({
+    'Name': record.name || '',
+    'NRIC': record.nric || '',
+    'Class ID': record.qrCode || '',
+    'Type': record.type || '',
+    'Location': this.getLocationFromClassId(record.qrCode) || '',
+    'Date': record.date || '',
+    'Time': record.time || ''
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(rawData);
+  
+  // Auto-width columns
+  if (rawData.length > 0) {
+    const headers = Object.keys(rawData[0]);
+    const columnWidths = headers.map(header => {
+      let maxWidth = header.length;
+      rawData.forEach(row => {
+        const cellValue = String(row[header] || '');
+        maxWidth = Math.max(maxWidth, cellValue.length);
+      });
+      return { wch: Math.min(Math.max(maxWidth + 2, 10), 50) };
+    });
+    worksheet['!cols'] = columnWidths;
+  }
+
+  // Apply basic styling
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+      if (!worksheet[cellAddress]) continue;
+      
+      // Header row styling
+      if (R === range.s.r) {
+        worksheet[cellAddress].s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "2E7D32" } },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "medium", color: { rgb: "000000" } },
+            bottom: { style: "medium", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "000000" } },
+            right: { style: "thin", color: { rgb: "000000" } }
+          }
+        };
+      }
+      // Data cells
+      else {
+        worksheet[cellAddress].s = {
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "CCCCCC" } },
+            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        };
+        
+        // Alternate row background
+        if ((R - 1) % 2 === 1) {
+          worksheet[cellAddress].s.fill = { fgColor: { rgb: "F5F5F5" } };
+        }
+      }
+    }
+  }
+
+  return worksheet;
+};
+
+// Create UI-formatted pivot table for Excel (matching renderPivotTable structure)
+createUIFormattedPivotTable = (data) => {
+  const grouped = this.getGroupedPivotData(data);
+  const pivotRows = [];
+  let grandTotal = 0;
+
+  // Create rows matching the UI structure
+  Object.entries(grouped).forEach(([date, classGroups]) => {
+    let dateTotal = 0;
+    
+    // Date header row
+    pivotRows.push({
+      'Date': date,
+      'Class ID': '',
+      'Name': '',
+      'Count': '',
+      '_rowType': 'dateHeader'
+    });
+    
+    Object.entries(classGroups).forEach(([class_id, names]) => {
+      const count = names.length;
+      dateTotal += count;
+      grandTotal += count;
+      
+      // Class header row
+      pivotRows.push({
+        'Date': '',
+        'Class ID': class_id,
+        'Name': '',
+        'Count': '',
+        '_rowType': 'classHeader'
+      });
+      
+      // Individual name rows
+      names.forEach(name => {
+        pivotRows.push({
+          'Date': '',
+          'Class ID': '',
+          'Name': name,
+          'Count': 1,
+          '_rowType': 'nameRow'
+        });
+      });
+      
+      // Subtotal for class
+      pivotRows.push({
+        'Date': '',
+        'Class ID': '',
+        'Name': `Subtotal for ${class_id}:`,
+        'Count': count,
+        '_rowType': 'subtotal'
+      });
+    });
+    
+    // Date total row
+    pivotRows.push({
+      'Date': '',
+      'Class ID': '',
+      'Name': `Total for ${date}:`,
+      'Count': dateTotal,
+      '_rowType': 'dateTotal'
+    });
+  });
+  
+  // Grand total row
+  pivotRows.push({
+    'Date': '',
+    'Class ID': '',
+    'Name': 'Grand Total:',
+    'Count': grandTotal,
+    '_rowType': 'grandTotal'
+  });
+
+  // Remove the _rowType column before creating worksheet
+  const cleanRows = pivotRows.map(row => {
+    const { _rowType, ...cleanRow } = row;
+    return cleanRow;
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(cleanRows);
+  
+  // Auto-width columns
+  const colWidths = [
+    { wch: 15 }, // Date
+    { wch: 25 }, // Class ID
+    { wch: 45 }, // Name
+    { wch: 15 }  // Count
+  ];
+  worksheet['!cols'] = colWidths;
+
+  // Apply styling to match UI format
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+      if (!worksheet[cellAddress]) continue;
+      
+      const rowIndex = R - 1; // Adjust for 0-based index (skip header)
+      const originalRow = pivotRows[rowIndex];
+      
+      // Header row styling
+      if (R === range.s.r) {
+        worksheet[cellAddress].s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "263238" } },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "medium", color: { rgb: "000000" } },
+            bottom: { style: "medium", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "000000" } },
+            right: { style: "thin", color: { rgb: "000000" } }
+          }
+        };
+      }
+      // Style based on row type
+      else if (originalRow) {
+        let fillColor = "FFFFFF";
+        let fontBold = false;
+        let alignment = "center";
+        
+        switch (originalRow._rowType) {
+          case 'dateHeader':
+            fillColor = "F5F5F5";
+            fontBold = true;
+            alignment = "left";
+            break;
+          case 'classHeader':
+            fillColor = "E8E8E8";
+            fontBold = true;
+            alignment = "left";
+            break;
+          case 'nameRow':
+            fillColor = "FFFFFF";
+            alignment = C === 2 ? "left" : "center"; // Name column left-aligned
+            break;
+          case 'subtotal':
+            fillColor = "E3F2FD";
+            fontBold = true;
+            alignment = C === 2 ? "right" : "center"; // Subtotal text right-aligned
+            break;
+          case 'dateTotal':
+            fillColor = "BBDEFB";
+            fontBold = true;
+            alignment = C === 2 ? "right" : "center";
+            break;
+          case 'grandTotal':
+            fillColor = "90CAF9";
+            fontBold = true;
+            alignment = C === 2 ? "right" : "center";
+            break;
+        }
+        
+        worksheet[cellAddress].s = {
+          font: { bold: fontBold },
+          fill: { fgColor: { rgb: fillColor } },
+          alignment: { horizontal: alignment, vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "CCCCCC" } },
+            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        };
+      }
+    }
+  }
+
+  return worksheet;
+};
+
+// Create class-specific sheet with title row as class_id and columns for names and dates
+createClassSpecificSheet = (classId, classData) => {
+  // Sort data by date and name for consistent ordering
+  const sortedData = classData.sort((a, b) => {
+    const dateCompare = (a.date || '').localeCompare(b.date || '');
+    if (dateCompare !== 0) return dateCompare;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
+  // Create the data array starting with title row
+  const sheetData = [];
+  
+  // Title row - class_id spanning across columns
+  sheetData.push({
+    'Name': classId,
+    'Date': '',
+    'Time': '',
+    'Location': ''
+  });
+  
+  // Empty row for spacing
+  sheetData.push({
+    'Name': '',
+    'Date': '',
+    'Time': '',
+    'Location': ''
+  });
+  
+  // Header row
+  sheetData.push({
+    'Name': 'Name',
+    'Date': 'Date', 
+    'Time': 'Time',
+    'Location': 'Location'
+  });
+  
+  // Data rows
+  sortedData.forEach(record => {
+    sheetData.push({
+      'Name': record.name || '',
+      'Date': record.date || '',
+      'Time': record.time || '',
+      'Location': this.getLocationFromClassId(record.qrCode) || ''
+    });
+  });
+
+  // Create worksheet
+  const worksheet = XLSX.utils.json_to_sheet(sheetData);
+  
+  // Set column widths
+  const colWidths = [
+    { wch: 35 }, // Name
+    { wch: 15 }, // Date
+    { wch: 12 }, // Time
+    { wch: 30 }  // Location
+  ];
+  worksheet['!cols'] = colWidths;
+
+  // Apply styling
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+      if (!worksheet[cellAddress]) continue;
+      
+      // Title row styling (first row)
+      if (R === 0) {
+        worksheet[cellAddress].s = {
+          font: { bold: true, size: 16, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "1565C0" } },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "medium", color: { rgb: "000000" } },
+            bottom: { style: "medium", color: { rgb: "000000" } },
+            left: { style: "medium", color: { rgb: "000000" } },
+            right: { style: "medium", color: { rgb: "000000" } }
+          }
+        };
+      }
+      // Header row styling (third row, after title and empty row)
+      else if (R === 2) {
+        worksheet[cellAddress].s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "2E7D32" } },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "medium", color: { rgb: "000000" } },
+            bottom: { style: "medium", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "000000" } },
+            right: { style: "thin", color: { rgb: "000000" } }
+          }
+        };
+      }
+      // Data rows
+      else if (R > 2) {
+        worksheet[cellAddress].s = {
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "CCCCCC" } },
+            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+            left: { style: "thin", color: { rgb: "CCCCCC" } },
+            right: { style: "thin", color: { rgb: "CCCCCC" } }
+          }
+        };
+        
+        // Alternate row background for data rows
+        if ((R - 3) % 2 === 1) {
+          worksheet[cellAddress].s.fill = { fgColor: { rgb: "F5F5F5" } };
+        }
+      }
+    }
+  }
+
+  // Merge cells for title row (span across all columns)
+  if (!worksheet['!merges']) worksheet['!merges'] = [];
+  worksheet['!merges'].push({
+    s: { r: 0, c: 0 }, // Start: row 0, col 0
+    e: { r: 0, c: 3 }  // End: row 0, col 3 (spans 4 columns)
+  });
+
+  return worksheet;
+};
+
+// Updated saveData method for enhanced Excel with class-specific tabs
+saveData = async () => {
+  let totalSheets = 0;
+  let loadingDiv = null;
+  
+  try {
+    const filteredData = this.getFilteredAttendanceData();
+    
+    if (!filteredData || filteredData.length === 0) {
+      alert('⚠️ No data available to export');
+      return;
+    }
+
+    // Get unique class IDs for additional tabs
+    const uniqueClassIds = [...new Set(filteredData.map(record => record.qrCode).filter(Boolean))];
+    totalSheets = 11 + uniqueClassIds.length;
+
+    loadingDiv = this.createLoadingIndicator(`Creating ${totalSheets}-sheet Excel file...`, filteredData.length);
+    loadingDiv.setAttribute('data-loading-indicator', 'true');
+    document.body.appendChild(loadingDiv);
+
+    console.log(`🔄 Starting ${totalSheets}-sheet Excel generation...`);
+    console.log(`📋 Found ${uniqueClassIds.length} unique class IDs:`, uniqueClassIds);
+    
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    
+    // Sheet 1: Summary of all locations
+    const summarySheet = this.createSummarySheet(filteredData);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+
+    // Sheet 10: Raw data for ALL locations combined
+    const allRawSheet = this.createRawDataSheet(filteredData);
+    XLSX.utils.book_append_sheet(workbook, allRawSheet, 'Raw_AllLocations');
+
+    // Define the 4 specific locations
+    const specificLocations = [
+      'CT Hub',
+      'Tampines 253', 
+      'Tampines North Community Centre',
+      'Pasir Ris West Wellness Centre'
+    ];
+    
+    // Sheets 2-5: Raw data for each location
+    specificLocations.forEach((location, index) => {
+      const locationData = filteredData.filter(record => {
+        const recordLocation = this.getLocationFromClassId(record.qrCode);
+        return recordLocation === location;
+      });
+      
+      const rawSheet = this.createRawDataSheet(locationData);
+      // Shorten names to fit 31-character limit
+      const locationMap = {
+        'CT Hub': 'CTHub',
+        'Tampines 253': 'Tampines253', 
+        'Tampines North Community Centre': 'TampinesNorthCC',
+        'Pasir Ris West Wellness Centre': 'PasirRisWestWC'
+      };
+      const shortName = locationMap[location] || location.replace(/[^\w]/g, '').substring(0, 20);
+      const sheetName = `Raw_${shortName}`;
+      XLSX.utils.book_append_sheet(workbook, rawSheet, sheetName);
+    });
+    
+    // Sheets 6-9: Pivot tables for each location (matching UI format)
+    specificLocations.forEach((location, index) => {
+      const locationData = filteredData.filter(record => {
+        const recordLocation = this.getLocationFromClassId(record.qrCode);
+        return recordLocation === location;
+      });
+      
+      const pivotSheet = this.createUIFormattedPivotTable(locationData);
+      // Shorten names to fit 31-character limit
+      const locationMap = {
+        'CT Hub': 'CTHub',
+        'Tampines 253': 'Tampines253', 
+        'Tampines North Community Centre': 'TampinesNorthCC',
+        'Pasir Ris West Wellness Centre': 'PasirRisWestWC'
+      };
+      const shortName = locationMap[location] || location.replace(/[^\w]/g, '').substring(0, 18);
+      const sheetName = `Pivot_${shortName}`;
+      XLSX.utils.book_append_sheet(workbook, pivotSheet, sheetName);
+    });
+
+    // Sheet 11: Pivot table for ALL locations combined
+    const allPivotSheet = this.createUIFormattedPivotTable(filteredData);
+    XLSX.utils.book_append_sheet(workbook, allPivotSheet, 'Pivot_AllLocations');
+
+    // Additional sheets: One for each unique class_id
+    uniqueClassIds.forEach((classId, index) => {
+      const classData = filteredData.filter(record => record.qrCode === classId);
+      const classSheet = this.createClassSpecificSheet(classId, classData);
+      
+      // Clean class ID for sheet name (Excel has 31-character limit)
+      const cleanClassId = String(classId)
+        .replace(/[^\w\s-]/g, '') // Remove special characters except dash
+        .replace(/\s+/g, '_') // Replace spaces with underscores
+        .substring(0, 24); // Limit to 24 chars (leaving 7 for "Class_" prefix)
+      
+      const sheetName = `Class_${cleanClassId}`;
+      XLSX.utils.book_append_sheet(workbook, classSheet, sheetName);
+    });
+
+    // Generate Excel file
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    
+    // Create download
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+    link.download = `attendance_${totalSheets}sheets_${timestamp}.xlsx`;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    alert(`✅ ${totalSheets}-sheet Excel file downloaded successfully!\n\n📊 Total: ${filteredData.length.toLocaleString()} records\n📋 Structure:\n• Sheet 1: Summary\n• Sheets 2-5: Raw data (4 locations)\n• Sheets 6-9: Pivot tables (4 locations)\n• Sheet 10: Raw data (ALL locations)\n• Sheet 11: Pivot table (ALL locations)\n• Sheets 12-${totalSheets}: Individual class tabs (${uniqueClassIds.length} classes)`);
+    
+  } catch (error) {
+    console.error(`❌ ${totalSheets}-sheet Excel generation error:`, error);
+    alert(`❌ Excel generation failed: ${error.message}`);
+  } finally {
+    if (loadingDiv && document.body.contains(loadingDiv)) {
+      document.body.removeChild(loadingDiv);
+    }
+  }
+};
+
+render() {
+  const { attendanceData, loading, error, isPivotView } = this.state;
+  const filteredData = this.getFilteredAttendanceData();
+  const gridKey = `attendance-grid-${this.props.attendanceType}-${this.props.activityCode}-${this.props.searchQuery}-${this.props.selectedLocation}`;
+
+  console.log('attendanceData:', this.state.attendanceData);
+  console.log('filteredData:', filteredData);
+  console.log('isPivotView:', isPivotView);
+  
+  return (
+    <div className="attendance-container">
+      <div className="attendance-heading">
+        <h1>{this.props.language === 'zh' ? '' : 'View Attendance'}</h1>
+        <div className="button-row4" style={{marginLeft: '0px', width: '20%'}}>
+          <button 
+            className="view-btn" 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              this.changeView();
+            }}
+            disabled={this.isChangingView}
+          >
+            {isPivotView ? 'Table View' : 'Pivot Table'}
+          </button>
+          <button className="save-btn" onClick={() => this.saveData()}>
+            Export To Excel
+          </button>
+        </div>
+      </div>
+      
+      {/* Use the separated components for clean conditional rendering */}
+      {isPivotView ? (
+        <AttendancePivotView 
+          filteredData={filteredData} 
+        />
+      ) : (
+        <AttendanceTableView 
+          ref={this.tableViewRef}
+          filteredData={filteredData}
+          gridKey={gridKey}
+          onGridReady={this.onGridReady}
+        />
+      )}
+    </div>
+  );
+}
+
 }
 
 export default AttendanceSection;
