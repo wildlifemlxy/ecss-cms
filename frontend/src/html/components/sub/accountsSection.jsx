@@ -238,7 +238,8 @@ class AccountsSection extends Component {
          accounts: item["Account"],
          courses: item["Courses"],
          regPay: item["Registration And Payment"],
-         qRCode: item["QR Code"]
+         qRCode: item["QR Code"],
+         attendance: item["Attendances"]
        };
      });
    
@@ -807,6 +808,18 @@ class AccountsSection extends Component {
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                         <strong>QR Code Deletion: </strong>
                         {this.state.accessRightsRowData[this.state.expandedRowIndex].qRCode["Delete QR Code"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+                    </div>
+                    <br/>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      <strong>Attendances | </strong>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>Viewing Attendance: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].attendance["View Attendance"] ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>

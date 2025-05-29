@@ -142,7 +142,8 @@ class SideBarContent extends Component {
             "Courses": "fa-solid fa-chalkboard-user",
             "Registration And Payment": 'fa-solid fa-brands fa-wpforms',
             "QR Code": 'fa-solid fa-qrcode',
-            "Reports": 'fa-solid fa-table'
+            "Reports": 'fa-solid fa-table',
+            "Attendances": 'fa-solid fa-calendar-days'
         };
 
         return (

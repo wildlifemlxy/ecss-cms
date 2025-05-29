@@ -891,6 +891,7 @@ class Popup extends Component {
                   mainKey === "regPay" ? "Registration And Payment" : 
                   mainKey === "qRCode" ? "QR Code" : 
                   mainKey === "courses" ? "Courses" : 
+                  mainKey === "attendance" ? "Attendances" : 
                   mainKey;
 
                 return (
