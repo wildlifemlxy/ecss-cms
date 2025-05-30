@@ -81,6 +81,20 @@ router.post('/', async function(req, res, next)
                 }
             });
         }
+         await sendOneSignalNotification({
+                        title: 'New Course Registration',
+                        message: `${participantsParticulars.participant.name} has registered for ${participantsParticulars.course.courseEngName}`,
+                        web_url: "https://salmon-wave-09f02b100.6.azurestaticapps.net/"
+                    });
+                    console.log('Registration notification sent successfully');
+        if (io) {
+                console.log("Emitting registration event to all connected clients");
+                io.emit('registration', {
+                    participant: participantsParticulars.participant,
+                    course: participantsParticulars.course,
+                    registrationDate: participantsParticulars.registrationDate
+                });
+         }
 
         var result2, duplicateCheck;
         
@@ -180,11 +194,10 @@ router.post('/', async function(req, res, next)
         if (duplicateCheck.recommendation === 'FLAG_FOR_REVIEW') {
             console.log("Name similarity flagged for review but allowing registration:", duplicateCheck.message);
         }
-
-        // Proceed with registration (either new participant or after successful profile update)
-        result1 = await registrationController.newParticipant(participantsParticulars);
         
-        if(result1.success) {
+        result2 = await participantsController.addParticipant(participantsParticulars.participant);
+        
+        if(result2.success) {
             // Handle participant addition based on enhanced analysis results
             const shouldAddNewParticipant = !duplicateCheck.duplicateFound || 
                 (duplicateCheck.recommendation === 'UPDATE_EXISTING_PROFILE');
@@ -195,8 +208,7 @@ router.post('/', async function(req, res, next)
                 } else {
                     // Add new participant to participants collection
                     console.log("Adding new participant after enhanced duplicate analysis");
-                    result2 = await participantsController.addParticipant(participantsParticulars.participant);
-                    
+                
                     if (!result2.success) {
                         return res.json({ 
                             result: {
@@ -209,28 +221,7 @@ router.post('/', async function(req, res, next)
                         });
                     }
                 }
-                
-                // Send notification after successful registration
-                try {
-                    await sendOneSignalNotification({
-                        title: 'New Course Registration',
-                        message: `${participantsParticulars.participant.name} has registered for ${participantsParticulars.course.courseEngName}`,
-                        web_url: "https://salmon-wave-09f02b100.6.azurestaticapps.net/"
-                    });
-                    console.log('Registration notification sent successfully');
-                    
-                    if (io) {
-                        console.log("Emitting registration event to all connected clients");
-                        io.emit('registration', {
-                            participant: participantsParticulars.participant,
-                            course: participantsParticulars.course,
-                            registrationDate: participantsParticulars.registrationDate
-                        });
-                    }
-                } catch (error) {
-                    console.error('Failed to send notification:', error);
-                    // Continue with the response even if notification fails
-                }
+            
                 
                 return res.json({ 
                     result: {
