@@ -97,7 +97,6 @@ router.post('/', async function(req, res, next)
          }
 
         var result2, duplicateCheck;
-        
         // Use enhanced approach: traditional exact matching + smart name similarity
         duplicateCheck = await participantsController.checkForHybridDuplicates(participantsParticulars.participant);
 
