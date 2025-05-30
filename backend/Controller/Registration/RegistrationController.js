@@ -8,6 +8,48 @@ class RegistrationController {
         this.databaseConnectivity = new DatabaseConnectivity(); // Create an instance of DatabaseConnectivity
     }
 
+        // Method to get all participants
+    async getAllParticipants() {
+        try {
+            console.log("Retrieving all participants...");
+            var result = await this.databaseConnectivity.initialize();
+            
+            if (result === "Connected to MongoDB Atlas!") {
+                var databaseName = "Courses-Management-System";
+                var collectionName = "Registration Forms";
+                
+                var getAllResult = await this.databaseConnectivity.getAllParticipants(
+                    databaseName,
+                    collectionName
+                );
+                
+                return {
+                    success: getAllResult.success,
+                    participants: getAllResult.participants || [],
+                    count: getAllResult.participants ? getAllResult.participants.length : 0,
+                    message: getAllResult.message || "Participants retrieved successfully"
+                };
+            } else {
+                return {
+                    success: false,
+                    participants: [],
+                    count: 0,
+                    message: "Database connection failed"
+                };
+            }
+        } catch (error) {
+            console.error("Get all participants error:", error);
+            return {
+                success: false,
+                participants: [],
+                count: 0,
+                message: "Error retrieving participants"
+            };
+        } finally {
+            await this.databaseConnectivity.close();
+        }
+    }
+
     // Method to handle user registration
     async newParticipant(data) 
     {

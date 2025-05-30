@@ -277,6 +277,185 @@ class DatabaseConnectivity {
         }
     }
 
+    // Method to find existing participants by NRIC and phone for duplicate checking
+    async findParticipantByNricAndPhone(databaseName, collectionName, nric, phone) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        
+        try {
+            // Check for exact match with both NRIC and phone
+            if (nric && nric.trim() && phone && phone.trim()) {
+                const exactMatch = await table.find({ 
+                    "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') },
+                    "phone": phone.trim()
+                }).toArray();
+                
+                if (exactMatch.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: exactMatch,
+                        duplicateType: "both",
+                        message: `Found exact match with same NRIC and phone number`,
+                        canUpdate: true
+                    };
+                }
+            }
+            
+            // Check for NRIC duplicates only
+            if (nric && nric.trim()) {
+                const nricResults = await table.find({ 
+                    "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') }
+                }).toArray();
+                
+                if (nricResults.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: nricResults,
+                        duplicateType: "nric",
+                        message: `Found ${nricResults.length} existing participant(s) with same NRIC`,
+                        canUpdate: false
+                    };
+                }
+            }
+            
+            // Check for phone duplicates only
+            if (phone && phone.trim()) {
+                const phoneResults = await table.find({ 
+                    "phone": phone.trim()
+                }).toArray();
+                
+                if (phoneResults.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: phoneResults,
+                        duplicateType: "phone",
+                        message: `Found ${phoneResults.length} existing participant(s) with same phone number`,
+                        canUpdate: false
+                    };
+                }
+            }
+            
+            // No duplicates found
+            return {
+                success: true,
+                found: false,
+                participants: [],
+                duplicateType: null,
+                message: "No existing participants found",
+                canUpdate: false
+            };
+            
+        } catch (error) {
+            console.error("Error finding participant by NRIC/phone:", error);
+            return {
+                success: false,
+                found: false,
+                participants: [],
+                duplicateType: null,
+                message: "Error searching for existing participants",
+                canUpdate: false,
+                error: error.message
+            };
+        }
+    }
+
+    // Method to find participants by NRIC only
+    async findParticipantsByNRIC(databaseName, collectionName, nric) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        
+        try {
+            if (!nric || !nric.trim()) {
+                return {
+                    success: true,
+                    found: false,
+                    participants: [],
+                    message: "No NRIC provided"
+                };
+            }
+
+            const nricResults = await table.find({ 
+                "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') }
+            }).toArray();
+            
+            if (nricResults.length > 0) {
+                return {
+                    success: true,
+                    found: true,
+                    participants: nricResults,
+                    message: `Found ${nricResults.length} participant(s) with NRIC: ${nric.trim()}`
+                };
+            } else {
+                return {
+                    success: true,
+                    found: false,
+                    participants: [],
+                    message: `No participants found with NRIC: ${nric.trim()}`
+                };
+            }
+            
+        } catch (error) {
+            console.error("Error finding participants by NRIC:", error);
+            return {
+                success: false,
+                found: false,
+                participants: [],
+                message: "Error searching for participants by NRIC",
+                error: error.message
+            };
+        }
+    }
+
+    // Method to find participants by phone number only
+    async findParticipantsByPhone(databaseName, collectionName, phoneNumber) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        
+        try {
+            if (!phoneNumber || !phoneNumber.trim()) {
+                return {
+                    success: true,
+                    found: false,
+                    participants: [],
+                    message: "No phone number provided"
+                };
+            }
+
+            const phoneResults = await table.find({ 
+                "phone": phoneNumber.trim()
+            }).toArray();
+            
+            if (phoneResults.length > 0) {
+                return {
+                    success: true,
+                    found: true,
+                    participants: phoneResults,
+                    message: `Found ${phoneResults.length} participant(s) with phone: ${phoneNumber.trim()}`
+                };
+            } else {
+                return {
+                    success: true,
+                    found: false,
+                    participants: [],
+                    message: `No participants found with phone: ${phoneNumber.trim()}`
+                };
+            }
+            
+        } catch (error) {
+            console.error("Error finding participants by phone:", error);
+            return {
+                success: false,
+                found: false,
+                participants: [],
+                message: "Error searching for participants by phone",
+                error: error.message
+            };
+        }
+    }
+
     async getAllAttendanceRecords(databaseName, collectionName) {
         const db = this.client.db(databaseName);
         const table = db.collection(collectionName);
@@ -295,6 +474,30 @@ class DatabaseConnectivity {
                 success: false,
                 message: "Error retrieving attendance records",
                 error: error.message
+            };
+        }
+    }
+
+    // Method to get all participants for AI duplicate analysis
+    async getAllParticipants(databaseName, collectionName) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const participants = await table.find().toArray();
+            
+            return {
+                success: true,
+                message: `Retrieved ${participants.length} participants for AI analysis`,
+                participants: participants
+            };
+        } catch (error) {
+            console.error("Error retrieving participants for AI analysis:", error);
+            return {
+                success: false,
+                message: "Error retrieving participants for AI analysis",
+                error: error.message,
+                participants: []
             };
         }
     }
@@ -1475,9 +1678,169 @@ class DatabaseConnectivity {
             console.log("MongoDB connection closed.");
         }
     }
+
+    // Enhanced method to find participants by NRIC, phone, and name with smart matching
+    async findParticipantByNricPhoneAndName(databaseName, collectionName, nric, phone, name) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        
+        try {
+            // First check for exact matches (highest priority)
+            if (nric && nric.trim() && phone && phone.trim()) {
+                const exactMatch = await table.find({ 
+                    "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') },
+                    "phone": phone.trim()
+                }).toArray();
+                
+                if (exactMatch.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: exactMatch,
+                        duplicateType: "both",
+                        message: `Found exact match with same NRIC and phone number`,
+                        canUpdate: true,
+                        recommendation: 'UPDATE_EXISTING_PROFILE'
+                    };
+                }
+            }
+            
+            // Check for NRIC duplicates only
+            if (nric && nric.trim()) {
+                const nricResults = await table.find({ 
+                    "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') }
+                }).toArray();
+                
+                if (nricResults.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: nricResults,
+                        duplicateType: "nric",
+                        message: `Found ${nricResults.length} existing participant(s) with same NRIC`,
+                        canUpdate: false,
+                        recommendation: 'BLOCK_REGISTRATION_NRIC_CONFLICT'
+                    };
+                }
+            }
+            
+            // Check for phone duplicates only
+            if (phone && phone.trim()) {
+                const phoneResults = await table.find({ 
+                    "phone": phone.trim()
+                }).toArray();
+                
+                if (phoneResults.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: phoneResults,
+                        duplicateType: "phone",
+                        message: `Found ${phoneResults.length} existing participant(s) with same phone number`,
+                        canUpdate: false,
+                        recommendation: 'MANUAL_REVIEW_PHONE_CONFLICT'
+                    };
+                }
+            }
+
+            // Smart name similarity checking using regex patterns
+            if (name && name.trim()) {
+                const nameVariations = this.generateNameVariations(name.trim());
+                const nameQuery = {
+                    $or: nameVariations.map(variation => ({
+                        "participantName": { $regex: new RegExp(variation, 'i') }
+                    }))
+                };
+                
+                const nameResults = await table.find(nameQuery).toArray();
+                
+                if (nameResults.length > 0) {
+                    // Filter out exact matches we might have already found
+                    const filteredResults = nameResults.filter(participant => {
+                        const sameNric = nric && participant.nric && 
+                            participant.nric.toLowerCase() === nric.toLowerCase();
+                        const samePhone = phone && participant.phone && 
+                            participant.phone === phone;
+                        return !(sameNric || samePhone);
+                    });
+
+                    if (filteredResults.length > 0) {
+                        return {
+                            success: true,
+                            found: true,
+                            participants: filteredResults,
+                            duplicateType: "name_similarity",
+                            message: `Found ${filteredResults.length} participant(s) with similar names`,
+                            canUpdate: false,
+                            recommendation: 'FLAG_FOR_REVIEW'
+                        };
+                    }
+                }
+            }
+            
+            // No duplicates found
+            return {
+                success: true,
+                found: false,
+                participants: [],
+                duplicateType: null,
+                message: "No existing participants found",
+                canUpdate: false,
+                recommendation: 'PROCEED_WITH_REGISTRATION'
+            };
+            
+        } catch (error) {
+            console.error("Error finding participant by NRIC/phone/name:", error);
+            return {
+                success: false,
+                found: false,
+                participants: [],
+                duplicateType: null,
+                message: "Error searching for existing participants",
+                canUpdate: false,
+                error: error.message
+            };
+        }
+    }
+
+    // Helper method to generate name variations for smart matching
+    generateNameVariations(name) {
+        const variations = [];
+        const cleanName = name.replace(/[^\w\s]/g, '').trim();
+        
+        // Original name
+        variations.push(cleanName);
+        
+        // Remove extra spaces and normalize
+        const normalizedName = cleanName.replace(/\s+/g, ' ');
+        variations.push(normalizedName);
+        
+        // Different word order combinations
+        const words = normalizedName.split(' ');
+        if (words.length > 1) {
+            // Reverse order
+            variations.push(words.reverse().join(' '));
+            
+            // First and last name only
+            if (words.length >= 2) {
+                variations.push(`${words[0]} ${words[words.length - 1]}`);
+                variations.push(`${words[words.length - 1]} ${words[0]}`);
+            }
+            
+            // Each individual word (for partial matches)
+            words.forEach(word => {
+                if (word.length > 2) { // Only meaningful words
+                    variations.push(word);
+                }
+            });
+        }
+        
+        // Escape special regex characters and create patterns
+        return variations.map(variation => 
+            variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        );
+    }
 }
-
-
 
 // Export the instance for use in other modules
 module.exports = DatabaseConnectivity;

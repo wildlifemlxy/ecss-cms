@@ -1,9 +1,9 @@
 var express = require('express');
 var router = express.Router();
 var RegistrationController = require('../Controller/Registration/RegistrationController');
+var ParticipantsController = require('../Controller/Participants/ParticipantsController');
 var receiptGenerator = require('../Others/Pdf/receiptGenerator');
 var invoiceGenerator = require('../Others/Pdf/invoiceGenerator');
-var ParticipantsController = require('../Controller/Participants/ParticipantsController');
 const { sendOneSignalNotification } = require('../services/notificationService');
 
 function getCurrentDateTime() {
@@ -34,9 +34,26 @@ function getCurrentDateTime() {
     };
 }
 
+// Helper function to generate success messages based on AI analysis
+function generateSuccessMessage(duplicateCheck) {
+    if (duplicateCheck.duplicateFound && duplicateCheck.method === 'TRADITIONAL') {
+        return "Registration successful - AI-enhanced participant profile updated with latest registration date";
+    } else if (duplicateCheck.recommendation === 'FLAG_FOR_REVIEW') {
+        return "Registration successful - AI flagged participant for review but allowed registration";
+    } else if (duplicateCheck.method === 'HYBRID') {
+        return "Registration successful - AI analysis completed with no blocking duplicates";
+    } else {
+        return "Registration successful";
+    }
+}
+
 
 router.post('/', async function(req, res, next) 
 {
+    // Initialize controllers once at the top
+    const participantsController = new ParticipantsController();
+    const registrationController = new RegistrationController();
+    
     if(req.body.purpose === "insert")
     {
         const io = req.app.get('io');
@@ -51,38 +68,182 @@ router.post('/', async function(req, res, next)
             receiptNo: "",
             remarks: ""
         };
+        var result1, result2, duplicateCheck;
+        
+        // Use enhanced approach: traditional exact matching + smart name similarity
+        duplicateCheck = await participantsController.checkForHybridDuplicates(participantsParticulars.participant);
 
-        // Register participant
-        const registrationController = new RegistrationController();
-        const result = await registrationController.newParticipant(participantsParticulars);
-        console.log("Registration Result:", result);
+        console.log("Enhanced duplicate check result:", {
+            found: duplicateCheck.duplicateFound,
+            type: duplicateCheck.duplicateType,
+            method: duplicateCheck.method,
+            recommendation: duplicateCheck.recommendation
+        });
 
-        // Add participant to participants collection (avoid duplicate controller variable)
-        const participantsController = new ParticipantsController();
-        const result1 = await participantsController.addParticipant(participantsParticulars.participant); 
-
-        // Send notification after successful registration
-        if (result && result1) {
-            try {
-                await sendOneSignalNotification({
-                    title: 'New Course Registration',
-                    message: `${participantsParticulars.participant.name} has registered for ${participantsParticulars.course.courseEngName}`,
-                    web_url: "https://salmon-wave-09f02b100.6.azurestaticapps.net/"
-                });
-                console.log('Registration notification sent successfully');
-                if (io) {
-                    console.log("Emitting registration event to all connected clients");
-                    io.emit('registration', {
-                        participant: participantsParticulars.participant,
-                        course: participantsParticulars.course,
-                        registrationDate: participantsParticulars.registrationDate
+        if (duplicateCheck.duplicateFound) {
+            console.log("Enhanced duplicate detection found potential match");
+            
+            // Handle exact traditional duplicates (highest priority)
+            if (duplicateCheck.recommendation === 'UPDATE_EXISTING_PROFILE') {
+                console.log("Exact duplicate found - updating existing participant profile");
+                const existingParticipant = duplicateCheck.participants[0];
+                
+                // Merge new data with existing participant data, keeping the existing _id
+                const updatedParticipantData = {
+                    ...existingParticipant,
+                    ...participantsParticulars.participant,
+                    _id: existingParticipant._id,
+                    registrationDate: participantsParticulars.registrationDate || getCurrentDateTime().date,
+                    lastUpdated: getCurrentDateTime().date,
+                    updateHistory: [
+                        ...(existingParticipant.updateHistory || []),
+                        {
+                            date: getCurrentDateTime().date,
+                            time: getCurrentDateTime().time,
+                            action: "Enhanced profile update during registration",
+                            previousData: {
+                                name: existingParticipant.participantName || existingParticipant.name,
+                                email: existingParticipant.email,
+                                address: existingParticipant.address
+                            }
+                        }
+                    ]
+                };
+                
+                const updateResult = await participantsController.update(updatedParticipantData);
+                
+                if (updateResult.success) {
+                    participantsParticulars.participant = updatedParticipantData;
+                    console.log("Enhanced participant profile updated successfully, proceeding with registration");
+                } else {
+                    return res.json({ 
+                        result: {
+                            success: false,
+                            message: "Failed to update existing participant profile",
+                            error: updateResult.message
+                        }
                     });
                 }
-            } catch (error) {
-                console.error('Failed to send notification:', error);
-                // Continue with the response even if notification fails
             }
-            return res.json({ "result": result });
+            // Handle NRIC conflicts (block registration)
+            else if (duplicateCheck.recommendation === 'BLOCK_REGISTRATION_NRIC_CONFLICT') {
+                return res.json({ 
+                    result: {
+                        success: false,
+                        message: `Registration blocked: Participant already exists with this NRIC but different phone number`,
+                        duplicateFound: true,
+                        duplicateType: duplicateCheck.duplicateType,
+                        method: 'ENHANCED_TRADITIONAL',
+                        recommendation: 'Registration blocked due to NRIC conflict',
+                        existingParticipants: duplicateCheck.participants || duplicateCheck.traditionalResult?.participants
+                    }
+                });
+            }
+            // Handle phone conflicts requiring manual review
+            else if (duplicateCheck.recommendation === 'MANUAL_REVIEW_PHONE_CONFLICT') {
+                return res.json({ 
+                    result: {
+                        success: false,
+                        message: `Manual review required: Participant already exists with this phone number but different NRIC`,
+                        duplicateFound: true,
+                        duplicateType: duplicateCheck.duplicateType,
+                        method: 'ENHANCED_TRADITIONAL',
+                        recommendation: 'Manual review required before proceeding',
+                        requiresReview: true,
+                        existingParticipants: duplicateCheck.participants || duplicateCheck.traditionalResult?.participants
+                    }
+                });
+            }
+            // Handle name similarity flags
+            else if (duplicateCheck.recommendation === 'FLAG_FOR_REVIEW') {
+                console.log("Name similarity detected but allowing registration with flag:", duplicateCheck.message);
+                // Continue with registration but log the similarity for review
+            }
+        }
+
+        // Proceed with registration if no blocking duplicates found
+        console.log("Enhanced analysis complete - proceeding with registration");
+        if (duplicateCheck.recommendation === 'FLAG_FOR_REVIEW') {
+            console.log("Name similarity flagged for review but allowing registration:", duplicateCheck.message);
+        }
+
+        // Proceed with registration (either new participant or after successful profile update)
+        result1 = await registrationController.newParticipant(participantsParticulars);
+        
+        if(result1.success) {
+            // Handle participant addition based on enhanced analysis results
+            const shouldAddNewParticipant = !duplicateCheck.duplicateFound || 
+                (duplicateCheck.recommendation === 'UPDATE_EXISTING_PROFILE');
+            
+            if (shouldAddNewParticipant) {
+                if (duplicateCheck.duplicateFound && duplicateCheck.recommendation === 'UPDATE_EXISTING_PROFILE') {
+                    console.log("Registration completed with enhanced updated participant profile");
+                } else {
+                    // Add new participant to participants collection
+                    console.log("Adding new participant after enhanced duplicate analysis");
+                    result2 = await participantsController.addParticipant(participantsParticulars.participant);
+                    
+                    if (!result2.success) {
+                        return res.json({ 
+                            result: {
+                                success: false,
+                                message: "Registration created but failed to add participant to database",
+                                error: result2.message,
+                                enhancedAnalysis: duplicateCheck.recommendation === 'FLAG_FOR_REVIEW' ? 
+                                    "Name similarity flagged for review but registration was allowed" : null
+                            }
+                        });
+                    }
+                }
+                
+                // Send notification after successful registration
+                try {
+                    await sendOneSignalNotification({
+                        title: 'New Course Registration',
+                        message: `${participantsParticulars.participant.name} has registered for ${participantsParticulars.course.courseEngName}`,
+                        web_url: "https://salmon-wave-09f02b100.6.azurestaticapps.net/"
+                    });
+                    console.log('Registration notification sent successfully');
+                    
+                    if (io) {
+                        console.log("Emitting registration event to all connected clients");
+                        io.emit('registration', {
+                            participant: participantsParticulars.participant,
+                            course: participantsParticulars.course,
+                            registrationDate: participantsParticulars.registrationDate
+                        });
+                    }
+                } catch (error) {
+                    console.error('Failed to send notification:', error);
+                    // Continue with the response even if notification fails
+                }
+                
+                return res.json({ 
+                    result: {
+                        success: true,
+                        message: generateSuccessMessage(duplicateCheck),
+                        registrationData: result1,
+                        participantUpdated: duplicateCheck.duplicateFound && duplicateCheck.method === 'TRADITIONAL',
+                        registrationDate: participantsParticulars.registrationDate,
+                        aiAnalysis: {
+                            method: duplicateCheck.method || 'NONE',
+                            confidence: duplicateCheck.confidence || 'N/A',
+                            recommendation: duplicateCheck.recommendation || 'PROCEED_WITH_REGISTRATION',
+                            flaggedForReview: duplicateCheck.recommendation === 'FLAG_FOR_REVIEW',
+                            duplicateDetected: duplicateCheck.duplicateFound || false,
+                            analysis: duplicateCheck.aiAnalysis?.report || null
+                        }
+                    }
+                });
+            }
+        } else {
+            return res.json({ 
+                result: {
+                    success: false,
+                    message: "Failed to create registration",
+                    error: result1.message
+                }
+            });
         }  
     }
     else if(req.body.purpose === "retrieve")
@@ -90,24 +251,21 @@ router.post('/', async function(req, res, next)
         var {role, siteIC} = req.body;
         console.log("Request Body:", role, siteIC);
         console.log("Retrieve From Database")
-        var controller = new RegistrationController();
-        var result = await controller.allParticipants(role, siteIC);
+        var result = await registrationController.allParticipants(role, siteIC);
         //console.log("Retrieve Registration Records:", result);
         return res.json({"result": result}); 
     }
     else if(req.body.purpose === "delete")
     {
         var {id} = req.body;
-        var controller = new RegistrationController();
-        var result = await controller.deleteParticipant(id);
+        var result = await registrationController.deleteParticipant(id);
         //console.log("Retrieve Registration Records:", result);
         return res.json({"result": result}); 
     }
     else if(req.body.purpose === "portOver")
     {
         var {id, selectedLocation} = req.body;
-        var controller = new RegistrationController();
-        var result = await controller.portOverParticipant(id, selectedLocation);
+        var result = await registrationController.portOverParticipant(id, selectedLocation);
         //console.log("Retrieve Registration Records:", result);
         return res.json({"result": result}); 
     }
@@ -115,8 +273,7 @@ router.post('/', async function(req, res, next)
     {
         var id = req.body.id;
         var newStatus = req.body.status;
-        var controller = new RegistrationController();
-        var result = await controller.updateParticipant(id, newStatus);
+        var result = await registrationController.updateParticipant(id, newStatus);
         return res.json({"result": result}); 
     }
     else if(req.body.purpose === "edit")
@@ -125,8 +282,7 @@ router.post('/', async function(req, res, next)
         var field = req.body.field;
         var editedValue = req.body.editedValue;
         console.log("Body:", req.body)
-        var controller = new RegistrationController();
-        var result = await controller.updateParticipantParticulars(id, field, editedValue);
+        var result = await registrationController.updateParticipantParticulars(id, field, editedValue);
         //console.log("Update Particulars:", result) 
         return res.json({"result": result}); 
     }
@@ -139,8 +295,7 @@ router.post('/', async function(req, res, next)
         const currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;
-        var controller = new RegistrationController();
-        const message = await controller.updateOfficialUse(id, name, date, time, status);
+        const message = await registrationController.updateOfficialUse(id, name, date, time, status);
         return res.json({"result": message});
         //console.log("Message:", message);
         // After the PDF is sent, you can send a confirmation response if necessary
@@ -155,8 +310,7 @@ router.post('/', async function(req, res, next)
         const currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;
-        var controller = new RegistrationController();
-        const message = await controller.updateConfirmationUse(id, name, date, time, status);
+        const message = await registrationController.updateConfirmationUse(id, name, date, time, status);
         //console.log(message);
         return res.json({"result": message});
     }
@@ -164,11 +318,8 @@ router.post('/', async function(req, res, next)
     {
         console.log("Receipt body:", req.body); 
                 
-        // Initialize the controller
-        var controller = new RegistrationController();
-
         // Update the receipt number
-        var result = await controller.updateReceiptNumber(req.body.id, req.body.receiptNo);
+        var result = await registrationController.updateReceiptNumber(req.body.id, req.body.receiptNo);
         console.log("updateReceiptNumber:", result); 
 
         // Logging the row data from the request
@@ -182,7 +333,7 @@ router.post('/', async function(req, res, next)
         console.log("Check:", req.body._id, req.body.staff, date, time, req.body.status);
 
         // Update the official use details
-        await controller.updateOfficialUse(req.body._id, req.body.staff, date, time, req.body.status);
+        await registrationController.updateOfficialUse(req.body._id, req.body.staff, date, time, req.body.status);
 
         // Return the result message
         return res.json({ "result": "Success" }); // Replace "Success" with a proper message if needed
@@ -206,15 +357,14 @@ router.post('/', async function(req, res, next)
     else if(req.body.purpose === "addInvoiceNumber")
     {
         console.log("Receipt body:", req.body); 
-        var controller = new RegistrationController();
-        var result = await controller.updateReceiptNumber(req.body.id, req.body.receiptNo);
+        var result = await registrationController.updateReceiptNumber(req.body.id, req.body.receiptNo);
         console.log("updateReceiptNumber:", result); 
         console.log("Array:", req.body.rowData);
         const currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;
         console.log("Check:", req.body._id,  req.body.staff, date, time, req.body.status);
-        await controller.updateOfficialUse(req.body._id, req.body.staff, date, time, req.body.status);
+        await registrationController.updateOfficialUse(req.body._id, req.body.staff, date, time, req.body.status);
         return res.json({ "result": "Success" }); 
     }
     else if(req.body.purpose === "invoice")
@@ -232,11 +382,10 @@ router.post('/', async function(req, res, next)
     else if(req.body.purpose === "updatePaymentMethod")
     {
         console.log("updatePaymentMethod:", req.body);
-        var controller = new RegistrationController();
         const currentDateTime = getCurrentDateTime();
         var date = currentDateTime.date;
         var time = currentDateTime.time;
-        var result = await controller.updatePaymentMethod(req.body.id, req.body.newUpdatePayment, req.body.staff, date, time);
+        var result = await registrationController.updatePaymentMethod(req.body.id, req.body.newUpdatePayment, req.body.staff, date, time);
         //console.log("Update Remarks:". result);
         return res.json({"result": result}); 
     }
@@ -244,30 +393,26 @@ router.post('/', async function(req, res, next)
     {
         //console.log("Add Refunded Date:", req.body);
         const currentDateTime = getCurrentDateTime();
-        var controller = new RegistrationController();
         var date = currentDateTime.date;
-        var result = await controller.addRefundedDate(req.body.id, date);
+        var result = await registrationController.addRefundedDate(req.body.id, date);
         return res.json({"result": result});
     }
     else if(req.body.purpose === "removedRefundedDate")
     {
         //console.log("Add Refunded Date:", req.body);
         const currentDateTime = getCurrentDateTime();
-        var controller = new RegistrationController();
-        var result = await controller.addRefundedDate(req.body.id, "");
+        var result = await registrationController.addRefundedDate(req.body.id, "");
         return res.json({"result": result});
     }
     else if(req.body.purpose === "sendDetails")
     {
-        var controller = new RegistrationController();
-        var result = await controller.sendDetails(req.body.id);
+        var result = await registrationController.sendDetails(req.body.id);
         return res.json({"result": result});
     }
     else if(req.body.purpose === "addCancelRemarks")
     {
         //console.log(req.body);
-        var controller = new RegistrationController();
-        var result = await controller.addCancellationRemarks(req.body.id, req.body.editedValue);
+        var result = await registrationController.addCancellationRemarks(req.body.id, req.body.editedValue);
         return res.json({"result": result});
     }
 });
