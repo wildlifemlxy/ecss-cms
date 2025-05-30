@@ -52,7 +52,11 @@ class SearchSection extends Component {
     showAttendanceTypeDropdown: false,
     showAttendanceLocationDropdown: false,
     showActivityCodeDropdown: false,
-    filteredActivityCodes: []  // Add this for filtered activity codes
+    filteredActivityCodes: [],  // Add this for filtered activity codes
+    membershipType: '', // Add for membership type
+    membershipTypes: [], // Default membership types
+    filteredMembershipTypes: [], // Default filtered membership types
+    showMembershipTypeDropdown: false, // Add for membership type dropdown
   };
   this.locationDropdownRef = React.createRef();
   this.languageDropdownRef = React.createRef();
@@ -63,6 +67,8 @@ class SearchSection extends Component {
   this.attendanceTypeDropdownRef = React.createRef(); // Add this ref for the attendance type dropdown
   this.attendanceLocationDropdownRef = React.createRef(); // Add this ref for the attendance location dropdown
   this.activityCodeDropdownRef = React.createRef(); // Add this ref for the activity code dropdown
+  this.membershipTypeDropdownRef = React.createRef(); // Add this ref for the membership type dropdown
+  this.searchInputRef = React.createRef(); // Make sure the search field has a ref
 }
 
 
@@ -154,6 +160,15 @@ handleChange = (event) => {
         this.filterActivityCodesByLocation(value);
       });
     }
+    else if (name === 'membershipType') {
+      console.log("Membership Type123:", value);
+      this.setState({
+        filteredMembershipTypes: this.state.membershipTypes.filter(type =>
+          type.toLowerCase().includes(value.toLowerCase())
+        ),
+        membershipType: value
+      });
+    }
   });
 };
 
@@ -198,6 +213,10 @@ handleDropdownToggle = (dropdown) =>
     else if(dropdown === 'showActivityCodeDropdown')
     {
       this.setState({ showActivityCodeDropdown: true });
+    }
+    else if(dropdown === 'showMembershipTypeDropdown')
+    {
+      this.setState({ showMembershipTypeDropdown: true });
     }
 }
 
@@ -314,6 +333,21 @@ handleOptionSelect = (value, dropdown) => {
         showActivityCodeDropdown: false
       };
     }
+    else if (dropdown === 'showMembershipTypeDropdown') {
+      updatedState = {
+        membershipType: value,
+        showMembershipTypeDropdown: false,
+        showLocationDropdown: false,
+        showLanguageDropdown: false,
+        showTypeDropdown: false,
+        showCourseDropdown: false,
+        showAccountTypeDropdown: false,
+        showQuarterDropdown: false,
+        showAttendanceTypeDropdown: false,
+        showAttendanceLocationDropdown: false,
+        showActivityCodeDropdown: false
+      };
+    }
 
 
     this.setState(updatedState, () => {
@@ -343,7 +377,9 @@ handleClickOutside = (event) => {
     this.attendanceLocationDropdownRef.current &&
     !this.attendanceLocationDropdownRef.current.contains(event.target) &&
     this.activityCodeDropdownRef.current &&
-    !this.activityCodeDropdownRef.current.contains(event.target)
+    !this.activityCodeDropdownRef.current.contains(event.target) &&
+    this.membershipTypeDropdownRef.current &&
+    !this.membershipTypeDropdownRef.current.contains(event.target)
   ) {
     this.setState({
       showLocationDropdown: false,
@@ -354,7 +390,8 @@ handleClickOutside = (event) => {
       showQuarterDropdown: false,
       showAttendanceTypeDropdown: false,
       showAttendanceLocationDropdown: false,
-      showActivityCodeDropdown: false
+      showActivityCodeDropdown: false,
+      showMembershipTypeDropdown: false
     });
   }
 
@@ -378,6 +415,13 @@ handleClickOutside = (event) => {
   ) {
     this.setState({ showActivityCodeDropdown: false });
   }
+  if (
+    this.membershipTypeDropdownRef &&
+    this.membershipTypeDropdownRef.current &&
+    !this.membershipTypeDropdownRef.current.contains(event.target)
+  ) {
+    this.setState({ showMembershipTypeDropdown: false });
+  }
 };
 
   componentDidMount() {
@@ -388,6 +432,20 @@ handleClickOutside = (event) => {
     this.setState({
       filteredActivityCodes: this.props.activityCodes || []
     });
+    
+    // Initialize membership types if available
+    if (this.props.membershipTypes) {
+      console.log('SearchSection componentDidMount: Initializing membership types:', this.props.membershipTypes);
+      const membershipTypes = this.props.membershipTypes || ['All Types'];
+      if (!membershipTypes.includes('All Types')) {
+        membershipTypes.unshift('All Types');
+      }
+      
+      this.setState({
+        membershipTypes: membershipTypes,
+        filteredMembershipTypes: membershipTypes
+      });
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -501,6 +559,43 @@ handleClickOutside = (event) => {
         }
       });
     }
+    
+    // Check if membership types from props have changed
+    if (this.props.membershipTypes !== prevProps.membershipTypes) {
+      console.log('SearchSection: Membership types props changed:', {
+        prevTypes: prevProps.membershipTypes,
+        newTypes: this.props.membershipTypes
+      });
+      
+      const membershipTypes = this.props.membershipTypes || ['All Types'];
+      if (!membershipTypes.includes('All Types')) {
+        membershipTypes.unshift('All Types');
+      }
+      
+      console.log('SearchSection: Setting membership types to state:', membershipTypes);
+      
+      this.setState({
+        membershipTypes: membershipTypes,
+        filteredMembershipTypes: membershipTypes
+      });
+    }
+
+    // Reset search input field when searchQuery changes to empty string
+    if (prevProps.searchQuery !== this.props.searchQuery && this.props.searchQuery === '') {
+      // Clear the input field
+      if (this.searchInputRef && this.searchInputRef.current) {
+        this.searchInputRef.current.value = '';
+      }
+    }
+    
+    // Reset dropdown when membershipType is reset to default
+    if (prevProps.membershipType !== this.props.membershipType && 
+        this.props.membershipType === 'All Types' &&
+        this.state.selectedMembershipType !== 'All Types') {
+      this.setState({
+        selectedMembershipType: 'All Types'
+      });
+    }
   }
   
   // Method to handle updating locations and languages
@@ -582,10 +677,11 @@ componentWillUnmount() {
   
 render() 
 {
-  const { showNameDropdown, typename, filteredName, staffName, searchQuery, centreLocation, language, quarter, courseQuarters, filteredQuarters, filteredLocations, filteredLanguages, filteredTypes, showLocationDropdown, showLanguageDropdown, showTypeDropdown, courseType, showAccountTypeDropdown, role, roles, filteredRoles, coursesName, showCourseDropdown, filteredCoursesName, courseName, showQuarterDropdown } = this.state;
+  const { membershipType, showNameDropdown, typename, filteredName, staffName, searchQuery, centreLocation, language, quarter, courseQuarters, filteredQuarters, filteredLocations, filteredLanguages, filteredTypes, showLocationDropdown, showLanguageDropdown, showTypeDropdown, courseType, showAccountTypeDropdown, role, roles, filteredRoles, coursesName, showCourseDropdown, filteredCoursesName, courseName, showQuarterDropdown } = this.state;
   const { section } = this.props; // Destructure section from props
 
   console.log("Course Name List:", this.state);
+  console.log("Section:", section);
   return (
   <div className="filter-section"> {/* Same class name for both sections */}
     <div className="form-group-row" >
@@ -956,6 +1052,64 @@ render()
                 value={searchQuery}
                 onChange={this.handleChange}
                 placeholder={this.props.language === 'zh' ? '搜索' : 'Search'}
+                autoComplete="off"
+              />
+              <i className="fas fa-search search-icon"></i>
+            </div>
+          </div>
+        </>
+      )}
+
+      {section === "membership" && (
+        <>
+          {console.log("Membership Type:", this.state.membershipType)}
+          {console.log("Membership Types in state:", this.state.membershipTypes)}
+          {console.log("Filtered Membership Types:", this.state.filteredMembershipTypes)}
+          {console.log("Show Dropdown:", this.state.showMembershipTypeDropdown)}
+          <div className="form-group">
+            <label htmlFor="membershipType">{this.props.language === 'zh' ? '会员类型' : 'Membership Type'}</label>
+            <div
+              className={`dropdown-container ${this.state.showMembershipTypeDropdown ? 'open' : ''}`}
+              ref={this.membershipTypeDropdownRef}
+            >
+              <input
+                type="text"
+                id="membershipType"
+                name="membershipType"
+                value={membershipType}
+                onChange={this.handleChange}
+                onClick={() => this.handleDropdownToggle('showMembershipTypeDropdown')}
+                placeholder={this.props.language === 'zh' ? '按会员类型筛选' : 'Filter by membership type'}
+                autoComplete="off"
+                ref={this.searchInputRef} // Add ref to the search input
+              />
+              {this.state.showMembershipTypeDropdown && (
+                <ul className="dropdown-list">
+                  {console.log("Rendering dropdown with types:", this.state.filteredMembershipTypes)}
+                  {this.state.filteredMembershipTypes.map((type, index) => (
+                    <li
+                      key={index}
+                      onMouseDown={() => this.handleOptionSelect(type, 'showMembershipTypeDropdown')}
+                    >
+                      {type}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <i className="fas fa-angle-down dropdown-icon"></i>
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="searchQuery">{this.props.language === 'zh' ? '搜寻' : 'Search'}</label>
+            <div className="search-container">
+              <input
+                type="text"
+                id="searchQuery"
+                name="searchQuery"
+                value={searchQuery}
+                onChange={this.handleChange}
+                placeholder={this.props.language === 'zh' ? '搜索会员' : 'Search membership'}
                 autoComplete="off"
               />
               <i className="fas fa-search search-icon"></i>

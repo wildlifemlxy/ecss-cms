@@ -176,7 +176,7 @@
     max-width: 100%;
   }
 
-  .attendance-section {
+  .attendance-section, .membership-section {
     width: 100%;
     flex-direction: column;
   }

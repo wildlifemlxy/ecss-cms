@@ -129,6 +129,11 @@ class SideBarContent extends Component {
         console.log("View Attendance clicked");
         this.props.toggleAttendanceComponent(subKey);
        }
+       else if(subKey === "View Membership")
+       {
+        console.log("View Membership clicked");
+        this.props.toggleMembershipComponent(subKey);
+       }
     }
 
     closeSubMenu = () =>
@@ -147,6 +152,7 @@ class SideBarContent extends Component {
             "Account": 'fa-solid fa-users',
             "Courses": "fa-solid fa-chalkboard-user",
             "Registration And Payment": 'fa-solid fa-brands fa-wpforms',
+            "Membership": 'fa-solid fas fa-address-card',
             "QR Code": 'fa-solid fa-qrcode',
             "Reports": 'fa-solid fa-table',
             "Attendances": 'fa-solid fa-calendar-days'

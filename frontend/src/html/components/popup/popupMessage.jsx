@@ -892,6 +892,7 @@ class Popup extends Component {
                   mainKey === "qRCode" ? "QR Code" : 
                   mainKey === "courses" ? "Courses" : 
                   mainKey === "attendance" ? "Attendances" : 
+                  mainKey === "membership" ? "Membership" : 
                   mainKey;
 
                 return (

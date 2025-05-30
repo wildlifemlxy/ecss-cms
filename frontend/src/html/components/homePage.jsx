@@ -7,12 +7,12 @@ import React, { Component } from 'react';
   import Popup from './popup/popupMessage';
   import Search from './sub/searchSection';
   import ViewToggle from './sub/viewToggleSection';
-  import Pagination from './sub/paginationSection';
   import CreateAccountsSection from './sub/createAccountsSection';
   import ReceiptSection from './sub/receiptSection';
   import SideBarContent from './sub/sideBarContent';
   import DashboardSection from './sub/dashboardSection';
   import AttendanceSection from './sub/AttendanceSection';
+  import MembershipSection from './sub/MembershipSection';
   import ReportSection from './sub/reportSection';
   import { withAuth } from '../../AuthContext';
   import axios from 'axios';  
@@ -55,6 +55,7 @@ import React, { Component } from 'react';
         nofAccounts: 0,
         viewMode: 'full',
         isRegistrationPaymentVisible: false,
+        isMembershipVisible: false,
         section: '',
         accountType: null,
         roles: [],
@@ -77,7 +78,12 @@ import React, { Component } from 'react';
         attendanceSearchQuery: '',
         attendanceTypes: [],
         activityCodes: [],
-        attendanceLocations: []
+        attendanceLocations: [],
+        membershipTypes: ['All Types'],
+        membershipType: 'All Types',
+        membershipSearchQuery: '',
+        searchQuery: '',
+        resetMembershipTable: false
       };
   
       // Always reset attendance filter/search state to defaults on page load
@@ -94,52 +100,273 @@ import React, { Component } from 'react';
       this.handleSelectFromChild = this.handleSelectFromChild.bind(this);
       this.handleRegPaymentSelectFromChild = this.handleRegPaymentSelectFromChild.bind(this);
       this.handleRegPaymentSearchFromChild = this.handleRegPaymentSearchFromChild.bind(this);
+      this.handleMembershipSelectFromChild = this.handleMembershipSelectFromChild.bind(this);
+      this.handleMembershipSearchFromChild = this.handleMembershipSearchFromChild.bind(this);
       this.handlePageChange = this.handlePageChange.bind(this);
       this.toggleViewMode = this.toggleViewMode.bind(this); 
       this.toggleRegistrationPaymentComponent = this.toggleRegistrationPaymentComponent.bind(this);
       this.createAccountPopupMessage = this.createAccountPopupMessage.bind(this);
       this.inactivityTimeout = null;
       this.editAccountPopupMessage = this.editAccountPopupMessage.bind(this);
-      //this.getTotalNumberofDetails = this.getTotalNumberofDetails.bind(this);
     }
 
+    handleRefreshMembership = () => {
+  // First reset the state values
+  this.setState({
+    membershipType: 'All Types',
+    membershipSearchQuery: '',
+    searchQuery: '',
+    resetMembershipTable: true,
+    // Add this to trigger the general search reset mechanism too
+    resetSearch: true
+  }, () => {
+    // After state is updated, reset the search component's UI state
+    this.setState({
+      resetSearch: false
+    });
+  });
+};
+
     // Function to handle data passed from the child
-    handleDataFromChild = async (filter1, filter2, filter3, filter4) =>
-    {
+    handleDataFromChild = async (filter1, filter2, filter3, filter4) => {
       var {section} = this.state;
-      console.log("Current Sections:", section);  
+      console.log("Current Sections123:", section);
+      console.log("Received filters:", { filter1, filter2, filter3, filter4 });
+      
+      if(section === "courses") {
+        const filterLanguages = new Set(filter1);
+        const filterLocations = new Set(filter2);
+    
+        this.setState({
+          locations: Array.from(filterLanguages),
+          languages: Array.from(filterLocations)
+        });
+      }
+      else if(section === "membership") {
+        // Handle membership data - filter1 should be the membership types array
+        console.log("Processing membership types:", filter1);
+        console.log("Type of filter1:", typeof filter1, Array.isArray(filter1));
+        
+        if (Array.isArray(filter1)) {
+          const filterMembersType = new Set(filter1);
+          console.log("Unique membership types:", Array.from(filterMembersType));
+          this.setState({
+            types: Array.from(filterMembersType),
+            membershipTypes: ['All Types', ...Array.from(filterMembersType)] // Add 'All Types' as default
+          }, () => {
+            console.log("HomePage state updated with membership types:", this.state.membershipTypes);
+          });
+        } else {
+          console.warn("Expected array for membership types, received:", typeof filter1, filter1);
+        }
+      }
+      else if(section === "registration") {
+        const filterLocations = new Set(filter1);
+        const filterType = new Set(filter2);
+        const filterCourse = new Set(filter3);
+        const filterQuarters = new Set(filter4);
+        console.log("Filter Course:", filterCourse);
+        this.setState({
+          locations: Array.from(filterLocations),
+          types: Array.from(filterType),
+          names: Array.from(filterCourse),
+          quarters: Array.from(filterQuarters)
+        });
+      }
+      else if(section === "accounts") {
+        var filterRoles = new Set(filter1);
+        this.setState({
+          roles: Array.from(filterRoles)
+        });
+      }
+    }
+    
+    handleSelectFromChild = async (updateState, dropdown) => {
+      console.log("Selected Data:", updateState, dropdown);
+      var {section} = this.state;
       if(section === "courses")
       {
-      const filterLanguages = new Set(filter1);
-      const filterLocations = new Set(filter2);
+        if (dropdown === "showLanguageDropdown") {
+          this.setState({
+            selectedLanguage: updateState.language
+          });
+        }
+        else if (dropdown === "showLocationDropdown") {
+          this.setState({
+            selectedLocation: updateState.centreLocation
+          });
+        }
+        else if(dropdown === "showTypeDropdown")
+        {
+          this.setState({
+            selectedLocation: updateState.centreLocation
+          });
+        }
+      }
+      else if(section === "accounts")
+      {
+        if(dropdown === "showAccountTypeDropdown")
+        {
+          this.setState({
+            selectedAccountType: updateState.role
+          });
+        }
+      }
+    }
 
-      this.setState({
-        locations: Array.from(filterLanguages),
-        languages: Array.from(filterLocations)
-      });
-     }
-     else if(section === "registration")
-     {
-      const filterLocations = new Set(filter1);
-      const filterType = new Set(filter2);
-      const filterCourse = new Set(filter3);
-      const filterQuarters = new Set(filter4);
-      console.log("Filter Course:", filterCourse);
-      this.setState({
-        locations: Array.from(filterLocations),
-        types: Array.from(filterType),
-        names: Array.from(filterCourse),
-        quarters: Array.from(filterQuarters)
-      });
-     }
-     else if(section === "accounts")
-     {
-      var filterRoles = new Set(filter1);
-      this.setState({
-        roles: Array.from(filterRoles)
-      });
-     }
-  }
+    // Handle selection for registration payments
+    handleRegPaymentSelectFromChild = async (updateState, dropdown) => 
+    {
+      console.log("Selected Data (Registration Payment):", updateState, dropdown);
+      if(updateState.centreLocation)
+      {
+        this.setState({
+          selectedLocation: updateState.centreLocation
+        });
+      }
+      else if(updateState.courseType)
+      {
+        this.setState({
+          selectedCourseType: updateState.courseType
+        });
+      }
+      else if(updateState.courseName)
+      {
+        console.log("Hello");
+        this.setState({
+          selectedCourseName: updateState.courseName
+        });
+      }
+      else if(updateState.quarter)
+      {
+        console.log("Hello");
+        this.setState({
+          selectedQuarter: updateState.quarter
+        });
+      }
+    }
+
+    toggleReportComponent = async(reportType) =>
+    {
+      try 
+      {
+          this.setState({ resetSearch: true, }, () => {
+            this.setState({ resetSearch: false });
+          });
+
+         
+          this.setState({
+            courseType: null,
+            sidebarVisible: false,
+            isRegistrationPaymentVisible: false,
+            section: "",
+            accountType: null,
+            createAccount: false,
+            reportVisibility: true, 
+            reportType: reportType,
+            attendanceVisibility: false,
+            isMembershipVisible: false
+          });
+      } 
+      catch (error) 
+      {
+        console.log(error);
+      }
+    }
+
+    toggleAttendanceComponent = async(attendanceType) =>
+    {
+      try 
+      {
+          this.setState({ resetSearch: true, }, () => {
+            this.setState({ resetSearch: false });
+          });
+
+      
+          // First show loading popup
+          this.setState({
+            isPopupOpen: true,
+            popupMessage: "Loading Attendance",
+            popupType: "loading",
+          }, () => {
+            // After loading popup is shown, update the visibility states
+            this.setState({
+              courseType: null,
+              sidebarVisible: false,
+              isRegistrationPaymentVisible: false,
+              isReceiptVisible: false, // Added this - was missing
+              section: "attendance", // Set section name
+              accountType: null,
+              createAccount: false,
+              reportVisibility: false,
+              dashboard: false, // Added this - was missing
+              attendanceVisibility: true,
+              attendanceType: attendanceType,  // Added parameter to store attendance type,
+              isMembershipVisible: false
+            });
+          });
+      } 
+      catch (error) 
+      {
+        console.log(error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading attendance view",
+          popupType: "error-message"
+        });
+      }
+    }
+
+    toggleMembershipComponent= async() =>
+    {
+      try 
+      {
+          // Reset search and filters
+          this.setState({ resetSearch: true, }, () => {
+            this.setState({ resetSearch: false });
+          });
+
+      
+          // First show loading popup
+          this.setState({
+            isPopupOpen: true,
+            popupMessage: "Loading Membership",
+            popupType: "loading",
+          }, () => {
+            // After loading popup is shown, update the visibility states and reset membership filters
+            this.setState({
+              courseType: null,
+              sidebarVisible: false,
+              isRegistrationPaymentVisible: false,
+              isReceiptVisible: false,
+              section: "membership", // Set section name
+              accountType: null,
+              createAccount: false,
+              reportVisibility: false,
+              dashboard: false,
+              attendanceVisibility: false,
+              attendanceType: "",
+              isMembershipVisible: true,
+              // Reset membership filtering state
+              membershipType: 'All Types',
+              membershipSearchQuery: '',
+              searchQuery: '',
+              membershipTypes: ['All Types'] // Reset to default, will be populated when data loads
+            });
+          });
+      } 
+      catch (error) 
+      {
+        console.log(error);
+        // Show error message
+        this.setState({
+          isPopupOpen: true,
+          popupMessage: "Error loading membership view",
+          popupType: "error-message"
+        });
+      }
+    }
 
     handleSelectFromChild = async (updateState, dropdown) => {
       console.log("Selected Data:", updateState, dropdown);
@@ -224,55 +451,13 @@ import React, { Component } from 'react';
             createAccount: false,
             reportVisibility: true, 
             reportType: reportType,
-            attendanceVisibility: false
+            attendanceVisibility: false,
+            isMembershipVisible: false
           });
       } 
       catch (error) 
       {
         console.log(error);
-      }
-    }
-
-    toggleAttendanceComponent = async(attendanceType) =>
-    {
-      try 
-      {
-          this.setState({ resetSearch: true, }, () => {
-            this.setState({ resetSearch: false });
-          });
-
-      
-          // First show loading popup
-          this.setState({
-            isPopupOpen: true,
-            popupMessage: "Loading Attendance",
-            popupType: "loading",
-          }, () => {
-            // After loading popup is shown, update the visibility states
-            this.setState({
-              courseType: null,
-              sidebarVisible: false,
-              isRegistrationPaymentVisible: false,
-              isReceiptVisible: false, // Added this - was missing
-              section: "attendance", // Set section name
-              accountType: null,
-              createAccount: false,
-              reportVisibility: false,
-              dashboard: false, // Added this - was missing
-              attendanceVisibility: true,
-              attendanceType: attendanceType // Added parameter to store attendance type
-            });
-          });
-      } 
-      catch (error) 
-      {
-        console.log(error);
-        // Show error message
-        this.setState({
-          isPopupOpen: true,
-          popupMessage: "Error loading attendance view",
-          popupType: "error-message"
-        });
       }
     }
 
@@ -344,7 +529,8 @@ import React, { Component } from 'react';
           accountType: "",
           createAccount: false,
           isReceiptVisible: false,
-          reportVisibility: false
+          reportVisibility: false,
+          isMembershipVisible: false
         });
       } catch (error) {
         console.log(error);
@@ -361,6 +547,28 @@ import React, { Component } from 'react';
       window.addEventListener('click', this.resetInactivity);
       window.addEventListener('scroll', this.resetInactivity);
       window.addEventListener('beforeunload', this.handleBeforeUnload);
+    }
+
+    // Add componentDidUpdate for state persistence
+    componentDidUpdate(prevProps, prevState) {
+      // Save state to localStorage whenever it changes (excluding certain volatile properties)
+      const statesToSave = {
+        ...this.state,
+        // Exclude volatile/temporary states that shouldn't be persisted
+        isPopupOpen: false,
+        popupMessage: '',
+        popupType: '',
+        loading: false
+      };
+      localStorage.setItem('myComponentState', JSON.stringify(statesToSave));
+
+      // Trigger child refresh after state is reset
+      if (this.state.resetMembershipTable && !prevState.resetMembershipTable) {
+        if (this.membershipSectionRef.current) {
+          this.membershipSectionRef.current.refreshMembershipData();
+        }
+        this.setState({ resetMembershipTable: false });
+      }
     }
 
     handleBeforeUnload = (event) => {
@@ -405,6 +613,7 @@ import React, { Component } from 'react';
             createAccount: false,
             reportVisibility: false,
             attendanceVisibility: false,
+            isMembershipVisible: false,
             
             // Set dashboard to true
             dashboard: true,
@@ -447,7 +656,8 @@ import React, { Component } from 'react';
             accountType: accountType,
             createAccount: false,
             reportVisibility: false,
-            attendanceVisibility: false
+            attendanceVisibility: false,
+            isMembershipVisible: false
           });
         }
         else
@@ -463,7 +673,8 @@ import React, { Component } from 'react';
             accountType: null,
             createAccount: true,
             reportVisibility: false,
-             attendanceVisibility: false
+             attendanceVisibility: false,
+              isMembershipVisible: false
           });
         }
       } 
@@ -726,7 +937,8 @@ import React, { Component } from 'react';
             isReceiptVisible: false,
             item: item,
             reportVisibility: false,
-            attendanceVisibility: false
+            attendanceVisibility: false,
+            isMembershipVisible: false
             //viewMode: "full"
         }));
       }
@@ -748,7 +960,8 @@ import React, { Component } from 'react';
               createAccount: false,
               isReceiptVisible: !prevState.isReceiptVisible,
               item: item,
-              attendanceVisibility: false
+              attendanceVisibility: false,
+              isMembershipVisible: false
               //viewMode: "full"
           }));
       }
@@ -953,7 +1166,28 @@ import React, { Component } from 'react';
         this.setState({
           attendanceFilterLocation: updateState.attendanceLocation
         });
+      } else if (dropdown === 'showMembershipTypeDropdown') {
+        this.setState({
+          membershipType: updateState.membershipType
+        });
       }
+    };
+    
+    // Handle membership type selection
+    handleMembershipSelectFromChild = (selectedType) => {
+      console.log('Membership type selected:', selectedType);
+      this.setState({
+        membershipType: selectedType
+      });
+    };
+
+    // Handler for membership search query from child components
+    handleMembershipSearchFromChild = (searchQuery) => {
+      console.log('Membership search query:', searchQuery);
+      this.setState({
+        membershipSearchQuery: searchQuery,
+        searchQuery: searchQuery // Also update the general searchQuery for compatibility
+      });
     };
     
     // Handle attendance search query
@@ -983,7 +1217,7 @@ import React, { Component } from 'react';
       const userName = this.props.location.state?.name || 'User';
       const role = this.props.location.state?.role;
       const siteIC = this.props.location.state?.siteIC;
-      const { attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
+      const {membershipType, membershipTypes, membershipSearchQuery, isMembershipVisible, attendanceVisibility, reportType, reportVisibility, participantInfo, status, item, isDropdownOpen, isReceiptVisible, dashboard, displayedName, submenuVisible, language, courseType, accountType, isPopupOpen, popupMessage, popupType, sidebarVisible, locations, languages, types, selectedLanguage, selectedLocation, selectedCourseType, searchQuery, resetSearch, viewMode, currentPage, totalPages, nofCourses,noofDetails, isRegistrationPaymentVisible, section, roles, selectedAccountType, nofAccounts, createAccount, names, selectedCourseName, courseInfo, selectedQuarter, quarters, attendanceFilterType, attendanceFilterCode, attendanceFilterLocation, attendanceSearchQuery, attendanceTypes, activityCodes, attendanceLocations} = this.state;
 
       return (
         <>
@@ -1027,6 +1261,7 @@ import React, { Component } from 'react';
                   toggleRegistrationPaymentComponent = {this.toggleRegistrationPaymentComponent}
                   toggleReportComponent = {this.toggleReportComponent}
                   toggleAttendanceComponent = {this.toggleAttendanceComponent}
+                  toggleMembershipComponent = {this.toggleMembershipComponent}
                   key={this.state.refreshKey}
                 />
               </div>
@@ -1123,6 +1358,37 @@ import React, { Component } from 'react';
                     </div>
                   </>
                 )}
+                {isMembershipVisible && 
+                    <>
+                        <div className="search-section">
+                            <Search
+                              section={section}
+                              language={language}
+                              resetSearch={resetSearch}
+                              passSelectedValueToParent={this.handleMembershipSelectFromChild}
+                              passSearchedValueToParent={this.handleMembershipSearchFromChild}
+                              membershipTypes={membershipTypes}
+                            />
+                        </div>
+                        <div className="membership-section">
+                          <MembershipSection 
+                            section={section}
+                            userName={userName}
+                            passDataToParent={this.handleDataFromChild}
+                            loadingPopup1={this.loadingPopup1}
+                            role={role}
+                            siteIC={siteIC}
+                            closePopup1={this.closePopup}
+                            searchQuery={searchQuery}
+                            membershipType={membershipType}
+                            resetSearch={resetSearch}
+                            language={language}
+                            key={this.state.refreshKey}
+                            refreshChild={this.refreshChild}
+                          />
+                        </div>
+                    </>
+                }             
                 { isRegistrationPaymentVisible&& 
                   <>
                   <div className="search-section">

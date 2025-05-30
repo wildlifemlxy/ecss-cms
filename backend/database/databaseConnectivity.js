@@ -212,6 +212,28 @@ class DatabaseConnectivity {
             throw error;
         }
     }
+    
+    async getAllMembershipRecords(databaseName, collectionName) {  
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const records = await table.find().toArray(); // Convert cursor to array
+            
+            return {
+                success: true,
+                message: `Found ${records.length} membership records`,
+                data: records
+            };
+        } catch (error) {
+            console.error("Error retrieving membership records:", error);
+            return {
+                success: false,
+                message: "Error retrieving membership records",
+                error: error.message
+            };
+        } 
+    }
 
     async insertAttendanceRecord(databaseName, collectionName, attendanceData) {
         const db = this.client.db(databaseName);
