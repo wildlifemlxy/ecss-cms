@@ -188,7 +188,7 @@ class AttendancePivotView extends Component {
               { uniqueName: "name" }
             ],
             measures: [
-              { uniqueName: "name", aggregation: "count", caption: "Count" }
+              { uniqueName: "name", aggregation: "count", caption: "Name" }
             ]
           },
           options: {

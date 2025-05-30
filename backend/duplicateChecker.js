@@ -140,6 +140,11 @@ console.log(`After duplicate removal: ${uniqueParticipants.length} participants`
 
 // Add the unique participants
 for (let i = 0; i < uniqueParticipants.length; i++) {
-    console.log("Adding Participant Entry:", uniqueParticipants[i].participant);
-    await participantsController.addParticipant(uniqueParticipants[i].participant);
+    // Extract participant data and remove refunded field
+    const participantData = { ...uniqueParticipants[i].participant };
+    participantData.name = participantData.name.trim();
+    delete participantData.refundedDate;
+    
+    console.log("Adding Participant Entry:", participantData);
+    await participantsController.addParticipant(participantData);
 }

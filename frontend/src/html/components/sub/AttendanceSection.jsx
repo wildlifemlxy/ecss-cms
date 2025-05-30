@@ -1580,7 +1580,13 @@ render() {
     <div className="attendance-container">
       <div className="attendance-heading">
         <h1>{this.props.language === 'zh' ? '' : 'View Attendance'}</h1>
-        <div className="button-row4" style={{marginLeft: '0px', width: '20%'}}>
+        <div className="button-row4" style={{
+            marginLeft: '0px', 
+            width: '20%', 
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center'
+          }}>
           <button 
             className="view-btn" 
             onClick={(e) => {

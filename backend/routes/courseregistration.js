@@ -68,7 +68,21 @@ router.post('/', async function(req, res, next)
             receiptNo: "",
             remarks: ""
         };
-        var result1, result2, duplicateCheck;
+
+        // Proceed with registration creation first
+        result1 = await registrationController.newParticipant(participantsParticulars);
+        
+        if(!result1.success) {
+            return res.json({ 
+                result: {
+                    success: false,
+                    message: "Failed to create registration",
+                    error: result1.message
+                }
+            });
+        }
+
+        var result2, duplicateCheck;
         
         // Use enhanced approach: traditional exact matching + smart name similarity
         duplicateCheck = await participantsController.checkForHybridDuplicates(participantsParticulars.participant);
