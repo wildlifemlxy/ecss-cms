@@ -224,10 +224,13 @@
   .dashboard-section
   {
     grid-row: 1; /* Botom section */
-    z-index: 1  ;
+    z-index: 1 ;
    -webkit-box-shadow: none;
     -moz-box-shadow: none;
     box-shadow: none;
+    margin-left: -1% !important;
+    margin-right: auto !important;
+    width: 90vw;
   }
 
 

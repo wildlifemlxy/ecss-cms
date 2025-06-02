@@ -1272,8 +1272,7 @@ import React, { Component } from 'react';
                   <>
                   <div className="dashboard-section">
                     {<DashboardSection
-                     closePopup1={this.closePopup}
-                      loadingPopup = {this.loadingPopup}
+                      closePopup1={this.closePopup}
                      />}
                   </div>
                   </>
