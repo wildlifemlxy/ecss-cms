@@ -14,6 +14,7 @@ import React, { Component } from 'react';
   import AttendanceSection from './sub/AttendanceSection';
   import MembershipSection from './sub/MembershipSection';
   import ReportSection from './sub/reportSection';
+  import WelcomeSection from './sub/welcomeSection';
   import { withAuth } from '../../AuthContext';
   import axios from 'axios';  
 
@@ -83,7 +84,8 @@ import React, { Component } from 'react';
         membershipType: 'All Types',
         membershipSearchQuery: '',
         searchQuery: '',
-        resetMembershipTable: false
+        resetMembershipTable: false,
+        accessRights: {} // Access rights from sidebar
       };
   
       // Always reset attendance filter/search state to defaults on page load
@@ -1078,6 +1080,11 @@ import React, { Component } from 'react';
       });
     }
 
+    // Handle access rights data from sidebar
+    handleAccessRightsData = (accessRights) => {
+      this.setState({ accessRights });
+    }
+
     warningPopUpMessage = async(message) =>
     {
         this.setState({
@@ -1211,6 +1218,53 @@ import React, { Component } from 'react';
       });
     };
 
+    // Handle navigation from WelcomeSection action cards
+    handleWelcomeNavigate = (section) => {
+      console.log("Welcome navigation to:", section);
+      
+      switch(section) {
+        case 'registration':
+          this.toggleRegistrationPaymentComponent('Registration And Payment Table');
+          break;
+        case 'dashboard':
+          this.toggleDashboardComponent();
+          break;
+        case 'courses':
+          this.toggleCourseComponent('All Courses');
+          break;
+        case 'attendance':
+          this.toggleAttendanceComponent('All Types');
+          break;
+        case 'membership':
+          this.toggleMembershipComponent();
+          break;
+        case 'reports':
+          this.toggleReportComponent('Registration Report');
+          break;
+        default:
+          console.log('Navigation section not found:', section);
+      }
+    };
+
+    // Handle home navigation to reset to Welcome Section
+    toggleHomeComponent = () => {
+      console.log("Navigating to Home - showing Welcome Section");
+      
+      this.setState({
+        accountType: null,
+        courseType: null,
+        isRegistrationPaymentVisible: false,
+        createAccount: false,
+        reportVisibility: false,
+        dashboard: false,
+        attendanceVisibility: false,
+        isMembershipVisible: false,
+        isReceiptVisible: false,
+        section: '',
+        submenuVisible: null
+      });
+    };
+    
     render() 
     {
       console.log("Props History Push", this.props);
@@ -1255,6 +1309,7 @@ import React, { Component } from 'react';
               >
                 <SideBarContent
                   accountId = {this.props.location.state?.accountId}
+                  toggleHomeComponent = {this.toggleHomeComponent}
                   toggleDashboardComponent = {this.toggleDashboardComponent}
                   toggleAccountsComponent = {this.toggleAccountsComponent}
                   toggleCourseComponent = {this.toggleCourseComponent}
@@ -1262,10 +1317,35 @@ import React, { Component } from 'react';
                   toggleReportComponent = {this.toggleReportComponent}
                   toggleAttendanceComponent = {this.toggleAttendanceComponent}
                   toggleMembershipComponent = {this.toggleMembershipComponent}
+                  onAccessRightsUpdate = {this.handleAccessRightsData}
                   key={this.state.refreshKey}
                 />
               </div>
               <div className="main-content">
+              {/* Default Welcome Section - shows when no other section is active */}
+              {
+                accountType === null && 
+                courseType === null && 
+                isRegistrationPaymentVisible === false && 
+                createAccount === false && 
+                reportVisibility === false && 
+                dashboard === false &&
+                attendanceVisibility === false &&
+                isMembershipVisible === false &&
+                isReceiptVisible === false &&
+                (
+                  <>
+                    <div className="welcome-section">
+                      <WelcomeSection
+                        userName={userName}
+                        role={role}
+                        accessRights={this.state.accessRights}
+                        onNavigate={this.handleWelcomeNavigate}
+                      />
+                    </div>
+                  </>
+                )
+              }
               {
                 accountType === null && courseType === null && isRegistrationPaymentVisible === false && createAccount === false && reportVisibility === false && dashboard === true &&
                 (

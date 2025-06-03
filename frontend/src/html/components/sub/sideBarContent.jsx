@@ -68,6 +68,11 @@ class SideBarContent extends Component {
 
             // Store the access rights in state
             this.setState({ accessRights: response.data.result });
+            
+            // Pass access rights to parent component
+            if (this.props.onAccessRightsUpdate) {
+                this.props.onAccessRightsUpdate(response.data.result);
+            }
         } catch (error) {
             console.error("Error retrieving access rights:", error);
         }
@@ -82,6 +87,11 @@ class SideBarContent extends Component {
     toggleDashboard = () =>
     {
         this.props.toggleDashboardComponent();
+    }
+
+    toggleHome = () =>
+    {
+        this.props.toggleHomeComponent();
     }
 
     handleSubKeyClick = (subKey) => {
@@ -162,7 +172,7 @@ class SideBarContent extends Component {
             <div className="sidebar-content"  onMouseLeave={this.closeSubMenu}>
                 <ul>
                     <div style={{marginBottom: "-20px"}}> 
-                        <li key={"Home"}>
+                        <li key={"Home"} onClick={() => this.toggleHome()}>
                             <i className={iconMap["Home"]} aria-hidden="true"></i>
                             <span style={{marginLeft: "5px"}}>Home</span>
                         </li>
