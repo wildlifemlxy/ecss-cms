@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import '../../css/formPage.css';
+import '../../css/myinfo-testing.css';
 import FormDetails from './sub/registrationForm/formDetails';
 import PersonalInfo from './sub/registrationForm/personalInfo';
 import CourseDetails from './sub/registrationForm/courseDetails';
@@ -7,6 +8,12 @@ import AgreementDetailsSection from './sub/registrationForm/agreementDetails';
 import SubmitDetailsSection from './sub/registrationForm/submitDetails';
 import axios from 'axios';
 import SingPassButton from './sub/SingPassButton';
+import Popup from './popup/popupMessage';
+import RealTimeMyInfoErrorHandler from '../../services/RealTimeMyInfoErrorHandler';
+import MyInfoStatusIndicator from './MyInfoStatusIndicator';
+
+// Constant to enable/disable MyInfo error testing
+const FORCE_MYINFO_ERROR = false; // Set to true to force MyInfo errors for testing
 
 class FormPage extends Component {
   constructor(props) {
@@ -14,8 +21,17 @@ class FormPage extends Component {
     this.state = {
       currentSection: 0,
       loading: false,
-      //isAuthenticated: false, // Track SingPass authentication status
-      isAuthenticated: true, // Track SingPass authentication status
+      isAuthenticated: false, // Remove the hardcoded true value
+      singPassPopulatedFields: {}, // Add this to track SingPass populated fields
+      // Add MyInfo error handling state
+      myInfoError: false,
+      showMyInfoErrorModal: false,
+      myInfoErrorMessage: '',
+      // Real-time monitoring state
+      myInfoServiceStatus: 'unknown',
+      networkOnline: navigator.onLine,
+      showStatusIndicator: true,
+      serviceRecommendations: [],
       formData: {
         englishName: '',
         chineseName: '',
@@ -38,6 +54,17 @@ class FormPage extends Component {
       },
       validationErrors: {}
     };
+
+    // Initialize real-time error handler
+    this.myInfoErrorHandler = new RealTimeMyInfoErrorHandler({
+      enableRealTimeMonitoring: true,
+      enableProactiveChecking: true,
+      enableAutoRetry: true,
+      maxRetryAttempts: 3
+    });
+
+    // Set up error handler listeners
+    this.setupErrorHandlerListeners();
   }
 
   // Check if user is authenticated with SingPass
@@ -139,7 +166,7 @@ class FormPage extends Component {
     
     // Extract the correct status code from SingPass structured object
     let statusCode = status;
-    if (typeof status === 'object') {
+    if (typeof status === 'object' ) {
       // Use classification if available, otherwise use code
       statusCode = status.classification || status.code || status.value;
     }
@@ -188,121 +215,118 @@ class FormPage extends Component {
 
   componentDidMount = async () => {
     window.scrollTo(0, 0);
-    var clink;
+
+    // Development: Add keyboard shortcut for error testing
+    if (process.env.NODE_ENV === 'development') {
+      this.handleKeyPress = (event) => {
+        // Ctrl+Shift+E to trigger MyInfo error
+        if (event.ctrlKey && event.shiftKey && event.key === 'E') {
+          console.log('🧪 Keyboard shortcut triggered: MyInfo error simulation');
+          this.simulateMyInfoError();
+        }
+      };
+      
+      document.addEventListener('keydown', this.handleKeyPress);
+      console.log('🧪 Development mode: Press Ctrl+Shift+E to simulate MyInfo error');
+    }
+    
+    // Check URL parameters for section override and course link
+    const params = new URLSearchParams(window.location.search);
+    let link = decodeURIComponent(params.get("link"));
+    const sectionParam = params.get('section');
+    
+    // Decode the link if it exists in URL
+    if (link) {
+      try {
+        link = decodeURIComponent(link);
+        console.log('Decoded course link from URL:', link);
+        // Save the decoded link to sessionStorage
+        sessionStorage.setItem("courseLink", link);
+        console.log('Saved decoded course link to sessionStorage:', link);
+      } catch (error) {
+        console.error('Error decoding URL:', error);
+        // Fallback to original link if decoding fails
+        sessionStorage.setItem("courseLink", link);
+      }
+    } else {
+      // If no link in URL, try to get from sessionStorage
+      link = sessionStorage.getItem("courseLink");
+      console.log('Retrieved course link from sessionStorage:', link);
+    }
+    
+    // Set initial section based on URL parameter or default to 0
+    const initialSection = sectionParam ? parseInt(sectionParam) : 0;
+    
+    console.log('Final Course Link:', link);
+    console.log('Section Parameter:', sectionParam);
+    console.log('Initial Section:', initialSection);
     
     // Check if user is already authenticated with SingPass
     const isAuthenticatedWithSingPass = this.checkSingPassAuthentication();
     
     if (isAuthenticatedWithSingPass) {
       console.log('User already authenticated with SingPass');
-      this.setState({ isAuthenticated: true, loading: false });
+      this.setState({ 
+        isAuthenticated: true, 
+        loading: false,
+        currentSection: initialSection // Set section from URL parameter
+      });
       
       // Pre-populate form with SingPass data
       this.populateFormWithSingPassData();
-    }
-
-    // Load course data
-    await this.loadCourseData();
-  };
-
-  // Extract SingPass data population logic into separate method
-  populateFormWithSingPassData = () => {
-    let userData = null;
-    try {
-      const userDataJson = sessionStorage.getItem('singpass_user_data_json');
-      if (userDataJson) {
-        userData = JSON.parse(userDataJson);
-        console.log('SingPass User Data retrieved:', userData);
-      } else {
-        console.log('No SingPass user data found in sessionStorage');
-      }
-    } catch (error) {
-      console.error('Error parsing SingPass user data from sessionStorage:', error);
-      
-      // Fallback: try to get individual fields
-      try {
-        userData = {
-          name: sessionStorage.getItem('singpass_user_data_name'),
-          uinfin: sessionStorage.getItem('singpass_user_data_uinfin'),
-          residentialstatus: sessionStorage.getItem('singpass_user_data_residentialstatus'),
-          race: sessionStorage.getItem('singpass_user_data_race'),
-          sex: sessionStorage.getItem('singpass_user_data_sex'),
-          dob: sessionStorage.getItem('singpass_user_data_dob'),
-          mobileno: sessionStorage.getItem('singpass_user_data_mobileno'),
-          email: sessionStorage.getItem('singpass_user_data_email'),
-          regadd: sessionStorage.getItem('singpass_user_data_regadd')
-        };
-        console.log('Fallback: Retrieved individual SingPass fields:', userData);
-      } catch (fallbackError) {
-        console.error('Fallback method also failed:', fallbackError);
-        userData = null;
-      }
-    }
-
-    if (userData) {
-      console.log('Pre-populating form with SingPass data:', userData);
-      
-      // Extract postal code from regadd if it's an object or string
-      let postalCode = '';
-      if (userData.regadd) {
-        try {
-          if (typeof userData.regadd === 'string') {
-            // Try to parse if it's a JSON string
-            const regaddObj = JSON.parse(userData.regadd);
-            postalCode = regaddObj.postal?.value || '';
-          } else if (typeof userData.regadd === 'object') {
-            postalCode = userData.regadd.postal?.value || '';
-          }
-        } catch (regaddError) {
-          console.log('Could not extract postal code from regadd:', regaddError);
-        }
-      }
-      
-      // Extract and format mobile number properly
-      const mobileNumber = this.extractMobileNumber(userData.mobileno);
-      
-      // Format all user data fields properly
-      const formattedResidentialStatus = this.formatResidentialStatus(userData.residentialstatus);
-      const formattedRace = this.formatRace(userData.race);
-      const formattedGender = this.formatGender(userData.sex);
-      
-      this.setState(prevState => ({
-        formData: {
-          ...prevState.formData,
-          // Map SingPass fields to form fields correctly
-          pName: userData.name || '',
-          nRIC: userData.uinfin || '',  // uinfin maps to nRIC
-          rESIDENTIALSTATUS: formattedResidentialStatus,
-          rACE: formattedRace,
-          gENDER: formattedGender,  // sex maps to gENDER
-          dOB: userData.dob || '',
-          cNO: mobileNumber,  // extracted mobile number
-          eMAIL: userData.email || '',
-          postalCode: postalCode || '',
-        }
-      }));
-      
-      console.log('Form pre-populated with SingPass data');
-      console.log('Formatted residential status:', formattedResidentialStatus);
-      console.log('Formatted race:', formattedRace);
-      console.log('Formatted gender:', formattedGender);
-      console.log('Extracted mobile number:', mobileNumber);
     } else {
-      console.log('No SingPass user data available for pre-population');
+      console.log('User not authenticated, proceeding without SingPass data');
+      this.setState({ 
+        isAuthenticated: false,
+        currentSection: initialSection // Set section from URL parameter
+      });
     }
+
+    // Load course data with the decoded link
+    await this.loadCourseData(link);
   };
 
-  // Extract course loading logic into separate method
-  loadCourseData = async () => {
-    const params = new URLSearchParams(window.location.search) || sessionStorage.getItem("courseLink");
-    const link = params.get("link");
-    console.log('Course Link:', link);
-    if(!this.state.isAuthenticated) {
-      sessionStorage.setItem("courseLink", link);
+  // Add method to navigate with section parameter while preserving course link
+  navigateToSection = (section) => {
+    const params = new URLSearchParams(window.location.search);
+    
+    // Ensure course link is always present in URL
+    const courseLink = sessionStorage.getItem("courseLink");
+    if (courseLink) {
+      // Encode the course link for URL safety
+      params.set('link', decodeURIComponent(courseLink));
     }
-    console.log('Final Course Link:', link);
+    
+    params.set('section', section);
+    const newUrl = `${window.location.pathname}?${decodeURIComponent(params.toString())}`;
+    window.history.pushState(null, '', newUrl);
+    this.setState({ currentSection: section });
+  };
+
+  // Update loadCourseData to handle both encoded and decoded links
+  loadCourseData = async (link) => {
+    // Use provided link or try to get from sessionStorage
+    if (!link) {
+      link = sessionStorage.getItem("courseLink");
+    }
+    
+    console.log('Loading course data with link:', link);
 
     if (link) {
+      // Ensure the link is properly decoded for comparison
+      let decodedLink = link;
+      try {
+        // Try to decode if it appears to be encoded
+        if (link.includes('%')) {
+          decodedLink = decodeURIComponent(link);
+        }
+      } catch (error) {
+        console.warn('Could not decode link, using original:', error);
+        decodedLink = link;
+      }
+      
+      console.log('Decoded course link for processing:', decodedLink);
+      
       // Fetching courses
       var courseType = "";
       var allCourses = await this.fetchCourses(courseType);
@@ -311,9 +335,13 @@ class FormPage extends Component {
       // Function to find the course by name
       function findCourseByName(courseList) {
         return courseList.find(course => {
-          console.log("Actual Link:", link);
-          console.log("Woocommerce Link:", decodeURIComponent(course.permalink));
-          return decodeURIComponent(link) === decodeURIComponent(course.permalink);
+          // Decode both the input link and the course permalink for comparison
+          const coursePermalink = decodeURIComponent(course.permalink);
+          console.log("Comparing:");
+          console.log("Input Link:", decodedLink);
+          console.log("Course Permalink:", coursePermalink);
+          
+          return decodedLink === coursePermalink;
         });
       }
 
@@ -341,7 +369,7 @@ class FormPage extends Component {
         console.log("Selected Course Details:", matchedCourse.name.split(/<br\s*\/?>/));
         console.log("Selected Course Price:", matchedCourse.price);
         const shortDescription = matchedCourse.short_description;
-        console.log(" :", shortDescription);
+        console.log("Short Description:", shortDescription);
 
         let courseMode = '';
         if (
@@ -361,7 +389,7 @@ class FormPage extends Component {
         const startDateParagraph = paragraphs[paragraphs.length - 2];
         const endDateParagraph = paragraphs[paragraphs.length - 1];
 
-        // Replace the existing timing extraction code with this more robust version
+        // Extract course timing
         let courseTime = '';
         try {
           if (paragraphs && paragraphs.length >= 3) {
@@ -466,7 +494,7 @@ class FormPage extends Component {
       console.log("No course link provided, loading form without course data");
       this.setState({ loading: true });
     }
-  }
+  };
 
   // Add helper method to get SingPass user data safely
   getSingPassUserData = () => {
@@ -516,25 +544,154 @@ class FormPage extends Component {
     }
   };
 
+  // Add new method to handle SingPass authentication success
+  handleSingPassSuccess = () => {
+    console.log('SingPass authentication successful');
+    
+    // TESTING: Force MyInfo error if FORCE_MYINFO_ERROR is true
+    if (FORCE_MYINFO_ERROR) {
+      console.log('🧪 Forcing MyInfo error for testing');
+      this.handleMyInfoError('MyInfo service is temporarily unavailable. Please try again later.');
+      return; // Stop execution here
+    }
+    
+    // Populate form with SingPass data
+    this.populateFormWithSingPassData();
+    
+    // Navigate to section 1 with URL update (this will preserve course link)
+    this.navigateToSection(1);
+    window.scrollTo(0, 0);
+    
+    this.setState({ isAuthenticated: true });
+  };
+
+  // Add the missing populateFormWithSingPassData method
+  populateFormWithSingPassData = () => {
+    try {
+      const userData = this.getSingPassUserData();
+      this.navigateToSection(1);
+      
+      if (!userData) {
+        console.log('No SingPass user data available');
+        return;
+      }
+
+      console.log('Populating form with SingPass data:', userData);
+
+      // Extract and format the data
+      const formattedData = {
+        pName: userData.name || '',
+        nRIC: userData.uinfin || '',
+        rESIDENTIALSTATUS: this.formatResidentialStatus(userData.residentialstatus),
+        rACE: this.formatRace(userData.race),
+        gENDER: this.formatGender(userData.sex),
+        dOB: userData.dob ? userData.dob.formattedDate1 || userData.dob : '',
+        cNO: this.extractMobileNumber(userData.mobileno),
+        eMAIL: userData.email || '',
+        postalCode: userData.regadd ? userData.regadd.postal.val || '' : ''
+      };
+
+      // Track which fields were populated by SingPass (government verified data)
+      const singPassPopulatedFields = {
+        pName: !!userData.name,
+        nRIC: !!userData.uinfin,
+        rESIDENTIALSTATUS: !!userData.residentialstatus,
+        rACE: !!userData.race,
+        gENDER: !!userData.sex,
+        dOB: !!userData.dob,
+        postalCode: !!(userData.regadd && userData.regadd.postal),
+        // Mobile and email are editable as they're non-government verified
+        cNO: false,
+        eMAIL: false
+      };
+
+      console.log('Formatted SingPass data:', formattedData);
+      console.log('SingPass populated fields:', singPassPopulatedFields);
+
+      // Update the form data and track populated fields
+      this.setState(prevState => ({
+        formData: {
+          ...prevState.formData,
+          ...formattedData
+        },
+        singPassPopulatedFields: singPassPopulatedFields
+      }));
+
+      console.log('Form populated with SingPass data successfully');
+    } catch (error) {
+      console.error('Error populating form with SingPass data:', error);
+    }
+  };
+
+  // Add method to clear session storage when needed
+  clearCourseData = () => {
+    sessionStorage.removeItem("courseLink");
+    sessionStorage.removeItem("singpass_user_data_json");
+    sessionStorage.removeItem("singpass_access_token");
+  };
+
+  // Add method to clear SingPass data without reloading
+  clearSingPassData = () => {
+    // Clear SingPass session data
+    sessionStorage.removeItem("singpass_user_data_json");
+    sessionStorage.removeItem("singpass_access_token");
+    
+    // Reset form data to empty values for SingPass populated fields
+    const clearedFormData = {
+      ...this.state.formData,
+      pName: '',
+      nRIC: '',
+      rESIDENTIALSTATUS: '',
+      rACE: '',
+      gENDER: '',
+      dOB: '',
+      postalCode: '',
+      cNO: '',
+      eMAIL: ''
+    };
+
+    // Reset state
+    this.setState({
+      isAuthenticated: false,
+      singPassPopulatedFields: {},
+      formData: clearedFormData,
+      validationErrors: {}
+    });
+
+    console.log('SingPass data cleared successfully');
+  };
+
+  // Handle MyInfo/SingPass error
+  handleMyInfoError = (errorMessage = 'MyInfo is currently unavailable.') => {
+    console.log('MyInfo error occurred:', errorMessage);
+    this.setState({
+      myInfoError: true,
+      showMyInfoErrorModal: true,
+      myInfoErrorMessage: errorMessage
+    });
+  };
+
+  // Handle closing MyInfo error modal and proceed with manual entry
+  handleCloseMyInfoErrorModal = () => {
+    this.setState({
+      showMyInfoErrorModal: false
+    });
+  };
+
+  // Handle proceeding with manual form entry after MyInfo error
+  handleProceedManually = () => {
+    this.setState({
+      showMyInfoErrorModal: false,
+      isAuthenticated: true,
+      currentSection: 1 // Move to personal info section for manual entry
+    });
+  };
+
   handleNext = () => {
     console.log("Pressed Next");
     const errors = this.validateForm();
-    const { currentSection, isAuthenticated } = this.state;
+    const { currentSection } = this.state;
     console.log("Current Section:", currentSection);
-
-    // Special handling for section 0 (FormDetails with SingPass)
-    if (currentSection === 0) {
-      if (!isAuthenticated) {
-        // User must authenticate with SingPass first
-        this.setState({ 
-          validationErrors: { 
-            authentication: 'Please authenticate with SingPass to continue. 请使用SingPass认证以继续。' 
-          } 
-        });
-        return;
-      }
-      // If authenticated, proceed to next section without additional validation
-    }
 
     // Existing validation logic for other sections
     if (currentSection === 2) {
@@ -552,19 +709,53 @@ class FormPage extends Component {
       this.agreementDetailsRef.setState({ isSelected: true });
     }
 
-
     if (Object.keys(errors).length === 0) {
-      if (this.state.currentSection < 4) {
-        this.setState({ currentSection: this.state.currentSection + 1 }, () => {
-          window.scrollTo(0, 0);
-        });
+      if (this.state.currentSection < 4) { // Added missing opening parenthesis
+        const nextSection = this.state.currentSection + 1;
+        this.navigateToSection(nextSection); // Use URL navigation method
+        window.scrollTo(0, 0);
       } 
       if (this.state.currentSection === 3) {
-        // Call handleSubmit if on the last section
         this.handleSubmit();
       } 
     } else {
       this.setState({ validationErrors: errors });
+    }
+  };
+
+  // Update handleBack to use URL parameters
+  handleBack = () => {
+    if (this.state.currentSection > 0) {
+      const prevSection = this.state.currentSection - 1;
+      this.navigateToSection(prevSection); // Use URL navigation method
+    }
+  };
+
+  // Update the isCurrentSectionValid method to remove authentication requirement
+  isCurrentSectionValid = () => {
+    const { currentSection, formData } = this.state;
+    
+    switch (currentSection) {
+      case 0: // FormDetails section - always allow proceeding
+        return true; // Remove authentication requirement
+    
+      case 1: // Personal Info section
+        return formData.pName && formData.nRIC && formData.rESIDENTIALSTATUS && 
+               formData.rACE && formData.gENDER && formData.dOB && 
+               formData.cNO && formData.eMAIL && formData.postalCode && 
+               formData.eDUCATION && formData.wORKING;
+    
+      case 2: // Course Details section
+        if (formData.type === 'NSA') {
+          return formData.payment; // NSA courses need payment selection
+        }
+        return true; // ILP courses don't need payment selection
+    
+      case 3: // Agreement section
+        return formData.agreement;
+    
+      default:
+        return true;
     }
   };
 
@@ -645,9 +836,11 @@ class FormPage extends Component {
       .then((response) => {
         console.log('Form submitted successfully', response.data);
         if (response.data) {
-          sessionStorage.clear(); // Clear session storage after successful submission
+          // Clear session storage after successful submission
+          this.clearCourseData();
+          
           // Success alert
-         // alert("Success");
+          // alert("Success");
     
           // Set a 10-second timeout to close the window after success
           setTimeout(() => {
@@ -822,6 +1015,192 @@ class FormPage extends Component {
     return errors;
   };
 
+  // Test method to simulate MyInfo error (for development/testing)
+  simulateMyInfoError = () => {
+    const errorScenarios = [
+      {
+        message: 'MyInfo service is temporarily unavailable. Please try again later.',
+        type: 'service_unavailable'
+      },
+      {
+        message: 'Unable to retrieve your data from MyInfo at this time.',
+        type: 'data_retrieval_failed'
+      },
+      {
+        message: 'MyInfo is currently undergoing maintenance. Service will be restored shortly.',
+        type: 'maintenance'
+      },
+      {
+        message: 'Connection to MyInfo service failed. Please check your internet connection and try again.',
+        type: 'connection_failed'
+      },
+      {
+        message: 'MyInfo authentication timed out. Please try again.',
+        type: 'timeout'
+      },
+      {
+        message: 'MyInfo service is experiencing high traffic. Please wait a moment and try again.',
+        type: 'high_traffic'
+      }
+    ];
+    
+    const randomScenario = errorScenarios[Math.floor(Math.random() * errorScenarios.length)];
+    console.log('🧪 Simulating MyInfo error:', randomScenario.type, '-', randomScenario.message);
+    this.handleMyInfoError(randomScenario.message);
+  };
+
+  // Set up error handler listeners
+  setupErrorHandlerListeners = () => {
+    // Listen for real-time errors
+    this.myInfoErrorHandler.onError((errorInfo) => {
+      console.log('🚨 Real-time MyInfo error detected:', errorInfo);
+      this.handleRealTimeMyInfoError(errorInfo);
+    });
+
+    // Listen for status changes
+    this.myInfoErrorHandler.onStatusChange((statusInfo) => {
+      console.log('📊 MyInfo status changed:', statusInfo);
+      this.handleServiceStatusChange(statusInfo);
+    });
+
+    // Listen for retry attempts
+    this.myInfoErrorHandler.onRetryAttempt((retryInfo) => {
+      console.log('🔄 MyInfo retry attempt:', retryInfo);
+      this.handleRetryAttempt(retryInfo);
+    });
+  };
+
+  // Handle real-time MyInfo errors
+  handleRealTimeMyInfoError = (errorInfo) => {
+    const { message, severity, category, suggestedAction } = errorInfo;
+    
+    // Update state with error information
+    this.setState({
+      myInfoError: true,
+      showMyInfoErrorModal: true,
+      myInfoErrorMessage: message,
+      serviceRecommendations: this.myInfoErrorHandler.getErrorRecommendations()
+    });
+
+    // Log for debugging
+    console.error('Real-time MyInfo error:', {
+      category,
+      severity,
+      suggestedAction,
+      technicalDetails: errorInfo.technicalDetails
+    });
+  };
+
+  // Handle service status changes
+  handleServiceStatusChange = (statusInfo) => {
+    const { type, status } = statusInfo;
+    
+    if (type === 'service') {
+      this.setState({
+        myInfoServiceStatus: status,
+        serviceRecommendations: this.myInfoErrorHandler.getErrorRecommendations()
+      });
+    } else if (type === 'network') {
+      this.setState({
+        networkOnline: status === 'online'
+      });
+    }
+  };
+
+  // Handle retry attempts
+  handleRetryAttempt = (retryInfo) => {
+    const { attempt, maxAttempts } = retryInfo;
+    console.log(`🔄 Retry attempt ${attempt}/${maxAttempts} in progress...`);
+    
+    // You could show a loading indicator or toast message here
+    // For now, we'll just log it
+  };
+
+  // Proactive MyInfo availability check before authentication
+  checkMyInfoAvailabilityBeforeAuth = async () => {
+    try {
+      console.log('🔍 Checking MyInfo service availability before authentication...');
+      const availability = await this.myInfoErrorHandler.checkServiceAvailability();
+      
+      if (!availability.available) {
+        console.warn('⚠️ MyInfo service not available:', availability.error);
+        this.handleRealTimeMyInfoError(availability.error);
+        return false;
+      }
+      
+      console.log('✅ MyInfo service is available for authentication');
+      return true;
+    } catch (error) {
+      console.error('🚨 Error checking MyInfo availability:', error);
+      this.handleMyInfoError('Unable to verify MyInfo service status. You can proceed with manual entry.');
+      return false;
+    }
+  };
+
+  // Enhanced SingPass authentication with real-time monitoring
+  handleSingPassAuthenticationWithMonitoring = async () => {
+    // First, check if MyInfo service is available
+    const isAvailable = await this.checkMyInfoAvailabilityBeforeAuth();
+    
+    if (!isAvailable) {
+      // Service is not available, user can still proceed manually
+      return;
+    }
+
+    // Proceed with authentication
+    try {
+      // This would be the actual authentication function
+      const authFunction = async () => {
+        // Simulate authentication process
+        // In real implementation, this would call the actual SingPass auth
+        console.log('🔐 Starting SingPass authentication...');
+        
+        // For testing, we can simulate different scenarios
+        if (FORCE_MYINFO_ERROR) {
+          throw new Error('MyInfo service is temporarily unavailable. Please try again later.');
+        }
+        
+        // Actual authentication logic would go here
+        return { success: true };
+      };
+
+      const result = await this.myInfoErrorHandler.handleAuthenticationError(
+        new Error('Simulated auth for testing'), 
+        authFunction
+      );
+
+      if (result.success) {
+        console.log('✅ SingPass authentication successful');
+        this.handleSingPassSuccess();
+      } else {
+        console.error('❌ SingPass authentication failed after retries');
+        // Error is already handled by the error handler
+      }
+    } catch (error) {
+      console.error('🚨 Unexpected error during authentication:', error);
+      this.handleMyInfoError(error.message);
+    }
+  };
+
+  // Component lifecycle - start monitoring
+  componentDidMount() {
+    console.log('🔍 Starting MyInfo real-time monitoring...');
+    // The monitoring is already started in the constructor
+    
+    // Check initial MyInfo status
+    setTimeout(() => {
+      this.checkMyInfoAvailabilityBeforeAuth();
+    }, 1000); // Give it a moment to initialize
+  };
+
+  // Component cleanup
+  componentWillUnmount() {
+    console.log('🔍 Stopping MyInfo real-time monitoring...');
+    if (this.myInfoErrorHandler) {
+      this.myInfoErrorHandler.destroy();
+    }
+  };
+  
   handleBack = () => {
     if (this.state.currentSection > 0) {
       this.setState({ currentSection: this.state.currentSection - 1 });
@@ -834,8 +1213,8 @@ class FormPage extends Component {
     // Render the loading spinner or content depending on loading state
     if (loading === false) {
       return (
-        <div className="loading-spinner" style={{ textAlign: 'center', marginTop: '20px' }}>
-          <div className="spinner"></div>
+        <div className="loading-spinner1" style={{ textAlign: 'center', marginTop: '20px' }}>
+          <div className="spinner1"></div>
           <p style={{ fontSize: '18px', color: '#333', fontWeight: '600', marginTop: '10px' }}>Loading...</p>
         </div>
       );
@@ -845,6 +1224,13 @@ class FormPage extends Component {
       <div className="formwholepage" style={{ backgroundColor: bgColor }}>
         <div className="form-page">
           <div className="form-container">
+            {/* MyInfo Service Status Indicator */}
+            <MyInfoStatusIndicator 
+              status={this.state.myInfoServiceStatus}
+              isOnline={this.state.networkOnline}
+              recommendations={this.state.serviceRecommendations}
+              compact={true}
+            />
             {currentSection === 0 && (
               <FormDetails 
                 courseType={formData.type} 
@@ -859,6 +1245,8 @@ class FormPage extends Component {
                 data={formData}
                 onChange={this.handleDataChange}
                 errors={validationErrors}
+                singPassPopulatedFields={this.state.singPassPopulatedFields}
+                onClearSingPassData={this.clearSingPassData} // Add clear function prop
               />
             )}
             {currentSection === 2 && (
@@ -885,23 +1273,67 @@ class FormPage extends Component {
             )}
             {currentSection === 4 && <SubmitDetailsSection />}
           </div>
-        </div>
-        {/* Show Next/Back buttons for all sections */}
-        {isAuthenticated && currentSection < 4 && (
+        </div>s
+
+        {/* Simplified button structure - remove authentication logic */}
+        {currentSection === 0 && (
+          <div className="flex-button-container">
+            <button 
+              onClick={this.handleNext} 
+              disabled={!this.isCurrentSectionValid()}
+              className="next-button"
+            >
+              Next 下一步
+            </button>
+            <SingPassButton 
+              buttonText="Retrieve Myinfo with" 
+              onAuthenticationSuccess={this.handleSingPassSuccess}
+              onMyInfoError={this.handleMyInfoError}
+              errorHandler={this.realTimeErrorHandler}
+              onError={(error) => {
+                console.error('SingPass error:', error);
+                // Handle general SingPass errors
+                if (error.message?.includes('MyInfo') || error.message?.includes('unavailable')) {
+                  this.handleMyInfoError(error.message);
+                }
+              }}
+            />
+            {/* Testing mode indicator - only shows when FORCE_MYINFO_ERROR is true */}
+            {FORCE_MYINFO_ERROR && (
+              <></>
+            )}
+            {/* Development only - Test MyInfo Error Modal */}
+          </div>
+        )}
+
+        {/* Show regular Next/Back buttons for other sections */}
+        {currentSection > 0 && currentSection < 4 && (
           <div className="button-container">
             <button onClick={this.handleBack} disabled={currentSection === 0}>
               Back 返回
             </button>
-            <button onClick={this.handleNext}>
+            <button onClick={this.handleNext} disabled={!this.isCurrentSectionValid()}>
               {currentSection === 3 ? 'Submit 提交' : 'Next 下一步'}
             </button>
           </div>
         )}
-        {!isAuthenticated && window.location.href.includes('localhost') && (
-        <div className="button-container">
-          <SingPassButton/>
-        </div>
-      )}
+
+
+        {/* MyInfo Error Testing Mode Indicator */}
+        {FORCE_MYINFO_ERROR && (
+          <></>
+        )}
+        
+        {/* MyInfo error modal using the Popup component */}
+        <Popup 
+          isOpen={this.state.showMyInfoErrorModal}
+          closePopup={this.handleCloseMyInfoErrorModal}
+          onProceedManually={this.handleProceedManually}
+          title="MyInfo Unavailable"
+          message={this.state.myInfoErrorMessage}
+          type="myinfo-error"
+          icon="⚠️"
+        />
       </div>
     );
   }  

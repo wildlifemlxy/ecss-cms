@@ -5,7 +5,9 @@ class SingPassButton extends Component {
     super(props);
     this.state = {
       redirecting: false,
-      error: null
+      error: null,
+      clickCount: 0, // Track clicks for demo purposes
+      forceMyInfoError: false // Set to true to force MyInfo errors for testing
     };
   }
 
@@ -104,6 +106,78 @@ class SingPassButton extends Component {
 
   handleLogin = async () => {
     try {
+      // Real-time availability check before proceeding
+      if (this.props.errorHandler) {
+        console.log('🔍 Checking MyInfo service availability before authentication...');
+        const isAvailable = await this.props.errorHandler.checkServiceAvailability();
+        
+        if (!isAvailable) {
+          console.log('⚠️ MyInfo service is not available, blocking authentication attempt');
+          const currentStatus = this.props.errorHandler.getCurrentStatus();
+          let errorMessage = 'MyInfo service is currently unavailable. Please try again later.';
+          
+          // Provide more specific error messages based on current status
+          if (currentStatus.category === 'maintenance') {
+            errorMessage = 'MyInfo is currently undergoing maintenance. Service will be restored shortly.';
+          } else if (currentStatus.category === 'network') {
+            errorMessage = 'Connection to MyInfo service failed. Please check your internet connection and try again.';
+          } else if (currentStatus.category === 'performance') {
+            errorMessage = 'MyInfo service is experiencing performance issues. Please try again in a few moments.';
+          }
+          
+          // Use the real-time error handler to process this error
+          await this.props.errorHandler.handleError(new Error(errorMessage), 'myinfo_auth');
+          return; // Stop execution here
+        }
+        console.log('✅ MyInfo service is available, proceeding with authentication');
+      }
+
+      // Increment click count for demo purposes
+      const newClickCount = this.state.clickCount + 1;
+      this.setState({ clickCount: newClickCount });
+
+      // TESTING: Force MyInfo error if forceMyInfoError is true
+      if (this.state.forceMyInfoError) {
+        console.log('🧪 Forcing MyInfo error for testing purposes');
+        const errorMessage = 'MyInfo service is temporarily unavailable. Please try again later.';
+        
+        if (this.props.onMyInfoError) {
+          this.props.onMyInfoError(errorMessage);
+          return; // Stop execution here
+        } else {
+          throw new Error(errorMessage);
+        }
+      }
+
+      // Development: Check for error simulation via URL parameter
+      if (process.env.NODE_ENV === 'development') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const simulateError = urlParams.get('simulate_error');
+        
+        if (simulateError) {
+          let errorMessage;
+          switch (simulateError) {
+            case 'myinfo_unavailable':
+              errorMessage = 'MyInfo service is temporarily unavailable. Please try again later.';
+              break;
+            case 'myinfo_timeout':
+              errorMessage = 'MyInfo authentication timed out. Please try again.';
+              break;
+            case 'myinfo_maintenance':
+              errorMessage = 'MyInfo is currently undergoing maintenance. Service will be restored shortly.';
+              break;
+            case 'connection_failed':
+              errorMessage = 'Connection to MyInfo service failed. Please check your internet connection and try again.';
+              break;
+            default:
+              errorMessage = 'SingPass authentication failed. Please try again.';
+          }
+          
+          console.log('🧪 Simulating error:', simulateError, '-', errorMessage);
+          throw new Error(errorMessage);
+        }
+      }
+
       // Set redirecting state
       this.setState({ redirecting: true, error: null });
 
@@ -148,10 +222,12 @@ class SingPassButton extends Component {
 
       // SingPass Authorization Endpoint - exact URL from documentation
       const authorizationEndpoint = "https://stg-id.singpass.gov.sg/auth";
+      //const authorizationEndpoint = "https://id.singpass.gov.sg/auth";
       
       // Required parameters with EXACT SingPass scopes as approved
       const authParams = new URLSearchParams({
         client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
+        //client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS", // Exact client ID as per SingPass documentation
         response_type: "code",
         // EXACT SingPass scope format - space-separated as approved by SingPass
         scope: "openid dob email mobileno name nationality race regadd residentialstatus sex uinfin",
@@ -193,23 +269,36 @@ class SingPassButton extends Component {
         redirecting: false 
       });
 
-      // Call optional error callback
+      // Call optional error callback for MyInfo errors
       if (this.props.onError) {
         this.props.onError(error);
+      }
+
+      // Check if this is a MyInfo-specific error and call MyInfo error handler
+      if (this.props.onMyInfoError && (
+        error.message?.includes('MyInfo') || 
+        error.message?.includes('unavailable') ||
+        error.message?.includes('service temporarily')
+      )) {
+        this.props.onMyInfoError(error.message);
       }
     }
   };
 
   render() {
-    const { redirecting, error } = this.state;
+    const { redirecting, error, clickCount } = this.state;
     const { 
-      buttonText = 'Log in with',
+      buttonText = 'Retrieve Myinfo with',
       disabled = false,
       className = '',
       style = {},
       showLogo = true,
       size = 'default' // 'small', 'default', 'large'
     } = this.props;
+
+    // Demo mode: Show different button text after first click
+    const actualButtonText = clickCount === 0 ? buttonText :  buttonText;
+    const isDemoMode = clickCount === 0;
 
     // Size configurations
     const sizeConfig = {
@@ -238,40 +327,17 @@ class SingPassButton extends Component {
 
     return (
       <>
-        {/* Font definitions for SingPass branding */}
-        <style>
-          {`
-            @font-face {
-              font-family: 'Poppins';
-              src: url('/Noto_Sans,Poppins/Poppins/Poppins-Bold.ttf') format('truetype');
-              font-weight: bold;
-              font-style: normal;
-              font-display: swap;
-            }
-            @font-face {
-              font-family: 'Poppins';
-              src: url('/Noto_Sans,Poppins/Poppins/Poppins-Regular.ttf') format('truetype');
-              font-weight: normal;
-              font-style: normal;
-              font-display: swap;
-            }
-          `}
-        </style>
+        {/* Demo mode indicator */}
+        {isDemoMode && (
+          <>
+
+          </>
+        )}
 
         {/* Error display */}
         {error && (
-          <div style={{
-            backgroundColor: '#ffebee',
-            border: '1px solid #ffcdd2',
-            borderRadius: '4px',
-            padding: '12px',
-            margin: '0 0 16px 0',
-            color: '#c62828',
-            fontSize: '14px',
-            fontFamily: 'Poppins, sans-serif'
-          }}>
-            {error}
-          </div>
+          <>
+          </>
         )}
 
         {/* Official SingPass Button - Red Fill following exact guidelines */}
@@ -281,6 +347,7 @@ class SingPassButton extends Component {
           className={className}
           aria-label="Log in with Sing Pass authentication"
           style={{
+            whiteSpace: 'nowrap',
             backgroundColor: isDisabled ? '#cccccc' : '#F4333D',
             color: '#FFFFFF',
             border: 'none',
@@ -290,6 +357,7 @@ class SingPassButton extends Component {
             fontFamily: 'Poppins, sans-serif',
             fontWeight: 'bold',
             minWidth: currentSize.minWidth,
+            position: 'relative', // For positioning the test indicator
             height: currentSize.height,
             display: 'flex',
             alignItems: 'center',
@@ -314,17 +382,10 @@ class SingPassButton extends Component {
           }}
         >
           {/* Button text */}
-          <span aria-hidden="true" style={{
-            fontFamily: 'Poppins, bold, sans-serif',
-            fontSize: currentSize.fontSize,
-            fontWeight: 'bold',
-            lineHeight: '1'
-          }}>
-            {redirecting ? 'Redirecting...' : buttonText}
-          </span>
+          <span aria-hidden="true" style={{ fontFamily: 'Poppins, bold, sans-serif', fontSize: currentSize.fontSize, fontWeight: 'bold', lineHeight: '1', whiteSpace: 'nowrap !important', backgroundColor: 'transparent' }}>{actualButtonText}</span>
 
           {/* SingPass logo */}
-          {!redirecting && showLogo && (
+          {showLogo && (
             <img 
               src="/Singpass logo/singpass_logo_white.svg" 
               alt="Sing Pass" 
@@ -332,12 +393,14 @@ class SingPassButton extends Component {
               role="img"
               style={{ 
                 fontSize: '1ex',
-                height: '1ex',
+                height: '1.5ex',
                 width: 'auto',
-                minHeight: size === 'small' ? '12px' : size === 'large' ? '16px' : '14px',
+                minHeight: size === 'small' ? '10px' : size === 'large' ? '14px' : '12px',
                 filter: 'brightness(0) invert(1)',
                 verticalAlign: 'baseline',
                 display: 'inline-block',
+                marginTop: '6px',
+                marginLeft: '-3px'
               }}
               onError={(e) => {
                 e.target.src = "/Singpass logo/singpass_logo_white.png";

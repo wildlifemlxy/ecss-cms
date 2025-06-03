@@ -123,6 +123,13 @@ class PersonalInfo extends Component {
 
   handleChange = (e) => {
     const { name, value } = e.target;
+    const { singPassPopulatedFields } = this.props;
+    
+    // Don't allow changes to fields populated by SingPass
+    if (singPassPopulatedFields?.[name]) {
+      return;
+    }
+    
     let formattedValue = value;
 
     if (name === "nRIC") {
@@ -173,7 +180,14 @@ class PersonalInfo extends Component {
   };
 
   handleChange1 = (e, field) => {
+    const { singPassPopulatedFields } = this.props;
+    
     if (field === "DOB") {
+      // Don't allow changes to DOB if it's populated by SingPass
+      if (singPassPopulatedFields?.dOB) {
+        return;
+      }
+      
       let { name, value } = e.target;
   
       // Remove all non-digit characters first
@@ -291,7 +305,10 @@ class PersonalInfo extends Component {
   };
 
   render() {
-    const { data = {}, errors } = this.props; // Default value for data is an empty object
+    const { data = {}, errors, singPassPopulatedFields, onClearSingPassData } = this.props; // Add onClearSingPassData prop
+
+    // Check if any SingPass fields are populated
+    const hasSingPassData = singPassPopulatedFields && Object.values(singPassPopulatedFields).some(field => field === true);
 
     // Define the sections and their respective fields
     const sections = [
@@ -301,8 +318,6 @@ class PersonalInfo extends Component {
       { name: 'rACE', label: 'Race 种族', placeholder: 'Race 种族', isSelect: true, isRadio: true },
       { name: 'gENDER', label: 'Gender 性别', placeholder: 'Gender 性别', isSelect: true, isRadio: true },
       { name: 'dOB', label: 'Date of Birth 出生日期', placeholder: 'Date of Birth 出生日期', isSelect: true, isDate: true },
-      { name: 'cNO', label: 'Contact No. 联络号码', placeholder: 'Contact No. 联络号码', isSelect: false, isRadio: false },
-      { name: 'eMAIL', label: 'Email 电子邮件', placeholder: 'Enter "N/A" if no email 如果没有电子邮件，请输入"N/A"', isSelect: false, isRadio: false },
       { name: 'postalCode', label: 'Postal Code 邮区', placeholder: 'Postal Code 邮区', isSelect: false, isRadio: false },
       { name: 'eDUCATION', label: 'Education Level 最高教育水平', placeholder: 'Education Level 最高教育水平', isSelect: true, isRadio: true },
       { name: 'wORKING', label: 'Work Status 工作状态', placeholder: 'Work Status 工作状态', isSelect: true, isRadio: true }
@@ -358,6 +373,26 @@ class PersonalInfo extends Component {
 
     return (
       <div>
+        {/* Clear SingPass Data Button */}
+        {hasSingPassData && (
+          <div className="clear-singpass-container">
+            <p className="singpass-info">
+              📄 Some fields have been populated with your SingPass data and are protected from editing.
+            </p>
+            <button 
+              type="button"
+              className="clear-singpass-button"
+              onClick={() => {
+                if (window.confirm('Are you sure you want to clear all SingPass data? This will empty all populated fields.')) {
+                  onClearSingPassData && onClearSingPassData();
+                }
+              }}
+            >
+              🗑️ Clear SingPass Data
+            </button>
+          </div>
+        )}
+
         {sections.map((section) => (
           <div key={section.name} className="input-group1">
             <label htmlFor={section.name}>{section.label}</label>
@@ -372,6 +407,7 @@ class PersonalInfo extends Component {
                       checked={data[section.name] === option}
                       onChange={this.handleChange}
                       onClick={this.closeCalendar}
+                      disabled={singPassPopulatedFields?.[section.name]} // Disable if populated by SingPass
                     />
                     {option}
                   </label>
@@ -383,13 +419,14 @@ class PersonalInfo extends Component {
                   id={section.name}
                   name={section.name}
                   type="text"
-                  className="personal-info-input"
+                  className={`personal-info-input ${singPassPopulatedFields?.[section.name] ? 'disabled-field' : ''}`}
                   value={this.state.manualDate || data[section.name] || ''} // Use manualDate first, then fall back to data[section.name]
                   placeholder="dd/mm/yyyy"
                   onChange={(e) => { e.stopPropagation(); this.handleChange1(e, "DOB")}}
                   onKeyDown={this.handleBackspace}
                   onBlur={this.closeCalendar}
                   autoComplete='off'
+                  disabled={singPassPopulatedFields?.[section.name]} // Disable if populated by SingPass
                 />
                 <br />
               </>
@@ -401,13 +438,47 @@ class PersonalInfo extends Component {
                 placeholder={section.placeholder}
                 value={data[section.name] || ''} // Ensure we use empty string as fallback
                 onChange={this.handleChange} // Ensure onChange is set
-                className="personal-info-input1"
+                className={`personal-info-input1 ${singPassPopulatedFields?.[section.name] ? 'disabled-field' : ''}`}
                 onClick={this.closeCalendar}
+                disabled={singPassPopulatedFields?.[section.name]} // Disable if populated by SingPass
               />
             )}
             {errors[section.name] && <span className="error-message3">{errors[section.name]}</span>}
           </div>
         ))}
+        
+        {/* Always editable fields - Contact Number and Email */}
+        <div className="input-group1">
+          <label htmlFor="cNO">Contact No. 联络号码</label>
+          <input
+            type="text"
+            id="cNO"
+            name="cNO"
+            placeholder="Contact No. 联络号码"
+            value={data.cNO || ''}
+            onChange={(e) => this.props.onChange({ cNO: e.target.value })}
+            className="personal-info-input1"
+            onClick={this.closeCalendar}
+            disabled={false} // Always editable
+          />
+          {errors.cNO && <span className="error-message3">{errors.cNO}</span>}
+        </div>
+        
+        <div className="input-group1">
+          <label htmlFor="eMAIL">Email 电子邮件</label>
+          <input
+            type="email"
+            id="eMAIL"
+            name="eMAIL"
+            placeholder='Enter "N/A" if no email 如果没有电子邮件，请输入"N/A"'
+            value={data.eMAIL || ''}
+            onChange={(e) => this.props.onChange({ eMAIL: e.target.value })}
+            className="personal-info-input1"
+            onClick={this.closeCalendar}
+            disabled={false} // Always editable
+          />
+          {errors.eMAIL && <span className="error-message3">{errors.eMAIL}</span>}
+        </div>
       </div>
     );
   }

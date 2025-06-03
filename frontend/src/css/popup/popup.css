@@ -6,7 +6,7 @@
   height: 100%;
   background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent background */
   display: flex;
-    align-items: center;
+  align-items: center;
   justify-content: center;
   z-index: 1000;
 }
@@ -25,8 +25,11 @@
   align-items: center;
   justify-content: center;
   height: 12.5rem; /* 200px */
+  min-height: 12.5rem; /* Ensure minimum height */
   background-color: black; /* Solid black background */
   border-radius: 0.625rem; /* 10px */
+  padding: 1rem; /* Add padding for better spacing */
+  box-sizing: border-box; /* Include padding in height calculation */
 }
 
 .loading-popup h2 {
@@ -39,8 +42,10 @@
 
 .bouncing-circles {
   display: flex;
-  justify-content: space-between;
-  width: 7.5rem; /* 120px */
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem; /* Use gap instead of space-between for better control */
+  width: auto; /* Let width be determined by content */
   margin-top: 1.25rem; /* 20px */
 }
 
@@ -550,4 +555,158 @@
 
 .confirmation-message {
   animation: fadeIn 0.3s ease-in-out; /* Add the fade-in effect */
+}
+
+/* Responsive design for loading popup */
+@media (max-width: 768px) {
+  .loading-popup {
+    height: auto;
+    min-height: 10rem;
+    width: 90vw;
+    max-width: 20rem;
+    padding: 1.5rem;
+  }
+  
+  .loading-popup h2 {
+    font-size: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .bouncing-circles {
+    margin-top: 1rem;
+  }
+  
+  .circle {
+    width: 0.875rem; /* 14px */
+    height: 0.875rem; /* 14px */
+  }
+}
+
+@media (max-width: 480px) {
+  .popup-overlay {
+    padding: 1rem;
+  }
+  
+  .loading-popup {
+    min-height: 8rem;
+    padding: 1rem;
+  }
+  
+  .loading-popup h2 {
+    font-size: 0.875rem;
+    margin-top: 0.75rem;
+  }
+}
+
+/* MyInfo Error Message Container */
+.myinfo-error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 0.625rem;
+  width: 25rem;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.myinfo-modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+.myinfo-error-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: #f39c12; /* Warning amber color */
+}
+
+.myinfo-modal-title {
+  color: #e74c3c; /* Error red color */
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0.5rem 0;
+}
+
+.myinfo-modal-message {
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.myinfo-modal-message p {
+  font-size: 0.9rem;
+  color: #333;
+  margin: 0.5rem 0;
+  line-height: 1.4;
+}
+
+.myinfo-modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.myinfo-modal-button {
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.myinfo-modal-button.primary {
+  background-color: #4caf50; /* Success green */
+  color: white;
+  flex: 1;
+  margin-right: 0.5rem;
+}
+
+.myinfo-modal-button.primary:hover {
+  background-color: #388e3c;
+  transform: scale(1.02);
+}
+
+.myinfo-modal-button.secondary {
+  background-color: #e0e0e0; /* Light gray */
+  color: #333;
+  flex: 1;
+  margin-left: 0.5rem;
+}
+
+.myinfo-modal-button.secondary:hover {
+  background-color: #bdbdbd;
+  transform: scale(1.02);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .myinfo-error-message {
+    width: 90%;
+    max-width: 25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .myinfo-modal-buttons {
+    flex-direction: column;
+  }
+  
+  .myinfo-modal-button {
+    margin: 0.3rem 0;
+    width: 100%;
+  }
+  
+  .myinfo-modal-button.primary {
+    margin-right: 0;
+  }
+  
+  .myinfo-modal-button.secondary {
+    margin-left: 0;
+  }
 }

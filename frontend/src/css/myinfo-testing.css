@@ -1,0 +1,13 @@
+/* MyInfo Testing Indicator */
+.myinfo-testing-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-weight: bold;
+    z-index: 999;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
