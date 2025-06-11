@@ -1027,20 +1027,42 @@ class RegistrationPaymentSection extends Component {
       return `${day}/${month}/${year}`;
     }
 
-    exportToLOP = async () => 
-    {
+
+  exportToLOP = async () => {
       try {
         console.log("Selected Row:", this.state.selectedRows);
-        var {selectedRows} = this.state;      
-        // Fetch the Excel file from public folder (adjust the path if necessary)
-        const filePath = '/external/OSG NSA List of participants (20250401).xlsx';  // Path relative to the public folder
+        var { selectedRows } = this.state;
+    
+        if (!selectedRows || selectedRows.length === 0) {
+          return this.props.warningPopUpMessage("No rows selected for export.");
+        }
+    
+        // Determine the file path based on the course type of the first selected row
+        // or check if all selected rows have the same course type
+        const courseTypes = [...new Set(selectedRows.map(row => row.courseInfo.courseType))];
+        
+        if (courseTypes.length > 1) {
+          return this.props.warningPopUpMessage("Cannot export mixed course types. Please select rows of the same course type.");
+        }
+    
+        const courseType = courseTypes[0];
+        var filePath;
+    
+        if (courseType === "NSA") {
+          filePath = '/external/OSG NSA List of participants (20250401).xlsx';
+        } else if (courseType === "ILP") {
+          filePath = '/external/OSG_ILP_List of Participants (20250401) given by C3A.xlsx';
+        } else {
+          return this.props.warningPopUpMessage("Unsupported course type for export.");
+        }
+    
         const response = await fetch(filePath);
     
         if (!response.ok) {
           return this.props.warningPopUpMessage("Error fetching the Excel file.");
         }
     
-        const data = await response.arrayBuffer(); // Convert file to ArrayBuffer
+        const data = await response.arrayBuffer();
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(data);
     
@@ -1049,39 +1071,37 @@ class RegistrationPaymentSection extends Component {
           return this.props.warningPopUpMessage("Sheet 'LOP' not found!");
         }
     
-        const originalRow = sourceSheet.getRow(9); // Row 9 is the template row to copy
+        const originalRow = sourceSheet.getRow(9);
         const startRow = 9;
     
         console.log("Paginated Details :", selectedRows, selectedRows.length);
-
+    
         selectedRows.sort((a, b) => {
           const nameA = a.participantInfo.name.trim().toLowerCase();
           const nameB = b.participantInfo.name.trim().toLowerCase();
-          return nameA.localeCompare(nameB); // Compare names alphabetically
+          return nameA.localeCompare(nameB);
         });
     
         selectedRows.forEach((detail, index) => {
-          console.log("Paginated Detail1",  detail);
-         // console.log("Date Of Birth:", detail.participantInfo.dateOfBirth);
+          console.log("Paginated Detail1", detail);
+          
           if (detail.courseInfo.courseType === "NSA") {
             const rowIndex = startRow + index;
             const newDataRow = sourceSheet.getRow(rowIndex);
             newDataRow.height = originalRow.height;
     
-            // Populate cells with data from `detail`
+            // NSA specific population logic
             sourceSheet.getCell(`A${rowIndex}`).value = rowIndex - startRow + 1;
             sourceSheet.getCell(`B${rowIndex}`).value = detail.participantInfo.name;
             sourceSheet.getCell(`C${rowIndex}`).value = detail.participantInfo.nric;
             sourceSheet.getCell(`D${rowIndex}`).value = detail.participantInfo.residentialStatus.substring(0, 2);
     
-            //console.log("Date of birth:", detail.participantInfo.name, detail?.participantInfo?.dateOfBirth.split("/"));
             const dob = detail?.participantInfo?.dateOfBirth;
-
             if (dob) {
-                const [day, month, year] = dob.split("/");
-                sourceSheet.getCell(`E${rowIndex}`).value = day.trim();
+              const [day, month, year] = dob.split("/");
+              sourceSheet.getCell(`E${rowIndex}`).value = day.trim();
               sourceSheet.getCell(`F${rowIndex}`).value = month.trim();
-              sourceSheet.getCell(`G${rowIndex}`).value = year.trim()
+              sourceSheet.getCell(`G${rowIndex}`).value = year.trim();
             }
     
             sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.gender.split(" ")[0];
@@ -1094,10 +1114,11 @@ class RegistrationPaymentSection extends Component {
             let educationValue = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
             console.log("Before Education Level:", educationValue);
             if (educationValue === "Master's Degree") {
-                educationValue = "Masters/Doctorate";                      
+              educationValue = "Masters/Doctorate";
             }
             console.log("After Education Level:", educationValue);
-            sourceSheet.getCell(`M${rowIndex}`).value = educationValue
+            sourceSheet.getCell(`M${rowIndex}`).value = educationValue;
+            
             const workParts = detail.participantInfo.workStatus.split(" ");
             sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
     
@@ -1105,22 +1126,22 @@ class RegistrationPaymentSection extends Component {
             let courseChiName = detail.courseInfo.courseChiName;
             let courseCode = this.ecssChineseCourseCode(courseChiName) || this.ecssEnglishCourseCode(courseEngName);
             sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
+            
             let courseName = courseChiName || courseEngName;
             let languages = courseName.split("–").pop().trim();
             console.log("Course Name111111:", courseName);
             if (!((languages === "English") || (languages === "Mandarin"))) {
-              // If "English" or "Mandarin" is not in the course name, don't split
               sourceSheet.getCell(`P${rowIndex}`).value = courseName.trim();
             } else {
-              // Otherwise, split by "–" and assign the first part
               sourceSheet.getCell(`P${rowIndex}`).value = courseName.split("–")[0].trim();
             }
-            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;  
-            let priceStr = detail.courseInfo.coursePrice; // e.g., "$12.34"
-            let numericValue = parseFloat(priceStr.replace('$', ''))// Step 2: Multiply by 5
+            
+            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;
+            let priceStr = detail.courseInfo.coursePrice;
+            let numericValue = parseFloat(priceStr.replace('$', ''));
             let multiplied = numericValue * 5;
             let formattedPrice = `$${multiplied.toFixed(2)}`;
-            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;        
+            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;
     
             const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
             sourceSheet.getCell(`S${rowIndex}`).value = this.convertDateFormat1(startDate);
@@ -1137,82 +1158,53 @@ class RegistrationPaymentSection extends Component {
               const newCell = newDataRow.getCell(colNumber);
               newCell.style = cell.style;
             });
-          }
-          else if (detail.courseInfo.courseType === "ILP") {
+    
+          } else if (detail.courseInfo.courseType === "ILP") {
             const rowIndex = startRow + index;
             const newDataRow = sourceSheet.getRow(rowIndex);
             newDataRow.height = originalRow.height;
-
-            sourceSheet.getColumn('Q').hidden = true;
-            sourceSheet.getColumn('R').hidden = true;
-            sourceSheet.getColumn('S').hidden = true;
-            sourceSheet.getColumn('O').hidden = true;
-            sourceSheet.getColumn('V').hidden = true;
-            sourceSheet.getColumn('W').hidden = true;
-            sourceSheet.getColumn('X').hidden = true;
-            sourceSheet.getColumn('Y').hidden = true;
-            sourceSheet.getColumn('Z').hidden = true;
-            sourceSheet.getColumn('AD').hidden = true;
     
-            // Populate cells with data from `detail`
+            // ILP specific population logic
             sourceSheet.getCell(`A${rowIndex}`).value = rowIndex - startRow + 1;
-            sourceSheet.getCell(`B${rowIndex}`).value = detail.participantInfo.name;
+           sourceSheet.getCell(`B${rowIndex}`).value = detail.participantInfo.name;
             sourceSheet.getCell(`C${rowIndex}`).value = detail.participantInfo.nric;
             sourceSheet.getCell(`D${rowIndex}`).value = detail.participantInfo.residentialStatus.substring(0, 2);
     
-            //console.log("Date of birth:", detail.participantInfo.name, detail?.participantInfo?.dateOfBirth.split("/"));
             const dob = detail?.participantInfo?.dateOfBirth;
-
             if (dob) {
-                const [day, month, year] = dob.split("/");
-                sourceSheet.getCell(`E${rowIndex}`).value = day.trim();
-              sourceSheet.getCell(`F${rowIndex}`).value = month.trim();
-              sourceSheet.getCell(`G${rowIndex}`).value = year.trim()
+              const [day, month, year] = dob.split("/");
+              sourceSheet.getCell(`E${rowIndex}`).value = year.trim();
             }
     
-            sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.gender.split(" ")[0];
-            sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.race.split(" ")[0][0];
-            sourceSheet.getCell(`J${rowIndex}`).value = detail.participantInfo.contactNumber;
-            sourceSheet.getCell(`K${rowIndex}`).value = detail.participantInfo.email;
-            sourceSheet.getCell(`L${rowIndex}`).value = detail.participantInfo.postalCode;
+            sourceSheet.getCell(`F${rowIndex}`).value = detail.participantInfo.gender.split(" ")[0];
+            sourceSheet.getCell(`G${rowIndex}`).value = detail.participantInfo.race.split(" ")[0][0];
+            sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.contactNumber;
+            sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.email;
     
             const educationParts = detail.participantInfo.educationLevel.split(" ");
             let educationValue = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
             console.log("Before Education Level:", educationValue);
             if (educationValue === "Master's Degree") {
-                educationValue = "Masters/Doctorate";                      
+              educationValue = "Masters/Doctorate";
             }
             console.log("After Education Level:", educationValue);
-            sourceSheet.getCell(`M${rowIndex}`).value = educationValue
-            const workParts = detail.participantInfo.workStatus.split(" ");
-            sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
+            sourceSheet.getCell(`J${rowIndex}`).value = educationValue;
     
             let courseEngName = detail.courseInfo.courseEngName;
             let courseChiName = detail.courseInfo.courseChiName;
-            let courseCode = this.ecssChineseCourseCode(courseChiName) || this.ecssEnglishCourseCode(courseEngName);
-            sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
-           if (courseChiName && courseChiName.trim()) {
-            sourceSheet.getCell(`P${rowIndex}`).value = courseChiName.trim() + "\n" + courseEngName.trim();
+            
+            if (courseChiName && courseChiName.trim()) {
+              sourceSheet.getCell(`K${rowIndex}`).value = courseChiName.trim() + "\n" + courseEngName.trim();
             } else {
-                sourceSheet.getCell(`P${rowIndex}`).value = courseEngName.trim();
+              sourceSheet.getCell(`K${rowIndex}`).value = courseEngName.trim();
             }
-            sourceSheet.getCell(`P${rowIndex}`).value = courseChiName.trim() + "\n" + courseEngName.trim();
-            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;
-            let priceStr = detail.courseInfo.coursePrice; // e.g., "$12.34"
-            let numericValue = parseFloat(priceStr.replace('$', ''))// Step 2: Multiply by 5
-            let multiplied = numericValue * 5;
-            let formattedPrice = `$${multiplied.toFixed(2)}`;
-            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;        
+            
+            sourceSheet.getCell(`L${rowIndex}`).value = detail.courseInfo.coursePrice;
     
             const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
-            sourceSheet.getCell(`S${rowIndex}`).value = this.convertDateFormat1(startDate);
-            sourceSheet.getCell(`T${rowIndex}`).value = this.convertDateFormat1(endDate);
-            sourceSheet.getCell(`U${rowIndex}`).value = detail.courseInfo.courseMode === "Face-to-Face" ? "F2F" : detail.courseInfo.courseMode;
-    
-            sourceSheet.getCell(`W${rowIndex}`).value = detail.courseInfo.coursePrice;
-            sourceSheet.getCell(`X${rowIndex}`).value = detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment;
-            sourceSheet.getCell(`AD${rowIndex}`).value = detail.officialInfo.receiptNo;
-            sourceSheet.getCell(`V${rowIndex}`).value = detail.courseInfo.courseLocation === "Pasir Ris West Wellness Centre" ? "510605," : "";
+            sourceSheet.getCell(`M${rowIndex}`).value = this.convertDateFormat1(startDate);
+            sourceSheet.getCell(`N${rowIndex}`).value = this.convertDateFormat1(endDate);
+            sourceSheet.getCell(`O${rowIndex}`).value = detail.courseInfo.courseMode === "Face-to-Face" ? "F2F" : detail.courseInfo.courseMode;
     
             // Copy styles from the original row
             originalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -1222,21 +1214,39 @@ class RegistrationPaymentSection extends Component {
           }
         });
 
-
-        let total = selectedRows.reduce((sum, item) => {
-          let priceStr = item?.courseInfo?.coursePrice || "$0";
-          let numeric = parseFloat(priceStr.replace('$', ''));
-        
-          // If parseFloat fails and returns NaN, fallback to 0
-          return sum + (isNaN(numeric) ? 0 : numeric);
-        }, 0);
-        
-        let formattedTotal = `$${total.toFixed(2)}`;
-        
-        sourceSheet.getCell(`R5`).value = formattedTotal;
-
-       // Create new file name and sav
-        const originalFileName = `OSG NSA List of participants (20350401) as of ${this.getCurrentDateTime()}.xlsx`
+        if (courseType === "ILP") 
+        {
+          sourceSheet.getCell('B5').value = this.props.userName;
+          sourceSheet.getCell('D5').value = "Programme Executive";
+                // Set phone number in F5 based on course location (without spaces)
+          const firstLocation = selectedRows[0]?.courseInfo?.courseLocation;
+          let phoneNumber = "";
+          
+          if (firstLocation) {
+            switch (firstLocation) {
+              case "Pasir Ris West Wellness Centre":
+                phoneNumber = "9152 0433";
+                break;
+              case "Tampines North Community Centre":
+                phoneNumber = "8200 0755";
+                break;
+              case "CT Hub":
+                phoneNumber = "9012 3174";
+                break;
+              case "Tampines 253 Centre":
+                phoneNumber = "8909 9584";
+                break;
+              default:
+                phoneNumber = "";
+            }
+          }
+          sourceSheet.getCell('F5').value = phoneNumber;
+        }
+  
+    
+        // Create new file name and save
+        const courseName = selectedRows[0]?.courseInfo?.courseEngName || "Unknown Course";
+        const originalFileName = `OSG ${courseType} - ${courseName} LOP as of ${this.getCurrentDateTime()}.xlsx`;
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -1244,49 +1254,14 @@ class RegistrationPaymentSection extends Component {
     
         // Trigger download
         saveAs(blob, originalFileName);
+        
       } catch (error) {
         console.error("Error exporting LOP:", error);
         this.props.warningPopUpMessage("An error occurred during export.");
       }
-    };  
+    };
 
-
-    /*ecssCourseCode(course) {
-        //The Rest Note of Life – Mandarin 14-Feb
-        course = course.trim();
-        console.log("Course Name111: ", course);
-    
-        //Therapeutic Basic Line Work
-        const courseMap = {
-            "TCM – Don’t be a friend of Chronic Diseases": "ECSS-CBO-M-016C",
-            "Nagomi Pastel Art Basic": "ECSS-CBO-M-019C",
-            "Therapeutic Watercolour Painting for Beginners": "ECSS-CBO-M-024E",
-            "Chinese Calligraphy Intermediate": "ECSS-CBO-M-021C",
-            "Chinese Calligraphy Basic": "ECSS-CBO-M-020C",
-            "Nagomi Pastel Art Appreciation": "ECSS-CBO-M-018C",
-            "Community Ukulele – Mandarin": "ECSS-CBO-M-004C",
-            "Community Singing – Mandarin": "ECSS-CBO-M-003C",
-            "Self-Care TCM Wellness – Mandarin": "ECSS-CBO-M-001C",
-            "Hanyu Pinyin for Beginners": "ECSS-CBO-M-011C",
-            "The Rest Note of Life – Mandarin": "ECSS-CBO-M-023C",
-            "TCM Diet & Therapy": "ECSS-CBO-M-010C",
-            "Therapeutic Basic Line Work": "ECSS-CBO-M-030E",
-            "Healthy Minds, Healthy Lives – Mandarin": "ECSS-CBO-M-028C",
-            "Smartphone Photography": "ECSS-CBO-M-038C",
-            "Art of Positive Communication builds happy homes": "ECSS-CBO-M-031C"
-            //Healthy Minds, Healthy Lives – Mandarin
-        };
-
-        // Check for exact match
-        if (courseMap[course]) {
-            return courseMap[course];
-        }
-    
-        // If no match, return a default value
-        return "";
-      }*/
-
-      ecssChineseCourseCode(course) {
+    ecssChineseCourseCode(course) {
           if (!course) return "";
           course = course.trim();
       
