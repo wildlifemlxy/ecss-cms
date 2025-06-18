@@ -14,7 +14,7 @@ class FormDetailsSection extends Component {
               活跃乐龄理事会，简称（C3A）成立于2007年5月，本理事会提倡活跃乐龄的理念，让我国的乐龄人士过积极与正面的晚年生活。活跃乐龄理事会把终身学习，活跃乐龄和强化乐龄义工会理念三大领域作为重任，理事会在乐龄工作上起了引领带动的作用。活跃乐龄理事会（C3A）被委任为全国乐龄学苑课程的行政机构。
             </p>
             <p className="description">
-                By submitting this form, I agree that En Community Services Society and AIC may collect, use and disclose my personal data, as provided in this form, in accordance with En Community Services Society’s Data Protection Policy and AIC’s Data Protection Policy (https://www.aic.sg/data-protection-policy) 
+                By submitting this form, I agree that En Community Services Society and AIC may collect, use and disclose my personal data, as provided in this form, in accordance with En Community Services Society’s Data Protection Policy and AIC’s Data Protection Policy (<a href="https://www.aic.sg/data-protection-policy">https://www.aic.sg/data-protection-policy</a>) 
                 Do note that photographs and videos may be taken during the course for publicity purposes
             </p>
             {
