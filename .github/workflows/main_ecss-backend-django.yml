@@ -65,9 +65,7 @@ jobs:
           if [ -f manage.py ]; then
             python manage.py test --verbosity=2 || echo "Tests skipped or failed"
           fi
-        continue-on-error: true
-
-      - name: Zip artifact for deployment
+        continue-on-error: true      - name: Zip artifact for deployment
         run: |
           # Create deployment package excluding unnecessary files
           zip -r release.zip djangoPython \
@@ -87,9 +85,36 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_22BDF8F60B124137A56F942213EAB1D3 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1F917677349441DF9FFD4FFAA1773557 }}
 
+      - name: Stop Azure Web App (prevent conflicts)
+        run: |
+          az webapp stop --name ecss-backend-django --resource-group $(az webapp show --name ecss-backend-django --query resourceGroup -o tsv)
+        continue-on-error: true
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
           package: release.zip
+          clean: true
+        timeout-minutes: 10
+
+      - name: Start Azure Web App
+        run: |
+          az webapp start --name ecss-backend-django --resource-group $(az webapp show --name ecss-backend-django --query resourceGroup -o tsv)
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for app to start..."
+          sleep 30
+          
+          # Check if the app is responding
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-django.azurewebsites.net || echo "000")
+          
+          if [ "$response" -eq 200 ] || [ "$response" -eq 301 ] || [ "$response" -eq 302 ]; then
+            echo "✅ Deployment successful! App is responding with HTTP $response"
+          else
+            echo "⚠️ App deployed but may not be fully ready. HTTP response: $response"
+            echo "App logs (last 100 lines):"
+            az webapp log tail --name ecss-backend-django --resource-group $(az webapp show --name ecss-backend-django --query resourceGroup -o tsv) --provider application --verbosity verbose || true
+          fi
