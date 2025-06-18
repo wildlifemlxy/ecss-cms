@@ -62,24 +62,46 @@ jobs:
             python manage.py collectstatic --noinput --clear || echo "Static files collection skipped"
           fi
 
+      - name: Run Django tests (optional)
+        run: |
+          source venv/bin/activate
+          cd djangoPython
+          if [ -f manage.py ]; then
+            python manage.py check --deploy || echo "Django checks completed with warnings"
+          fi
+
       - name: Create deployment package
         run: |
-          # Create a deployment package with the Django application
+          # Create a clean deployment directory
+          rm -rf deployment_package
           mkdir -p deployment_package
           
-          # Copy the Django application files
+          # Copy Django application files (flatten the structure)
           cp -r djangoPython/* deployment_package/
           
-          # Copy virtual environment dependencies (if needed)
-          # Note: Azure App Service will install from requirements.txt
+          # Make sure requirements.txt is in the root
+          if [ -f deployment_package/requirements.txt ]; then
+            echo "✓ requirements.txt found in deployment package"
+          else
+            echo "✗ requirements.txt not found - copying from djangoPython/"
+            cp djangoPython/requirements.txt deployment_package/ 2>/dev/null || echo "No requirements.txt found"
+          fi
           
-          # Create the zip package
+          # Remove unnecessary files
+          find deployment_package -name "*.pyc" -delete
+          find deployment_package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+          find deployment_package -name "*.git*" -delete 2>/dev/null || true
+          find deployment_package -name ".DS_Store" -delete 2>/dev/null || true
+          
+          # Create the deployment zip
           cd deployment_package
-          zip -r ../release.zip . -x "*.pyc" "*/__pycache__/*" "*.git*"
+          zip -r ../release.zip . -x "*.DS_Store*"
           cd ..
           
-          echo "Deployment package created: release.zip"
-          ls -la release.zip
+          echo "✓ Deployment package created successfully"
+          echo "Package size: $(du -h release.zip | cut -f1)"
+          echo "Main files in package:"
+          unzip -l release.zip | grep -E "(manage.py|wsgi.py|requirements.txt|settings.py)" || echo "Core files check completed"
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -94,4 +116,44 @@ jobs:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
           package: release.zip
+
+      - name: Configure Azure App Service
+        run: |
+          # First, clear any problematic app settings
+          echo "Clearing problematic app settings..."
+          az webapp config appsettings delete \
+            --resource-group ecss-backend-django \
+            --name ecss-backend-django \
+            --setting-names "SCM_DO_BUILD_DURING_DEPLOYMENT" "WEBSITE_RUN_FROM_PACKAGE" || true
+          
+          # Set essential Django environment variables
+          az webapp config appsettings set \
+            --resource-group ecss-backend-django \
+            --name ecss-backend-django \
+            --settings \
+              "DJANGO_SETTINGS_MODULE=djangoPython.settings" \
+              "PYTHONPATH=/home/site/wwwroot" \
+              "WEBSITE_SKIP_AUTOCONFIGURE=1"
+          
+          # Set a clean startup command
+          az webapp config set \
+            --resource-group ecss-backend-django \
+            --name ecss-backend-django \
+            --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 --workers=4 djangoPython.wsgi"
+          
+          # Ensure Python 3.12 is set
+          az webapp config set \
+            --resource-group ecss-backend-django \
+            --name ecss-backend-django \
+            --linux-fx-version "PYTHON|3.12"
+          
+          echo "✓ Azure App Service configuration completed"
+          
+          # Restart the app to apply changes
+          echo "Restarting app service..."
+          az webapp restart \
+            --resource-group ecss-backend-django \
+            --name ecss-backend-django
+          
+          echo "✓ App service restarted"
         
