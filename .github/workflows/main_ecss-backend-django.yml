@@ -6,15 +6,12 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  PIP_ROOT_USER_ACTION: ignore
-
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      id-token: write
+      contents: read  # Required for actions/checkout
+      id-token: write  # Required for Azure login
 
     environment:
       name: 'Production'
@@ -23,119 +20,83 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 2  # Fetch the last 2 commits to compare
+
+      #- name: Fetch previous commit (before push)
+      #  run: |
+      #    # Fetch the last 2 commits to ensure we have the previous commit available
+      #    git fetch origin main --depth=2
+      #    echo "Before push commit:"
+      #    git log --oneline -n 2  # Show the last 2 commits
+
+      #- name: Check for changes in djangoPython folder
+      #  id: check_changes_djangoPython
+      #  run: |
+      #    previous_commit=$(git rev-parse HEAD~1)
+      #    changes=$(git diff --name-only $previous_commit HEAD -- djangoPython)
+      #    if [ -z "$changes" ]; then
+      #      echo "No changes detected in djangoPython folder."
+      #      echo "::set-output name=djangoPython_changed::false"
+      #    else
+      #      echo "Changes detected in djangoPython folder."
+      #      echo "::set-output name=djangoPython_changed::true"
+      #    fi
+
+      #- name: Check for changes in requirements.txt
+      #  id: check_changes_requirements
+      #  run: |
+      #    previous_commit=$(git rev-parse HEAD~1)
+      #    changes=$(git diff --name-only $previous_commit HEAD -- requirements.txt)
+      #    if [ -z "$changes" ]; then
+      #      echo "No changes detected in requirements.txt."
+      #      echo "::set-output name=requirements_changed::false"
+      #    else
+      #      echo "Changes detected in requirements.txt."
+      #      echo "::set-output name=requirements_changed::true"
+      #    fi
+
+      #- name: Check for changes in venv folder
+      #  id: check_changes_venv
+      #  run: |
+      #    previous_commit=$(git rev-parse HEAD~1)
+      #    changes=$(git diff --name-only $previous_commit HEAD -- venv)
+      #    if [ -z "$changes" ]; then
+      #      echo "No changes detected in venv folder."
+      #      echo "::set-output name=venv_changed::false"
+      #    else
+      #      echo "Changes detected in venv folder."
+      #      echo "::set-output name=venv_changed::true"
+      #    fi
+
+      #- name: Determine if deployment is needed
+      #  id: determine_deployment
+      #  run: |
+      #    if [[ "${{ steps.check_changes_djangoPython.outputs.djangoPython_changed }}" == "true" || \
+      #          "${{ steps.check_changes_requirements.outputs.requirements_changed }}" == "true" || \
+      #          "${{ steps.check_changes_venv.outputs.venv_changed }}" == "true" ]]; then
+      #      echo "Changes detected, proceeding with deployment."
+      #      echo "::set-output name=deploy::true"
+      #    else
+      #      echo "No relevant changes detected, skipping deployment."
+      #      echo "::set-output name=deploy::false"
+      #    fi
 
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'
-          cache-dependency-path: 'djangoPython/requirements.txt'
-
-      - name: Create virtual environment
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          echo "VIRTUAL_ENV=venv" >> $GITHUB_ENV
-          echo "venv/bin" >> $GITHUB_PATH
+        #if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Install dependencies
         run: |
-          source venv/bin/activate
           pip install --upgrade pip
-          if [ -f djangoPython/requirements.txt ]; then
-            echo "Installing from djangoPython/requirements.txt"
-            pip install -r djangoPython/requirements.txt
-          elif [ -f requirements.txt ]; then
-            echo "Installing from root requirements.txt"
-            pip install -r requirements.txt
-          else
-            echo "No requirements.txt found. Installing minimal Django setup..."
-            pip install Django djangorestframework django-cors-headers gunicorn
-          fi
+          pip install -r requirements.txt
+        #if: steps.determine_deployment.outputs.deploy == 'true'
 
-      - name: Collect static files
+      - name: Zip artifact for deployment
         run: |
-          source venv/bin/activate
-          cd djangoPython
-          if [ -f manage.py ]; then
-            python manage.py collectstatic --noinput --clear || echo "Static files collection skipped"
-          fi
-
-      - name: Run Django tests (optional)
-        run: |
-          source venv/bin/activate
-          cd djangoPython
-          if [ -f manage.py ]; then
-            python manage.py check --deploy || echo "Django checks completed with warnings"
-          fi
-
-      - name: Create deployment package
-        run: |
-          # Create a clean deployment directory
-          rm -rf deployment_package
-          mkdir -p deployment_package
-          
-          # Copy Django application files (flatten the structure)
-          cp -r djangoPython/* deployment_package/
-          
-          # Ensure requirements.txt is in the root
-          if [ -f deployment_package/requirements.txt ]; then
-            echo "✓ requirements.txt found in deployment package"
-          else
-            echo "✗ requirements.txt not found - copying from djangoPython/"
-            cp djangoPython/requirements.txt deployment_package/ 2>/dev/null || echo "No requirements.txt found"
-          fi
-          
-          # Create startup.sh with proper Azure App Service configuration
-          cat > deployment_package/startup.sh << 'STARTUP_EOF'
-          #!/bin/bash
-          echo "=== Django Application Startup ==="
-          echo "Working directory: $(pwd)"
-          echo "Python version: $(python --version)"
-          
-          # Set environment variables
-          export DJANGO_SETTINGS_MODULE=djangoPython.settings
-          export PYTHONPATH=/home/site/wwwroot
-          
-          # Change to application directory
-          cd /home/site/wwwroot
-          
-          # Apply database migrations if needed
-          python manage.py migrate --noinput 2>/dev/null || echo "Migration skipped"
-          
-          # Collect static files if needed
-          python manage.py collectstatic --noinput 2>/dev/null || echo "Static files skipped"
-          
-          # Start Gunicorn
-          echo "Starting Gunicorn server..."
-          exec python -m gunicorn \
-            --bind=0.0.0.0:8000 \
-            --workers=4 \
-            --timeout=600 \
-            --access-logfile='-' \
-            --error-logfile='-' \
-            --log-level=info \
-            djangoPython.wsgi:application
-          STARTUP_EOF
-          
-          chmod +x deployment_package/startup.sh
-          
-          # Remove unnecessary files
-          find deployment_package -name "*.pyc" -delete
-          find deployment_package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-          find deployment_package -name "*.git*" -delete 2>/dev/null || true
-          find deployment_package -name ".DS_Store" -delete 2>/dev/null || true
-          
-          # Create the deployment zip
-          cd deployment_package
-          zip -r ../release.zip . -x "*.DS_Store*"
-          cd ..
-          
-          echo "✓ Deployment package created successfully"
-          echo "Package size: $(du -h release.zip | cut -f1)"
-          echo "Key files in package:"
-          unzip -l release.zip | head -20
+          zip -r release.zip djangoPython -x "djangoPython/venv/*"
+        #if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -143,6 +104,7 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DB1EDA88A3DA4E8D846F3C3D5AB12A22 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_22BDF8F60B124137A56F942213EAB1D3 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1F917677349441DF9FFD4FFAA1773557 }}
+        #if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -150,28 +112,4 @@ jobs:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
           package: release.zip
-
-      - name: Verify deployment
-        run: |
-          echo "✓ Deployment completed successfully"
-          echo ""
-          echo "🚨 IMPORTANT: Manual configuration required in Azure Portal"
-          echo "The app is currently failing because Azure has a custom startup command."
-          echo ""
-          echo "TO FIX THE APPLICATION ERROR:"
-          echo "1. Go to Azure Portal > App Services > ecss-backend-django"
-          echo "2. Navigate to Configuration > General Settings"
-          echo "3. CLEAR the 'Startup Command' field (make it empty)"
-          echo "4. Set 'Stack': Python"
-          echo "5. Set 'Major Version': 3.12"  
-          echo "6. Click 'Save'"
-          echo "7. Go to Configuration > Application Settings"
-          echo "8. Add these settings:"
-          echo "   - DJANGO_SETTINGS_MODULE = djangoPython.settings"
-          echo "   - PYTHONPATH = /home/site/wwwroot"
-          echo "   - WEBSITE_SKIP_AUTOCONFIGURE = 1"
-          echo "9. Click 'Save' and restart the app"
-          echo ""
-          echo "After this, Azure will use the startup.sh file in your deployment."
-          echo "App URL: https://ecss-backend-django.azurewebsites.net"
-        
+        #if: steps.determine_deployment.outputs.deploy == 'true'
