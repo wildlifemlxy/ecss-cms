@@ -1,81 +1,30 @@
 #!/bin/bash
-set -e
+# Azure App Service startup script for Django
+# This file tells Azure exactly how to start our Django application
 
-echo "=== Django Application Startup ==="
+echo "=== Custom Startup Script ==="
 echo "Working directory: $(pwd)"
 echo "Python version: $(python --version)"
-echo "Date: $(date)"
 
 # Set environment variables
 export DJANGO_SETTINGS_MODULE=djangoPython.settings
 export PYTHONPATH=/home/site/wwwroot
+export PYTHONUNBUFFERED=1
+
+# Get the port from Azure
 export PORT=${PORT:-8000}
 
-echo "Environment variables set:"
-echo "  DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE"
-echo "  PYTHONPATH=$PYTHONPATH"
-echo "  PORT=$PORT"
-
-# Change to the correct directory
-cd /home/site/wwwroot
-
-echo "Changed to: $(pwd)"
-echo "Files in current directory:"
-ls -la
-
-# Check if Django is installed, if not install dependencies
-echo "Checking if Django is installed..."
-python -c "import django; print(f'Django version: {django.get_version()}')" 2>/dev/null || {
-    echo "Django not found. Installing dependencies from requirements.txt..."
-    if [ -f "requirements.txt" ]; then
-        pip install -r requirements.txt --user --no-cache-dir
-        echo "✓ Dependencies installed successfully"
-    else
-        echo "⚠️ requirements.txt not found"
-    fi
-}
-
-# Verify Django installation
-python -c "import django; print(f'✓ Django {django.get_version()} is available')" || {
-    echo "❌ Django installation failed"
-    exit 1
-}
-
-# Check if manage.py exists
-if [ -f "manage.py" ]; then
-    echo "✓ Found manage.py"
-    
-    # Run Django check
-    echo "Running Django check..."
-    python manage.py check --deploy || echo "Check completed with warnings"
-    
-    # Run migrations (with error handling)
-    echo "Running database migrations..."
-    python manage.py migrate --noinput || echo "⚠️ Migrations failed or skipped"
-    
-    # Collect static files (with error handling)
-    echo "Collecting static files..."
-    python manage.py collectstatic --noinput || echo "⚠️ Static files collection failed or skipped"
-else
-    echo "⚠️ manage.py not found in $(pwd)"
-    echo "Available files:"
-    find . -name "manage.py" 2>/dev/null || echo "No manage.py found anywhere"
-    echo "Proceeding with Gunicorn startup anyway..."
-fi
-
-# Start Gunicorn
-echo "Starting Gunicorn server on 0.0.0.0:$PORT..."
+echo "Starting Django with Gunicorn..."
 echo "WSGI module: djangoPython.wsgi:application"
-echo "Workers: 4, Timeout: 600s"
+echo "Port: $PORT"
 
+# Start Gunicorn with the correct WSGI module
 exec gunicorn \
     --bind=0.0.0.0:$PORT \
-    --workers=4 \
-    --timeout=600 \
-    --access-logfile='-' \
-    --error-logfile='-' \
+    --workers=2 \
+    --timeout=120 \
+    --access-logfile=- \
+    --error-logfile=- \
     --log-level=info \
-    --preload \
-    --capture-output \
     djangoPython.wsgi:application
     djangoPython.wsgi:application

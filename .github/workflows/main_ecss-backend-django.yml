@@ -55,9 +55,36 @@ jobs:
           # Copy Django application files (flatten the structure)
           cp -r djangoPython/* deployment_package/
           
-          # Copy installed packages to deployment
-          echo "Copying Python packages..."
-          cp -r venv/lib/python*/site-packages/* deployment_package/ 2>/dev/null || echo "Package copy skipped"
+          # Create a proper site-packages directory structure
+          mkdir -p deployment_package/.python_packages/lib/python3.13/site-packages
+          
+          # Copy installed packages to the proper location
+          echo "Copying Python packages to .python_packages..."
+          cp -r venv/lib/python*/site-packages/* deployment_package/.python_packages/lib/python3.13/site-packages/ 2>/dev/null || echo "Package copy skipped"
+          
+          # Create a custom startup script that sets the Python path correctly
+          cat > deployment_package/azure_startup.sh << 'EOF'
+#!/bin/bash
+echo "=== Azure Django Startup ==="
+export PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/.python_packages/lib/python3.13/site-packages:$PYTHONPATH"
+export DJANGO_SETTINGS_MODULE=djangoPython.settings
+export PYTHONUNBUFFERED=1
+export PORT=${PORT:-8000}
+
+echo "Python path: $PYTHONPATH"
+echo "Starting Gunicorn with djangoPython.wsgi:application"
+
+exec gunicorn \
+    --bind=0.0.0.0:$PORT \
+    --workers=2 \
+    --timeout=120 \
+    --access-logfile=- \
+    --error-logfile=- \
+    --log-level=info \
+    djangoPython.wsgi:application
+EOF
+          
+          chmod +x deployment_package/azure_startup.sh
           
           # Remove unnecessary files
           find deployment_package -name "*.pyc" -delete
