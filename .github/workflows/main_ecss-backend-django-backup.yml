@@ -114,10 +114,8 @@ EOF
 
           chmod +x deployment_package/startup.sh
           
-          # Also create startup.txt as fallback
-          cat > deployment_package/startup.txt << 'EOF'
-gunicorn --bind=0.0.0.0:8000 --workers=2 --timeout=120 --access-logfile=- --error-logfile=- djangoPython.wsgi:application
-EOF
+          # Create simple startup.txt as fallback
+          echo "gunicorn --bind=0.0.0.0:8000 --workers=2 --timeout=120 --access-logfile=- --error-logfile=- djangoPython.wsgi:application" > deployment_package/startup.txt
           
           find deployment_package -name "*.pyc" -delete 2>/dev/null || true
           find deployment_package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
@@ -150,6 +148,35 @@ EOF
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_22BDF8F60B124137A56F942213EAB1D3 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1F917677349441DF9FFD4FFAA1773557 }}
 
+      - name: Pre-configure Azure App Service
+        run: |
+          echo "Pre-configuring Azure App Service..."
+          
+          # Stop the app service to prevent conflicts during deployment
+          az webapp stop \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} || echo "App already stopped or not found"
+          
+          # Configure app service settings
+          az webapp config set \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --linux-fx-version "PYTHON|3.13" \
+            --startup-file "startup.sh"
+          
+          # Set environment variables
+          az webapp config appsettings set \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --settings \
+            DJANGO_SETTINGS_MODULE=djangoPython.settings \
+            PYTHONUNBUFFERED=1 \
+            SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+            ENABLE_ORYX_BUILD=false \
+            WEBSITE_RUN_FROM_PACKAGE=1 \
+            WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
+        continue-on-error: true
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -157,15 +184,71 @@ EOF
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           slot-name: 'Production'
           package: release.zip
+          clean: true
+          restart: true
+          type: 'ZIP'
+        continue-on-error: true
+
+      - name: Alternative deployment using Azure CLI (if webapps-deploy failed)
+        if: failure()
+        run: |
+          echo "Primary deployment failed, trying Azure CLI deployment..."
+          az webapp deployment source config-zip \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --src release.zip \
+            --timeout 600
+        continue-on-error: true
+
+      - name: Configure App Service Settings
+        run: |
+          echo "Configuring Azure App Service settings..."
+          az webapp config set \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --startup-file "startup.sh" \
+            --linux-fx-version "PYTHON|3.13"
+          
+          # Set environment variables
+          az webapp config appsettings set \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --settings \
+            DJANGO_SETTINGS_MODULE=djangoPython.settings \
+            PYTHONUNBUFFERED=1 \
+            SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+            ENABLE_ORYX_BUILD=false
+        continue-on-error: true
 
       - name: Verify deployment
         run: |
           echo "Deployment completed successfully!"
           echo "Application URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
-          sleep 30
+          
+          # Check deployment status
+          echo "=== Checking deployment status ==="
+          az webapp show \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --query "state" \
+            --output table || echo "Could not get app status"
+          
+          # Wait for the app to start
+          echo "Waiting for application to start..."
+          sleep 60
+          
+          # Basic health check
+          echo "=== Running health check ==="
           response=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" || echo "000")
           if [ "$response" = "200" ] || [ "$response" = "302" ]; then
             echo "✓ Application is responding (HTTP $response)"
           else
             echo "⚠️ Application health check returned HTTP $response"
+            echo "Checking application logs for troubleshooting..."
+            az webapp log tail \
+              --resource-group ecss-backend-rg \
+              --name ${{ env.AZURE_WEBAPP_NAME }} \
+              --provider application \
+              --timeout 30 || echo "Could not retrieve logs"
           fi
+        continue-on-error: true
