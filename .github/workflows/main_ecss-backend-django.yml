@@ -62,6 +62,25 @@ jobs:
             python manage.py collectstatic --noinput --clear || echo "Static files collection skipped"
           fi
 
+      - name: Create deployment package
+        run: |
+          # Create a deployment package with the Django application
+          mkdir -p deployment_package
+          
+          # Copy the Django application files
+          cp -r djangoPython/* deployment_package/
+          
+          # Copy virtual environment dependencies (if needed)
+          # Note: Azure App Service will install from requirements.txt
+          
+          # Create the zip package
+          cd deployment_package
+          zip -r ../release.zip . -x "*.pyc" "*/__pycache__/*" "*.git*"
+          cd ..
+          
+          echo "Deployment package created: release.zip"
+          ls -la release.zip
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
