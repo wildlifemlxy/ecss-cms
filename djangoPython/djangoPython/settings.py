@@ -22,17 +22,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-u=^cvw++1jd=0wwq6e2j*zo!i8f8z8o)o87v@c0ik^@ml8-6%b'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-u=^cvw++1jd=0wwq6e2j*zo!i8f8z8o)o87v@c0ik^@ml8-6%b')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 #ecss-backend-django-backup.azurewebsites.net
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'ecss-backend-django-backup.azurewebsites.net', 'ecss-backend-django.azurewebsites.net', 'ecss.org.sg', '169.254.130.2']
 
-WOOCOMMERCE_API_URL = 'https://ecss.org.sg/wp-json/wc/v3/'
-WOOCOMMERCE_CONSUMER_KEY= 'ck_be09fee650a20cf08d693e4fe88d340a8f2c63ec'
-WOOCOMMERCE_CONSUMER_SECRET = 'cs_37a64021bcb71424551c4c5a1f56ad7c5dc05dbb'
+WOOCOMMERCE_API_URL = os.environ.get('WOOCOMMERCE_API_URL', 'https://ecss.org.sg/wp-json/wc/v3/')
+WOOCOMMERCE_CONSUMER_KEY = os.environ.get('WOOCOMMERCE_CONSUMER_KEY', 'ck_be09fee650a20cf08d693e4fe88d340a8f2c63ec')
+WOOCOMMERCE_CONSUMER_SECRET = os.environ.get('WOOCOMMERCE_CONSUMER_SECRET', 'cs_37a64021bcb71424551c4c5a1f56ad7c5dc05dbb')
 
 
 # Application definition

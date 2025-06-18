@@ -10,8 +10,8 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # Required for actions/checkout
-      id-token: write  # Required for Azure login
+      contents: read
+      id-token: write
 
     environment:
       name: 'Production'
@@ -20,7 +20,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # Fetch the last 2 commits to compare
+          fetch-depth: 2
 
       - name: Set up Python version
         uses: actions/setup-python@v5
@@ -38,7 +38,6 @@ jobs:
         run: |
           source venv/bin/activate
           pip install --upgrade pip
-          # Check if requirements.txt exists in root or djangoPython directory
           if [ -f requirements.txt ]; then
             echo "Installing from root requirements.txt"
             pip install -r requirements.txt
@@ -50,7 +49,7 @@ jobs:
             pip install Django djangorestframework django-cors-headers
           fi
 
-      - name: Collect static files (if Django)
+      - name: Collect static files
         run: |
           source venv/bin/activate
           cd djangoPython
@@ -58,16 +57,18 @@ jobs:
             python manage.py collectstatic --noinput || echo "Static files collection skipped"
           fi
 
-      - name: Run Django tests (optional)
+      - name: Run Django tests
         run: |
           source venv/bin/activate
           cd djangoPython
           if [ -f manage.py ]; then
             python manage.py test --verbosity=2 || echo "Tests skipped or failed"
           fi
-        continue-on-error: true      - name: Zip artifact for deployment
+        continue-on-error: true
+
+      - name: Zip artifact for deployment
         run: |
-          # Create deployment package excluding unnecessary files
+          chmod +x djangoPython/startup.sh
           zip -r release.zip djangoPython \
             -x "djangoPython/venv/*" \
             -x "djangoPython/__pycache__/*" \
@@ -85,7 +86,7 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_22BDF8F60B124137A56F942213EAB1D3 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1F917677349441DF9FFD4FFAA1773557 }}
 
-      - name: Stop Azure Web App (prevent conflicts)
+      - name: Stop Azure Web App
         run: |
           az webapp stop --name ecss-backend-django --resource-group $(az webapp show --name ecss-backend-django --query resourceGroup -o tsv)
         continue-on-error: true
@@ -97,7 +98,31 @@ jobs:
           slot-name: 'Production'
           package: release.zip
           clean: true
-        timeout-minutes: 10
+        id: deploy_attempt_1
+        continue-on-error: true
+
+      - name: Wait and retry deployment
+        if: steps.deploy_attempt_1.outcome == 'failure'
+        run: |
+          echo "First deployment attempt failed. Waiting 60 seconds before retry..."
+          sleep 60
+
+      - name: Force stop any running deployments
+        if: steps.deploy_attempt_1.outcome == 'failure'
+        run: |
+          echo "Attempting to cancel any running deployments..."
+          az webapp deployment list-publishing-credentials --name ecss-backend-django --resource-group $(az webapp show --name ecss-backend-django --query resourceGroup -o tsv) || true
+          sleep 30
+        continue-on-error: true
+
+      - name: Deploy to Azure Web App (Retry)
+        if: steps.deploy_attempt_1.outcome == 'failure'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'ecss-backend-django'
+          slot-name: 'Production'
+          package: release.zip
+          clean: true
 
       - name: Start Azure Web App
         run: |
@@ -107,10 +132,7 @@ jobs:
         run: |
           echo "Waiting for app to start..."
           sleep 30
-          
-          # Check if the app is responding
           response=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-django.azurewebsites.net || echo "000")
-          
           if [ "$response" -eq 200 ] || [ "$response" -eq 301 ] || [ "$response" -eq 302 ]; then
             echo "✅ Deployment successful! App is responding with HTTP $response"
           else
