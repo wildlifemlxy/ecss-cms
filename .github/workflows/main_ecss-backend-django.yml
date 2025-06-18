@@ -41,13 +41,33 @@ jobs:
 
       - name: Zip artifact for deployment
         run: |
-          # Create deployment package
-          zip -r release.zip djangoPython \
-            -x "djangoPython/__pycache__/*" \
-            -x "djangoPython/*/__pycache__/*" \
-            -x "djangoPython/*/*/__pycache__/*" \
-            -x "djangoPython/.env" \
-            -x "djangoPython/db.sqlite3"
+          # Create a clean deployment directory
+          rm -rf deployment_package
+          mkdir -p deployment_package
+          
+          # Copy Django application files (flatten the structure)
+          cp -r djangoPython/* deployment_package/
+          
+          # Create a simple startup script
+          echo '#!/bin/bash' > deployment_package/startup.sh
+          echo 'echo "Starting Django application..."' >> deployment_package/startup.sh
+          echo 'export DJANGO_SETTINGS_MODULE=djangoPython.settings' >> deployment_package/startup.sh
+          echo 'export PYTHONPATH=/home/site/wwwroot' >> deployment_package/startup.sh
+          echo 'python manage.py migrate --noinput 2>/dev/null || echo "Migration skipped"' >> deployment_package/startup.sh
+          echo 'python manage.py collectstatic --noinput 2>/dev/null || echo "Static files skipped"' >> deployment_package/startup.sh
+          echo 'exec python -m gunicorn --bind=0.0.0.0:8000 --workers=4 --timeout=600 --log-level=info djangoPython.wsgi:application' >> deployment_package/startup.sh
+          chmod +x deployment_package/startup.sh
+          
+          # Remove unnecessary files
+          find deployment_package -name "*.pyc" -delete
+          find deployment_package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+          
+          # Create the deployment zip
+          cd deployment_package
+          zip -r ../release.zip . -x "*.DS_Store*"
+          cd ..
+          
+          echo "✓ Deployment package created successfully"
 
       - name: Login to Azure
         uses: azure/login@v2
