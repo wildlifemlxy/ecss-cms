@@ -17,20 +17,36 @@ jobs:
       name: 'Production'
 
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-        #if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
-        #if: steps.determine_deployment.outputs.deploy == 'true'
+          if [ -f djangoPython/requirements.txt ]; then
+            echo "Installing from djangoPython/requirements.txt"
+            pip install -r djangoPython/requirements.txt
+          else
+            echo "requirements.txt not found in djangoPython/ directory"
+            exit 1
+          fi
 
       - name: Zip artifact for deployment
         run: |
+          # Create deployment package
+          zip -r release.zip djangoPython \
+            -x "djangoPython/__pycache__/*" \
+            -x "djangoPython/*/__pycache__/*" \
+            -x "djangoPython/*/*/__pycache__/*" \
+            -x "djangoPython/.env" \
+            -x "djangoPython/db.sqlite3"
 
       - name: Login to Azure
         uses: azure/login@v2
