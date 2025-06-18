@@ -11,117 +11,41 @@ env:
   AZURE_WEBAPP_NAME: 'ecss-backend-django'
 
 jobs:
-  build_and_deploy:
+  deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # Required for actions/checkout
-      id-token: write  # Required for Azure login
-
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+      contents: read
+      id-token: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
 
-      - name: Create virtual environment and install dependencies
+      - name: Install dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip setuptools wheel
-          
-          if [ -f djangoPython/requirements.txt ]; then
-            echo "Installing dependencies from djangoPython/requirements.txt"
-            pip install -r djangoPython/requirements.txt --no-cache-dir
-            echo "✓ Dependencies installed successfully"
-          else
-            echo "❌ requirements.txt not found in djangoPython/ directory"
-            exit 1
-          fi
-
-      - name: Run Django checks
-        run: |
-          source venv/bin/activate
-          cd djangoPython
-          python manage.py check --deploy
-        continue-on-error: true
-
-      - name: Collect static files
-        run: |
-          source venv/bin/activate
-          cd djangoPython
-          python manage.py collectstatic --noinput --clear
-        continue-on-error: true
+          python -m pip install --upgrade pip
+          pip install -r djangoPython/requirements.txt
 
       - name: Create deployment package
         run: |
-          source venv/bin/activate
-          rm -rf deployment_package
-          mkdir -p deployment_package
-          
-          # Copy Django application files to the root of deployment package
+          mkdir deployment_package
           cp -r djangoPython/* deployment_package/
           
-          # Create proper Python packages directory
-          mkdir -p deployment_package/.python_packages/lib/python${{ env.PYTHON_VERSION }}/site-packages
-          echo "Copying Python packages..."
-          cp -r venv/lib/python*/site-packages/* deployment_package/.python_packages/lib/python${{ env.PYTHON_VERSION }}/site-packages/ 2>/dev/null || echo "Package copy completed"
+          # Create startup script
+          cat > deployment_package/startup.sh << 'EOF'
+          #!/bin/bash
+          export DJANGO_SETTINGS_MODULE=djangoPython.settings
+          export PYTHONUNBUFFERED=1
+          gunicorn --bind=0.0.0.0:$PORT --workers=2 djangoPython.wsgi:application
+          EOF
           
-          # Test WSGI module before deployment
-          echo "=== Testing WSGI module ==="
-          cd djangoPython
-          python -c "import djangoPython.wsgi; print('✓ WSGI module imports successfully')" || echo "❌ WSGI module import failed"
-          cd ..
-          
-          # Create optimized startup script for Azure App Service
-          echo '#!/bin/bash' > deployment_package/startup.sh
-          echo 'echo "=== Azure App Service Startup ==="' >> deployment_package/startup.sh
-          echo 'cd /home/site/wwwroot' >> deployment_package/startup.sh
-          echo 'export PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/.python_packages/lib/python3.13/site-packages:$PYTHONPATH"' >> deployment_package/startup.sh
-          echo 'export DJANGO_SETTINGS_MODULE=djangoPython.settings' >> deployment_package/startup.sh
-          echo 'export PYTHONUNBUFFERED=1' >> deployment_package/startup.sh
-          echo 'export PORT=${PORT:-8000}' >> deployment_package/startup.sh
-          echo 'echo "Current directory: $(pwd)"' >> deployment_package/startup.sh
-          echo 'echo "Starting Gunicorn with WSGI: djangoPython.wsgi:application"' >> deployment_package/startup.sh
-          echo 'gunicorn --bind=0.0.0.0:$PORT --workers=2 --timeout=120 --access-logfile=- --error-logfile=- --log-level=info djangoPython.wsgi:application' >> deployment_package/startup.sh
-
           chmod +x deployment_package/startup.sh
-          
-          # Create simple startup.txt as fallback
-          echo "gunicorn --bind=0.0.0.0:8000 --workers=2 --timeout=120 --access-logfile=- --error-logfile=- djangoPython.wsgi:application" > deployment_package/startup.txt
-          
-          find deployment_package -name "*.pyc" -delete 2>/dev/null || true
-          find deployment_package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
-          find deployment_package -name ".DS_Store" -delete 2>/dev/null || true
-          find deployment_package -name "*.pyo" -delete 2>/dev/null || true
-          find deployment_package -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
-          
-          # Debug: Show deployment package structure
-          echo "=== Deployment Package Structure ==="
-          ls -la deployment_package/
-          echo "=== Django WSGI file check ==="
-          if [ -f deployment_package/djangoPython/wsgi.py ]; then
-            echo "✓ WSGI file found at deployment_package/djangoPython/wsgi.py"
-          else
-            echo "❌ WSGI file NOT found - checking structure..."
-            find deployment_package -name "wsgi.py" -type f
-          fi
-          
-          cd deployment_package
-          zip -r ../release.zip . -x "*.DS_Store*" "*.git*"
-          cd ..
-          
-          echo "✓ Deployment package created successfully"
-          echo "Package size: $(du -h release.zip | cut -f1)"
+          cd deployment_package && zip -r ../app.zip .
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -130,259 +54,23 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_22BDF8F60B124137A56F942213EAB1D3 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1F917677349441DF9FFD4FFAA1773557 }}
 
-      - name: Pre-configure Azure App Service
-        run: |
-          echo "Pre-configuring Azure App Service..."
-          
-          # Check current service principal permissions
-          echo "Checking Azure permissions..."
-          if az webapp show --resource-group ecss-backend-rg --name ${{ env.AZURE_WEBAPP_NAME }} --query "name" --output tsv >/dev/null 2>&1; then
-            echo "✓ Basic read permissions confirmed"
-          else
-            echo "⚠️ Limited permissions detected - deployment may still work"
-          fi
-          
-          # Try to stop the app service (optional for deployment)
-          echo "Attempting to stop app service..."
-          if az webapp stop \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} 2>/dev/null; then
-            echo "✓ App service stopped successfully"
-          else
-            echo "⚠️ Could not stop app service - continuing with deployment"
-          fi
-          
-          # Try to configure basic settings
-          echo "Attempting to configure app service settings..."
-          if az webapp config set \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --linux-fx-version "PYTHON|3.13" \
-            --startup-file "startup.sh" 2>/dev/null; then
-            echo "✓ Basic configuration applied"
-          else
-            echo "⚠️ Could not apply configuration - will rely on deployment package settings"
-          fi
-          
-          # Try to set critical environment variables
-          echo "Attempting to set environment variables..."
-          if az webapp config appsettings set \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --settings \
-            DJANGO_SETTINGS_MODULE=djangoPython.settings \
-            PYTHONUNBUFFERED=1 \
-            SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-            ENABLE_ORYX_BUILD=false \
-            WEBSITE_RUN_FROM_PACKAGE=1 \
-            WEBSITES_ENABLE_APP_SERVICE_STORAGE=false 2>/dev/null; then
-            echo "✓ Environment variables configured"
-          else
-            echo "⚠️ Could not set environment variables - manual configuration may be needed"
-          fi
-        continue-on-error: true
-
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
+      - name: Deploy to Azure
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          slot-name: 'Production'
-          package: release.zip
-          clean: true
-          restart: true
-          type: 'ZIP'
-        continue-on-error: true
+          package: app.zip
 
-      - name: Alternative deployment using Azure CLI (if webapps-deploy failed)
-        if: failure()
+      - name: Configure startup
         run: |
-          echo "Primary deployment failed, trying Azure CLI deployment..."
-          az webapp deployment source config-zip \
+          az webapp config set \
             --resource-group ecss-backend-rg \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --src release.zip \
-            --timeout 600
-        continue-on-error: true
-
-      - name: Configure App Service Settings
-        run: |
-          echo "Configuring Azure App Service settings..."
+            --startup-file "gunicorn --bind=0.0.0.0:\$PORT --workers=2 djangoPython.wsgi:application"
           
-          # Check if we have proper permissions first
-          echo "Checking Azure permissions..."
-          if az webapp show --resource-group ecss-backend-rg --name ${{ env.AZURE_WEBAPP_NAME }} --query "name" --output tsv >/dev/null 2>&1; then
-            echo "✓ Basic read permissions confirmed"
-          else
-            echo "⚠️ Limited permissions detected - skipping configuration"
-            exit 0
-          fi
-          
-          # Try to configure startup file with error handling
-          echo "Setting startup file..."
-          if az webapp config set \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --startup-file "startup.sh" \
-            --linux-fx-version "PYTHON|3.13" 2>/dev/null; then
-            echo "✓ Startup file configured successfully"
-          else
-            echo "⚠️ Could not configure startup file - may require elevated permissions"
-          fi
-          
-          # Try to set environment variables with error handling
-          echo "Setting environment variables..."
-          if az webapp config appsettings set \
+          az webapp config appsettings set \
             --resource-group ecss-backend-rg \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --settings \
             DJANGO_SETTINGS_MODULE=djangoPython.settings \
-            PYTHONUNBUFFERED=1 \
             SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-            ENABLE_ORYX_BUILD=false \
-            DISABLE_COLLECTSTATIC=1 \
-            PRE_BUILD_SCRIPT_PATH="" \
-            POST_BUILD_SCRIPT_PATH="" \
-            ORYX_DISABLE_PYTHON_BUILD=true \
-            WEBSITE_PYTHON_DEFAULT_VERSION=3.13 2>/dev/null; then
-            echo "✓ Environment variables configured successfully"
-          else
-            echo "⚠️ Could not configure environment variables - may require elevated permissions"
-            echo "ℹ️ These settings can be configured manually in the Azure portal:"
-            echo "   - DJANGO_SETTINGS_MODULE=djangoPython.settings"
-            echo "   - PYTHONUNBUFFERED=1"
-            echo "   - SCM_DO_BUILD_DURING_DEPLOYMENT=false"
-            echo "   - ENABLE_ORYX_BUILD=false"
-            echo "   - DISABLE_COLLECTSTATIC=1"
-            echo "   - ORYX_DISABLE_PYTHON_BUILD=true"
-            echo "   - WEBSITE_PYTHON_DEFAULT_VERSION=3.13"
-            echo "   - Startup file: startup.sh"
-          fi
-        continue-on-error: true
-
-      - name: Force Startup Configuration Override
-        run: |
-          echo "=== FORCING STARTUP CONFIGURATION OVERRIDE ==="
-          echo "This step ensures Oryx auto-detection is completely bypassed"
-          
-          # Method 1: Set explicit startup command (overrides any auto-detection)
-          echo "Setting explicit startup command..."
-          if az webapp config set \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --startup-file "gunicorn --bind=0.0.0.0:\$PORT --workers=2 --timeout=120 --access-logfile=- --error-logfile=- --log-level=info djangoPython.wsgi:application" 2>/dev/null; then
-            echo "✓ Explicit startup command set successfully"
-          else
-            echo "⚠️ Could not set explicit startup command - trying alternative method"
-            
-            # Alternative: Set startup file reference
-            if az webapp config set \
-              --resource-group ecss-backend-rg \
-              --name ${{ env.AZURE_WEBAPP_NAME }} \
-              --startup-file "startup.sh" 2>/dev/null; then
-              echo "✓ Startup file reference set successfully"
-            else
-              echo "⚠️ Could not set startup file - manual configuration required"
-            fi
-          fi
-          
-          # Method 2: Set additional Oryx override variables
-          echo "Setting additional Oryx override variables..."
-          if az webapp config appsettings set \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --settings \
-            WEBSITE_RUN_FROM_PACKAGE=0 \
-            PYTHONPATH=/home/site/wwwroot \
-            WEBSITE_USE_PLACEHOLDER=0 2>/dev/null; then
-            echo "✓ Additional override variables set successfully"
-          else
-            echo "⚠️ Could not set additional variables"
-          fi
-          
-          # Method 3: Restart the app to apply new configuration
-          echo "Restarting app to apply configuration..."
-          if az webapp restart \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} 2>/dev/null; then
-            echo "✓ App restarted successfully"
-          else
-            echo "⚠️ Could not restart app"
-          fi
-          
-          echo "=== Configuration Override Complete ==="
-        continue-on-error: true
-
-      - name: Verify WSGI Configuration
-        run: |
-          echo "=== VERIFYING WSGI CONFIGURATION ==="
-          
-          # Check if startup command was set correctly
-          echo "Checking startup command configuration..."
-          startup_cmd=$(az webapp config show \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --query "appCommandLine" \
-            --output tsv 2>/dev/null || echo "")
-          
-          if [[ "$startup_cmd" == *"djangoPython.wsgi:application"* ]]; then
-            echo "✓ Startup command correctly configured with djangoPython.wsgi:application"
-            echo "Command: $startup_cmd"
-          elif [[ "$startup_cmd" == *"asgiref.wsgi"* ]]; then
-            echo "❌ CRITICAL: Startup command still using asgiref.wsgi"
-            echo "Command: $startup_cmd"
-            echo "This indicates Oryx override failed - manual configuration required"
-          else
-            echo "⚠️ Startup command: $startup_cmd"
-            echo "Manual verification needed"
-          fi
-          
-          # Check Oryx override environment variables
-          echo "Checking Oryx override variables..."
-          oryx_disabled=$(az webapp config appsettings list \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --query "[?name=='ENABLE_ORYX_BUILD'].value" \
-            --output tsv 2>/dev/null || echo "")
-          
-          if [[ "$oryx_disabled" == "false" ]]; then
-            echo "✓ ENABLE_ORYX_BUILD is set to false"
-          else
-            echo "⚠️ ENABLE_ORYX_BUILD not properly set"
-          fi
-          
-          echo "=== WSGI Configuration Check Complete ==="
-        continue-on-error: true
-
-      - name: Verify deployment
-        run: |
-          echo "=== DEPLOYMENT VERIFICATION ==="
-          echo "Application URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
-          
-          # Check deployment status
-          echo "Checking app service status..."
-          az webapp show \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --query "state" \
-            --output table || echo "Could not get app status"
-          
-          # Wait for the app to start
-          echo "Waiting for application to start..."
-          sleep 60
-          
-          # Basic health check
-          echo "=== Running health check ==="
-          response=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" || echo "000")
-          if [ "$response" = "200" ] || [ "$response" = "302" ]; then
-            echo "✓ Application is responding (HTTP $response)"
-          else
-            echo "⚠️ Application health check returned HTTP $response"
-            echo "Checking application logs for troubleshooting..."
-            az webapp log tail \
-              --resource-group ecss-backend-rg \
-              --name ${{ env.AZURE_WEBAPP_NAME }} \
-              --provider application \
-              --timeout 30 || echo "Could not retrieve logs"
-          fi
-        continue-on-error: true
+            ENABLE_ORYX_BUILD=false
