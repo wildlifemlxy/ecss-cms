@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import '../../../../css/sub/registrationForm/formDetails.css';
-//Try again if the import fails
+//Try again if the import fails 
 
 class FormDetailsSection extends Component {
   render() {
