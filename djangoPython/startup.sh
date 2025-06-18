@@ -27,4 +27,3 @@ exec gunicorn \
     --error-logfile=- \
     --log-level=info \
     djangoPython.wsgi:application
-    djangoPython.wsgi:application

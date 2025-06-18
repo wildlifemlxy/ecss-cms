@@ -72,12 +72,24 @@ jobs:
           echo "Copying Python packages..."
           cp -r venv/lib/python*/site-packages/* deployment_package/.python_packages/lib/python${{ env.PYTHON_VERSION }}/site-packages/ 2>/dev/null || echo "Package copy completed"
           
+          # Test WSGI module before deployment
+          echo "=== Testing WSGI module ==="
+          cd djangoPython
+          python -c "import djangoPython.wsgi; print('✓ WSGI module imports successfully')" || echo "❌ WSGI module import failed"
+          cd ..
+          
+          # Create startup command that matches the directory structure
           cat > deployment_package/startup.txt << 'EOF'
           #!/bin/bash
+          cd /home/site/wwwroot
           export PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/.python_packages/lib/python3.13/site-packages:$PYTHONPATH"
           export DJANGO_SETTINGS_MODULE=djangoPython.settings
           export PYTHONUNBUFFERED=1
-          gunicorn --bind=0.0.0.0:8000 --workers=2 --timeout=120 --access-logfile=- --error-logfile=- --log-level=info djangoPython.wsgi:application
+          export PORT=${PORT:-8000}
+          echo "Starting Django application..."
+          echo "Current directory: $(pwd)"
+          echo "WSGI module: djangoPython.wsgi:application"
+          gunicorn --bind=0.0.0.0:$PORT --timeout=600 --workers=4 djangoPython.wsgi:application
           EOF
           
           find deployment_package -name "*.pyc" -delete 2>/dev/null || true
@@ -85,6 +97,17 @@ jobs:
           find deployment_package -name ".DS_Store" -delete 2>/dev/null || true
           find deployment_package -name "*.pyo" -delete 2>/dev/null || true
           find deployment_package -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
+          
+          # Debug: Show deployment package structure
+          echo "=== Deployment Package Structure ==="
+          ls -la deployment_package/
+          echo "=== Django WSGI file check ==="
+          if [ -f deployment_package/djangoPython/wsgi.py ]; then
+            echo "✓ WSGI file found at deployment_package/djangoPython/wsgi.py"
+          else
+            echo "❌ WSGI file NOT found - checking structure..."
+            find deployment_package -name "wsgi.py" -type f
+          fi
           
           cd deployment_package
           zip -r ../release.zip . -x "*.DS_Store*" "*.git*"
