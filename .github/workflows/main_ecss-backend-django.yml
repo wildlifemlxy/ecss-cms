@@ -25,8 +25,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo pip install --upgrade pip
-          sudo pip install -r requirements.txt
+          pip install --upgrade pip
+          pip install -r requirements.txt
         #if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Zip artifact for deployment
