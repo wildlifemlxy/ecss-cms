@@ -17,6 +17,11 @@ jobs:
       name: 'Production'
 
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Fetch the last 2 commits to compare
+
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
@@ -24,9 +29,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          ls
-          #pip install --upgrade pip
-          #pip install -r requirements.txt
+          cd djangoPython
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Prepare Django application for deployment
         run: |
