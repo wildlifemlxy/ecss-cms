@@ -78,4 +78,6 @@ jobs:
         with:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
+          package: release.zip
+
           
