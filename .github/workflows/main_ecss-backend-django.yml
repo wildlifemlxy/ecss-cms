@@ -1,4 +1,4 @@
-name: Build and deploy Python app to Azure Web App - ecss-backend-django
+name: ECSS Backend DjangoPython
 
 on:
   push:

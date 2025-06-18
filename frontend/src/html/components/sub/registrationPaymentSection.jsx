@@ -67,8 +67,19 @@ class RegistrationPaymentSection extends Component {
     fetchCourseRegistrations = async (language) => {
       try {
         var {siteIC, role} = this.props;  
-        console.log("Role", role, "SiteIC", siteIC);
-        const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC });
+        
+        // Handle siteIC as array if it contains multiple sites
+        let siteICParam = siteIC;
+        if (Array.isArray(siteIC)) {
+          // If multiple sites, send as array to backend
+          siteICParam = siteIC;
+          console.log("Role", role, "SiteIC (Multiple):", siteIC);
+        } else {
+          // Single site, keep as is
+          console.log("Role", role, "SiteIC (Single):", siteIC);
+        }
+        
+        const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC: siteICParam });
         const response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role: "admin", siteIC: "" });
         console.log("Course Registration:", response.data.result, response1.data.result);
     
