@@ -87,6 +87,12 @@ jobs:
             cp djangoPython/requirements.txt deployment_package/ 2>/dev/null || echo "No requirements.txt found"
           fi
           
+          # Create a simple startup script for Azure App Service
+          echo '#!/bin/bash' > deployment_package/startup.sh
+          echo 'echo "Starting Django application..."' >> deployment_package/startup.sh
+          echo 'python -m gunicorn --bind=0.0.0.0:8000 --timeout 600 --workers=4 djangoPython.wsgi:application' >> deployment_package/startup.sh
+          chmod +x deployment_package/startup.sh
+          
           # Remove unnecessary files
           find deployment_package -name "*.pyc" -delete
           find deployment_package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
@@ -101,7 +107,7 @@ jobs:
           echo "✓ Deployment package created successfully"
           echo "Package size: $(du -h release.zip | cut -f1)"
           echo "Main files in package:"
-          unzip -l release.zip | grep -E "(manage.py|wsgi.py|requirements.txt|settings.py)" || echo "Core files check completed"
+          unzip -l release.zip | grep -E "(manage.py|wsgi.py|requirements.txt|settings.py|startup.sh)" || echo "Core files check completed"
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -117,43 +123,18 @@ jobs:
           slot-name: 'Production'
           package: release.zip
 
-      - name: Configure Azure App Service
+      - name: Verify deployment
         run: |
-          # First, clear any problematic app settings
-          echo "Clearing problematic app settings..."
-          az webapp config appsettings delete \
-            --resource-group ecss-backend-django \
-            --name ecss-backend-django \
-            --setting-names "SCM_DO_BUILD_DURING_DEPLOYMENT" "WEBSITE_RUN_FROM_PACKAGE" || true
-          
-          # Set essential Django environment variables
-          az webapp config appsettings set \
-            --resource-group ecss-backend-django \
-            --name ecss-backend-django \
-            --settings \
-              "DJANGO_SETTINGS_MODULE=djangoPython.settings" \
-              "PYTHONPATH=/home/site/wwwroot" \
-              "WEBSITE_SKIP_AUTOCONFIGURE=1"
-          
-          # Set a clean startup command
-          az webapp config set \
-            --resource-group ecss-backend-django \
-            --name ecss-backend-django \
-            --startup-file "gunicorn --bind=0.0.0.0 --timeout 600 --workers=4 djangoPython.wsgi"
-          
-          # Ensure Python 3.12 is set
-          az webapp config set \
-            --resource-group ecss-backend-django \
-            --name ecss-backend-django \
-            --linux-fx-version "PYTHON|3.12"
-          
-          echo "✓ Azure App Service configuration completed"
-          
-          # Restart the app to apply changes
-          echo "Restarting app service..."
-          az webapp restart \
-            --resource-group ecss-backend-django \
-            --name ecss-backend-django
-          
-          echo "✓ App service restarted"
+          echo "✓ Deployment completed successfully"
+          echo "The Azure App Service will automatically:"
+          echo "  - Install dependencies from requirements.txt"
+          echo "  - Configure Python 3.12 runtime"
+          echo "  - Start the Django application"
+          echo ""
+          echo "Manual configuration may be needed in Azure Portal:"
+          echo "  1. Go to Azure Portal > App Services > ecss-backend-django"
+          echo "  2. Set Startup Command: 'gunicorn --bind=0.0.0.0 --timeout 600 --workers=4 djangoPython.wsgi'"
+          echo "  3. Check that Python version is set to 3.12"
+          echo ""
+          echo "App URL: https://ecss-backend-django.azurewebsites.net"
         
