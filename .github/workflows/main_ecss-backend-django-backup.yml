@@ -83,34 +83,16 @@ jobs:
           cd ..
           
           # Create optimized startup script for Azure App Service
-          cat > deployment_package/startup.sh << 'EOF'
-#!/bin/bash
-echo "=== Azure App Service Startup ==="
-cd /home/site/wwwroot
-export PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/.python_packages/lib/python3.13/site-packages:$PYTHONPATH"
-export DJANGO_SETTINGS_MODULE=djangoPython.settings
-export PYTHONUNBUFFERED=1
-export PORT=${PORT:-8000}
-
-echo "Current directory: $(pwd)"
-echo "Python path: $PYTHONPATH"
-echo "Starting Gunicorn with WSGI: djangoPython.wsgi:application"
-
-# Start Gunicorn with optimized settings for Azure
-gunicorn \
-  --bind=0.0.0.0:$PORT \
-  --workers=2 \
-  --worker-class=sync \
-  --timeout=120 \
-  --keep-alive=2 \
-  --max-requests=1000 \
-  --max-requests-jitter=50 \
-  --access-logfile=- \
-  --error-logfile=- \
-  --log-level=info \
-  --capture-output \
-  djangoPython.wsgi:application
-EOF
+          echo '#!/bin/bash' > deployment_package/startup.sh
+          echo 'echo "=== Azure App Service Startup ==="' >> deployment_package/startup.sh
+          echo 'cd /home/site/wwwroot' >> deployment_package/startup.sh
+          echo 'export PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/.python_packages/lib/python3.13/site-packages:$PYTHONPATH"' >> deployment_package/startup.sh
+          echo 'export DJANGO_SETTINGS_MODULE=djangoPython.settings' >> deployment_package/startup.sh
+          echo 'export PYTHONUNBUFFERED=1' >> deployment_package/startup.sh
+          echo 'export PORT=${PORT:-8000}' >> deployment_package/startup.sh
+          echo 'echo "Current directory: $(pwd)"' >> deployment_package/startup.sh
+          echo 'echo "Starting Gunicorn with WSGI: djangoPython.wsgi:application"' >> deployment_package/startup.sh
+          echo 'gunicorn --bind=0.0.0.0:$PORT --workers=2 --timeout=120 --access-logfile=- --error-logfile=- --log-level=info djangoPython.wsgi:application' >> deployment_package/startup.sh
 
           chmod +x deployment_package/startup.sh
           
