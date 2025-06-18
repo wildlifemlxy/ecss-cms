@@ -23,22 +23,6 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Set up Python version
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          if [ -f djangoPython/requirements.txt ]; then
-            echo "Installing from djangoPython/requirements.txt"
-            pip install -r djangoPython/requirements.txt
-          else
-            echo "requirements.txt not found in djangoPython/ directory"
-            exit 1
-          fi
-
       - name: Zip artifact for deployment
         run: |
           # Create a clean deployment directory

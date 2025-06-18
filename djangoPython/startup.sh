@@ -23,6 +23,24 @@ echo "Changed to: $(pwd)"
 echo "Files in current directory:"
 ls -la
 
+# Check if Django is installed, if not install dependencies
+echo "Checking if Django is installed..."
+python -c "import django; print(f'Django version: {django.get_version()}')" 2>/dev/null || {
+    echo "Django not found. Installing dependencies from requirements.txt..."
+    if [ -f "requirements.txt" ]; then
+        pip install -r requirements.txt --user --no-cache-dir
+        echo "✓ Dependencies installed successfully"
+    else
+        echo "⚠️ requirements.txt not found"
+    fi
+}
+
+# Verify Django installation
+python -c "import django; print(f'✓ Django {django.get_version()} is available')" || {
+    echo "❌ Django installation failed"
+    exit 1
+}
+
 # Check if manage.py exists
 if [ -f "manage.py" ]; then
     echo "✓ Found manage.py"
