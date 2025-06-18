@@ -17,70 +17,6 @@ jobs:
       name: 'Production'
 
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2  # Fetch the last 2 commits to compare
-
-      #- name: Fetch previous commit (before push)
-      #  run: |
-      #    # Fetch the last 2 commits to ensure we have the previous commit available
-      #    git fetch origin main --depth=2
-      #    echo "Before push commit:"
-      #    git log --oneline -n 2  # Show the last 2 commits
-
-      #- name: Check for changes in djangoPython folder
-      #  id: check_changes_djangoPython
-      #  run: |
-      #    previous_commit=$(git rev-parse HEAD~1)
-      #    changes=$(git diff --name-only $previous_commit HEAD -- djangoPython)
-      #    if [ -z "$changes" ]; then
-      #      echo "No changes detected in djangoPython folder."
-      #      echo "::set-output name=djangoPython_changed::false"
-      #    else
-      #      echo "Changes detected in djangoPython folder."
-      #      echo "::set-output name=djangoPython_changed::true"
-      #    fi
-
-      #- name: Check for changes in requirements.txt
-      #  id: check_changes_requirements
-      #  run: |
-      #    previous_commit=$(git rev-parse HEAD~1)
-      #    changes=$(git diff --name-only $previous_commit HEAD -- requirements.txt)
-      #    if [ -z "$changes" ]; then
-      #      echo "No changes detected in requirements.txt."
-      #      echo "::set-output name=requirements_changed::false"
-      #    else
-      #      echo "Changes detected in requirements.txt."
-      #      echo "::set-output name=requirements_changed::true"
-      #    fi
-
-      #- name: Check for changes in venv folder
-      #  id: check_changes_venv
-      #  run: |
-      #    previous_commit=$(git rev-parse HEAD~1)
-      #    changes=$(git diff --name-only $previous_commit HEAD -- venv)
-      #    if [ -z "$changes" ]; then
-      #      echo "No changes detected in venv folder."
-      #      echo "::set-output name=venv_changed::false"
-      #    else
-      #      echo "Changes detected in venv folder."
-      #      echo "::set-output name=venv_changed::true"
-      #    fi
-
-      #- name: Determine if deployment is needed
-      #  id: determine_deployment
-      #  run: |
-      #    if [[ "${{ steps.check_changes_djangoPython.outputs.djangoPython_changed }}" == "true" || \
-      #          "${{ steps.check_changes_requirements.outputs.requirements_changed }}" == "true" || \
-      #          "${{ steps.check_changes_venv.outputs.venv_changed }}" == "true" ]]; then
-      #      echo "Changes detected, proceeding with deployment."
-      #      echo "::set-output name=deploy::true"
-      #    else
-      #      echo "No relevant changes detected, skipping deployment."
-      #      echo "::set-output name=deploy::false"
-      #    fi
-
       - name: Set up Python version
         uses: actions/setup-python@v5
         with:
@@ -89,14 +25,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          sudo pip install --upgrade pip
+          sudo pip install -r requirements.txt
         #if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Zip artifact for deployment
         run: |
-          zip -r release.zip djangoPython -x "djangoPython/venv/*"
-        #if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -104,7 +38,6 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DB1EDA88A3DA4E8D846F3C3D5AB12A22 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_22BDF8F60B124137A56F942213EAB1D3 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1F917677349441DF9FFD4FFAA1773557 }}
-        #if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -112,4 +45,3 @@ jobs:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
           package: release.zip
-        #if: steps.determine_deployment.outputs.deploy == 'true'
