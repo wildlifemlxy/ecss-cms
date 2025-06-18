@@ -86,13 +86,31 @@ class AttendanceSection extends Component {
         const uniqueTypes = ['All Types', ...new Set(attendanceData.map(record => record.type).filter(Boolean))];
         
         // Get unique activity codes from filtered location data
-        // Filter data to show specific locations
-        const allowedLocations = [
-          'CT Hub',
-          'Tampines 253',
-          'Tampines North Community Centre', 
-          'Pasir Ris West Wellness Centre'
-        ];
+        // Filter data to show specific locations based on user's siteIC
+        const { siteIC } = this.props;
+        let allowedLocations = [];
+        
+        if (siteIC && Array.isArray(siteIC)) {
+          // Handle multiple sites (array)
+          allowedLocations = [...siteIC];
+        } else if (siteIC && typeof siteIC === 'string') {
+          // Handle single site or comma-separated sites
+          if (siteIC.includes(',')) {
+            allowedLocations = siteIC.split(',').map(site => site.trim());
+          } else {
+            allowedLocations = [siteIC.trim()];
+          }
+        } else {
+          // Fallback to default locations if siteIC is not provided
+          allowedLocations = [
+            'CT Hub',
+            'Tampines 253',
+            'Tampines North Community Centre', 
+            'Pasir Ris West Wellness Centre'
+          ];
+        }
+        
+        console.log("Allowed locations for activity codes:", allowedLocations);
         
         const filteredLocationData = attendanceData.filter(record => {
           const recordLocation = this.getLocationFromClassId(record.qrCode);
@@ -607,14 +625,32 @@ class AttendanceSection extends Component {
 
   // Extract unique locations from attendance data
   getUniqueLocations = (attendanceData) => {
-    // Only show the 3 specific locations plus "All Locations"
-    const allowedLocations = [
-      'All Locations',
-      'CT Hub',
-      'Tampines 253',
-      'Tampines North Community Centre', 
-      'Pasir Ris West Wellness Centre'
-    ];
+    const { siteIC } = this.props;
+    
+    // Determine allowed locations based on user's siteIC
+    let allowedLocations = ['All Locations'];
+    
+    if (siteIC && Array.isArray(siteIC)) {
+      // Handle multiple sites (array)
+      allowedLocations = ['All Locations', ...siteIC];
+    } else if (siteIC && typeof siteIC === 'string') {
+      // Handle single site or comma-separated sites
+      if (siteIC.includes(',')) {
+        const sites = siteIC.split(',').map(site => site.trim());
+        allowedLocations = ['All Locations', ...sites];
+      } else {
+        allowedLocations = ['All Locations', siteIC.trim()];
+      }
+    } else {
+      // Fallback to default locations if siteIC is not provided
+      allowedLocations = [
+        'All Locations',
+        'CT Hub',
+        'Tampines 253',
+        'Tampines North Community Centre', 
+        'Pasir Ris West Wellness Centre'
+      ];
+    }
     
     const locationSet = new Set(['All Locations']);
     
@@ -632,7 +668,7 @@ class AttendanceSection extends Component {
 
   // Centralized filtering logic for attendance data with caching
   getFilteredAttendanceData = (attendanceDataOverride = null) => {
-    const { attendanceType, activityCode, searchQuery, selectedLocation } = this.props;
+    const { attendanceType, activityCode, searchQuery, selectedLocation, siteIC } = this.props;
     const attendanceData = attendanceDataOverride || this.state.attendanceData;
     
     // Create a cache key from filter parameters
@@ -641,6 +677,7 @@ class AttendanceSection extends Component {
       activityCode: activityCode || '', 
       searchQuery: searchQuery || '',
       selectedLocation: selectedLocation || '',
+      siteIC: siteIC || '',
       dataLength: attendanceData.length,
       dataHash: attendanceData.length > 0 ? JSON.stringify(attendanceData.slice(0, 3)) : '' // Sample hash
     };
@@ -657,17 +694,39 @@ class AttendanceSection extends Component {
     console.log('[AttendanceSection] activityCode:', activityCode);
     console.log('[AttendanceSection] searchQuery:', searchQuery);
     console.log('[AttendanceSection] selectedLocation:', selectedLocation);
+    console.log('[AttendanceSection] siteIC:', siteIC);
     console.log('[AttendanceSection] attendanceData length:', attendanceData.length);
 
     let filteredData = [...attendanceData];
 
-    // Filter to show specific locations
-    const allowedLocations = [
-      'CT Hub',
-      'Tampines 253',
-      'Tampines North Community Centre', 
-      'Pasir Ris West Wellness Centre'
-    ];
+    // Filter to show specific locations based on user's siteIC
+    let allowedLocations = [];
+    
+    if (siteIC && Array.isArray(siteIC)) {
+      // Handle multiple sites (array)
+      console.log('[AttendanceSection] Multiple sites detected:', siteIC);
+      allowedLocations = [...siteIC];
+    } else if (siteIC && typeof siteIC === 'string') {
+      // Handle single site or comma-separated sites
+      if (siteIC.includes(',')) {
+        console.log('[AttendanceSection] Comma-separated sites detected:', siteIC);
+        allowedLocations = siteIC.split(',').map(site => site.trim());
+      } else {
+        console.log('[AttendanceSection] Single site detected:', siteIC);
+        allowedLocations = [siteIC.trim()];
+      }
+    } else {
+      // Fallback to default locations if siteIC is not provided
+      console.log('[AttendanceSection] No siteIC provided, using default locations');
+      allowedLocations = [
+        'CT Hub',
+        'Tampines 253',
+        'Tampines North Community Centre', 
+        'Pasir Ris West Wellness Centre'
+      ];
+    }
+    
+    console.log('[AttendanceSection] Allowed locations:', allowedLocations);
     
     filteredData = filteredData.filter(record => {
       const recordLocation = this.getLocationFromClassId(record.qrCode);

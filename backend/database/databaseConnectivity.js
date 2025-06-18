@@ -715,21 +715,87 @@ class DatabaseConnectivity {
                 // Define query object
                 let query = {};
 
+                console.log("=== RETRIEVE COURSE REGISTRATION DEBUG ===");
+                console.log("Database Name:", dbname);
+                console.log("Collection Name:", collectionName);
+                console.log("Role:", role);
+                console.log("SiteIC Type:", typeof siteIC);
+                console.log("SiteIC Value:", siteIC);
+                console.log("SiteIC JSON:", JSON.stringify(siteIC));
+
                 // If role is "Site in-charge", filter by course.courseLocation
                 if (role === "Site in-charge") {
-                    console.log("Site IC", siteIC)
-                    if (siteIC != null){
-                        query["course.courseLocation"] = siteIC; // Filtering based on courseLocation
+                    console.log("Processing Site in-charge filtering...");
+                    if (siteIC != null) {
+                        let allowedLocations = [];
+                        
+                        // Handle different types of siteIC input
+                        if (Array.isArray(siteIC)) {
+                            // Already an array
+                            allowedLocations = siteIC;
+                            console.log("Site IC is array:", allowedLocations);
+                        } else if (typeof siteIC === 'string') {
+                            // Check if it's comma-separated
+                            if (siteIC.includes(',')) {
+                                allowedLocations = siteIC.split(',').map(site => site.trim());
+                                console.log("Site IC is comma-separated:", allowedLocations);
+                            } else {
+                                allowedLocations = [siteIC.trim()];
+                                console.log("Site IC is single string:", allowedLocations);
+                            }
+                        }
+                        
+                        // Use $in operator for multiple sites or single site
+                        if (allowedLocations.length > 1) {
+                            query["course.courseLocation"] = { $in: allowedLocations };
+                            console.log("Using $in query for multiple sites:", allowedLocations);
+                        } else if (allowedLocations.length === 1) {
+                            query["course.courseLocation"] = allowedLocations[0];
+                            console.log("Using exact match for single site:", allowedLocations[0]);
+                        }
+                    } else {
+                        console.log("SiteIC is null, not filtering by location");
                     }
+                } else {
+                    console.log("Role is not Site in-charge, returning all documents");
                 }
                 // If role is not "Site in-charge", return all documents (empty query retrieves all)
                 
+                console.log("Final MongoDB query:", JSON.stringify(query));
+                
                 var result = await table.find(query).toArray();
-                //console.log("Result:",result);
+                console.log("Query result count:", result.length);
+                
+                // Log sample results for debugging
+                if (result.length > 0) {
+                    console.log("Sample results:");
+                    result.slice(0, 3).forEach((record, index) => {
+                        console.log(`Record ${index + 1}:`, {
+                            name: record.participant?.name,
+                            location: record.course?.courseLocation,
+                            course: record.course?.courseEngName,
+                            _id: record._id
+                        });
+                    });
+                } else {
+                    console.log("No records found matching the query");
+                    
+                    // Let's also check total records without filter
+                    const totalCount = await table.countDocuments({});
+                    console.log("Total documents in collection:", totalCount);
+                    
+                    // Check what locations exist in the database
+                    const locationSample = await table.aggregate([
+                        { $group: { _id: "$course.courseLocation", count: { $sum: 1 } } },
+                        { $sort: { count: -1 } }
+                    ]).toArray();
+                    console.log("Available locations in database:", locationSample);
+                }
+                
                 return result;
             }
         } catch (error) {
-            console.log(error);
+            console.log("Database query error:", error);
         }
     }
 

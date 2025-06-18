@@ -68,28 +68,66 @@ class RegistrationPaymentSection extends Component {
       try {
         var {siteIC, role} = this.props;  
         
-        // Handle siteIC as array if it contains multiple sites
-        let siteICParam = siteIC;
+        // Enhanced logging for multiple sites debugging
+        console.log("=== FETCH COURSE REGISTRATIONS DEBUG ===");
+        console.log("Role:", role);
+        console.log("SiteIC type:", typeof siteIC);
+        console.log("SiteIC value:", siteIC);
+        console.log("SiteIC JSON:", JSON.stringify(siteIC));
+        
+        // Handle siteIC as either string or array for backend compatibility
+        let processedSiteIC = siteIC;
         if (Array.isArray(siteIC)) {
-          // If multiple sites, send as array to backend
-          siteICParam = siteIC;
-          console.log("Role", role, "SiteIC (Multiple):", siteIC);
-        } else {
-          // Single site, keep as is
-          console.log("Role", role, "SiteIC (Single):", siteIC);
+          console.log("SiteIC is array with", siteIC.length, "sites:", siteIC);
+          processedSiteIC = siteIC; // Keep as array for backend
+        } else if (typeof siteIC === 'string' && siteIC.includes(',')) {
+          console.log("SiteIC is comma-separated string:", siteIC);
+          processedSiteIC = siteIC.split(',').map(site => site.trim()); // Convert to array
+          console.log("Converted to array:", processedSiteIC);
+        } else if (typeof siteIC === 'string') {
+          console.log("SiteIC is single string:", siteIC);
+          processedSiteIC = siteIC; // Keep as single string
         }
         
-        const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC: siteICParam });
+        console.log("Sending to backend - Role:", role, "ProcessedSiteIC:", processedSiteIC);
+        console.log("Backend URL:", `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`);
+        
+        const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC: processedSiteIC });
         const response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role: "admin", siteIC: "" });
-        console.log("Course Registration:", response.data.result, response1.data.result);
+        
+        console.log("=== API RESPONSE DEBUG ===");
+        console.log("Course Registration Response Status:", response.status);
+        console.log("Course Registration Response Data:", response.data);
+        console.log("Course Registration Response Count:", response.data?.result?.length || 0);
+        console.log("Admin Response Count:", response1.data?.result?.length || 0);
+        
+        // Log some sample data if available
+        if (response.data?.result?.length > 0) {
+          console.log("Sample records from response:");
+          response.data.result.slice(0, 3).forEach((record, index) => {
+            console.log(`Record ${index + 1}:`, {
+              name: record.participant?.name,
+              location: record.course?.courseLocation,
+              course: record.course?.courseEngName
+            });
+          });
+        } else {
+          console.log("No records found in response");
+        }
     
         const data = this.languageDatabase(response.data.result, language);
         const data1 = this.languageDatabase(response1.data.result, language);
+        
+        console.log("=== PROCESSED DATA DEBUG ===");
+        console.log("Processed data count:", data.length);
+        console.log("Processed admin data count:", data1.length);
+        
         return {data, data1};
     
       } catch (error) {
-        console.error('Error fetching course registrations:', error);
-        return []; // Return an empty array in case of error
+        console.error('=== ERROR FETCHING COURSE REGISTRATIONS ===', error);
+        console.error('Error details:', error.response?.data || error.message);
+        return {data: [], data1: []}; // Return proper object structure
       }
     };
 
