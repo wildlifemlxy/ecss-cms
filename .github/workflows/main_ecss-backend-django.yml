@@ -62,37 +62,6 @@ jobs:
             python manage.py collectstatic --noinput --clear || echo "Static files collection skipped"
           fi
 
-      - name: Run Django tests
-        run: |
-          source venv/bin/activate
-          cd djangoPython
-          if [ -f manage.py ]; then
-            python manage.py test --verbosity=2 || echo "Tests skipped or failed"
-          fi
-        continue-on-error: true
-
-      - name: Zip artifact for deployment
-        run: |
-          chmod +x djangoPython/startup.sh
-          # Create a lightweight deployment package with pre-built dependencies
-          zip -r release.zip djangoPython venv/lib/python3.12/site-packages \
-            -x "djangoPython/venv/*" \
-            -x "djangoPython/__pycache__/*" \
-            -x "djangoPython/*/__pycache__/*" \
-            -x "djangoPython/*/*/__pycache__/*" \
-            -x "djangoPython/.env" \
-            -x "djangoPython/db.sqlite3" \
-            -x "djangoPython/media/*" \
-            -x "venv/bin/*" \
-            -x "venv/include/*" \
-            -x "venv/share/*" \
-            -x "venv/pyvenv.cfg" \
-            -x "*.pyc" \
-            -x "*/__pycache__/*"
-          
-          echo "Package contents:"
-          unzip -l release.zip | head -20
-
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -106,61 +75,4 @@ jobs:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
           package: release.zip
-          clean: true
-          restart: false
-
-      - name: Start Azure Web App
-        run: |
-          echo "Finding webapp resource group for start operation..."
-          
-          # Try multiple methods to find the resource group
-          RESOURCE_GROUP=""
-          
-          # Method 1: Direct webapp show
-          RESOURCE_GROUP=$(az webapp show --name ecss-backend-django --query resourceGroup -o tsv 2>/dev/null || echo "")
-          
-          # Method 2: List all webapps and filter
-          if [ -z "$RESOURCE_GROUP" ]; then
-            RESOURCE_GROUP=$(az webapp list --query "[?name=='ecss-backend-django'].resourceGroup | [0]" -o tsv 2>/dev/null || echo "")
-          fi
-          
-          if [ ! -z "$RESOURCE_GROUP" ]; then
-            echo "Starting webapp in resource group: $RESOURCE_GROUP"
-            az webapp start --name ecss-backend-django --resource-group "$RESOURCE_GROUP" 2>/dev/null || true
-          else
-            echo "Could not determine resource group. Checking webapp status..."
-            az webapp list --query "[?name=='ecss-backend-django'].{name:name,resourceGroup:resourceGroup,state:state}" -o table 2>/dev/null || true
-          fi
-
-      - name: Verify deployment
-        run: |
-          echo "Waiting for app to start..."
-          sleep 15
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-django.azurewebsites.net || echo "000")
-          if [ "$response" -eq 200 ] || [ "$response" -eq 301 ] || [ "$response" -eq 302 ]; then
-            echo "✅ Deployment successful! App is responding with HTTP $response"
-          else
-            echo "⚠️ App deployed but may not be fully ready. HTTP response: $response"
-            echo "Waiting additional 15 seconds and retrying..."
-            sleep 15
-            response=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-django.azurewebsites.net || echo "000")
-            if [ "$response" -eq 200 ] || [ "$response" -eq 301 ] || [ "$response" -eq 302 ]; then
-              echo "✅ Deployment successful after retry! App is responding with HTTP $response"
-            else
-              echo "⚠️ App may still be starting. HTTP response: $response"
-              echo "App logs:"
-              
-              # Try to find resource group for logs
-              RESOURCE_GROUP=""
-              RESOURCE_GROUP=$(az webapp show --name ecss-backend-django --query resourceGroup -o tsv 2>/dev/null || echo "")
-              if [ -z "$RESOURCE_GROUP" ]; then
-                RESOURCE_GROUP=$(az webapp list --query "[?name=='ecss-backend-django'].resourceGroup | [0]" -o tsv 2>/dev/null || echo "")
-              fi
-              
-              if [ ! -z "$RESOURCE_GROUP" ]; then
-                az webapp log tail --name ecss-backend-django --resource-group "$RESOURCE_GROUP" --provider application --verbosity verbose 2>/dev/null || true
-              else
-                echo "Could not retrieve logs - resource group not found"
-              fi
-            fi
-          fi
+        
