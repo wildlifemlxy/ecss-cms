@@ -102,49 +102,66 @@ jobs:
 
       - name: Configure Azure App Service for faster deployment
         run: |
-          RESOURCE_GROUP=$(az webapp show --name ecss-backend-django --query resourceGroup -o tsv)
+          echo "Finding webapp resource group..."
+          
+          # Try multiple methods to find the resource group
+          RESOURCE_GROUP=""
+          
+          # Method 1: Direct webapp show
+          RESOURCE_GROUP=$(az webapp show --name ecss-backend-django --query resourceGroup -o tsv 2>/dev/null || echo "")
+          
+          # Method 2: List all webapps and filter
+          if [ -z "$RESOURCE_GROUP" ]; then
+            echo "Method 1 failed, trying webapp list..."
+            RESOURCE_GROUP=$(az webapp list --query "[?name=='ecss-backend-django'].resourceGroup | [0]" -o tsv 2>/dev/null || echo "")
+          fi
+          
+          # Method 3: Search in all resource groups
+          if [ -z "$RESOURCE_GROUP" ]; then
+            echo "Method 2 failed, searching all resource groups..."
+            for rg in $(az group list --query "[].name" -o tsv 2>/dev/null || echo ""); do
+              if az webapp show --name ecss-backend-django --resource-group "$rg" >/dev/null 2>&1; then
+                RESOURCE_GROUP="$rg"
+                break
+              fi
+            done
+          fi
+          
           if [ ! -z "$RESOURCE_GROUP" ]; then
+            echo "✅ Found webapp in resource group: $RESOURCE_GROUP"
             echo "Optimizing app service settings for faster deployment..."
             
             # Check current startup command
             echo "Current startup command:"
             az webapp config show --name ecss-backend-django --resource-group "$RESOURCE_GROUP" \
-              --query "appCommandLine" -o tsv || echo "No startup command set"
+              --query "appCommandLine" -o tsv 2>/dev/null || echo "No startup command set"
             
             # Clear any existing startup command that includes pip installs
             echo "Clearing existing startup command..."
             az webapp config set --name ecss-backend-django --resource-group "$RESOURCE_GROUP" \
-              --startup-file "" || true
+              --startup-file "" 2>/dev/null || true
             
             # Set app service to use pre-built packages
             az webapp config appsettings set --name ecss-backend-django --resource-group "$RESOURCE_GROUP" \
               --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false \
                         ENABLE_ORYX_BUILD=false \
                         POST_BUILD_SCRIPT_PATH="" \
-                        POST_BUILD_COMMAND="" || true
+                        POST_BUILD_COMMAND="" 2>/dev/null || true
             
             # Set the correct startup command (use our optimized startup.sh)
             az webapp config set --name ecss-backend-django --resource-group "$RESOURCE_GROUP" \
-              --startup-file "startup.sh" || true
+              --startup-file "startup.sh" 2>/dev/null || true
               
             echo "✅ Configured startup command to use optimized startup.sh"
             
             # Verify the change
             echo "New startup command:"
             az webapp config show --name ecss-backend-django --resource-group "$RESOURCE_GROUP" \
-              --query "appCommandLine" -o tsv || echo "Using startup.sh"
-          fi
-        continue-on-error: true
-
-      - name: Stop Azure Web App
-        run: |
-          RESOURCE_GROUP=$(az webapp show --name ecss-backend-django --query resourceGroup -o tsv)
-          if [ ! -z "$RESOURCE_GROUP" ]; then
-            echo "Stopping webapp in resource group: $RESOURCE_GROUP"
-            az webapp stop --name ecss-backend-django --resource-group "$RESOURCE_GROUP"
+              --query "appCommandLine" -o tsv 2>/dev/null || echo "Using startup.sh"
           else
-            echo "Could not determine resource group. Attempting to stop webapp without explicit resource group..."
-            az webapp list --query "[?name=='ecss-backend-django'].{name:name,resourceGroup:resourceGroup}" -o table
+            echo "❌ Could not find webapp 'ecss-backend-django' in any resource group"
+            echo "Available webapps:"
+            az webapp list --query "[].{name:name,resourceGroup:resourceGroup}" -o table 2>/dev/null || echo "Failed to list webapps"
           fi
         continue-on-error: true
 
@@ -156,34 +173,28 @@ jobs:
           package: release.zip
           clean: true
           restart: false
-        id: deploy_attempt_1
-        continue-on-error: true
-
-      - name: Wait and retry deployment
-        if: steps.deploy_attempt_1.outcome == 'failure'
-        run: |
-          echo "First deployment attempt failed. Waiting 60 seconds before retry..."
-          sleep 60
-
-      - name: Deploy to Azure Web App (Retry)
-        if: steps.deploy_attempt_1.outcome == 'failure'
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'ecss-backend-django'
-          slot-name: 'Production'
-          package: release.zip
-          clean: true
-          restart: false
 
       - name: Start Azure Web App
         run: |
-          RESOURCE_GROUP=$(az webapp show --name ecss-backend-django --query resourceGroup -o tsv)
+          echo "Finding webapp resource group for start operation..."
+          
+          # Try multiple methods to find the resource group
+          RESOURCE_GROUP=""
+          
+          # Method 1: Direct webapp show
+          RESOURCE_GROUP=$(az webapp show --name ecss-backend-django --query resourceGroup -o tsv 2>/dev/null || echo "")
+          
+          # Method 2: List all webapps and filter
+          if [ -z "$RESOURCE_GROUP" ]; then
+            RESOURCE_GROUP=$(az webapp list --query "[?name=='ecss-backend-django'].resourceGroup | [0]" -o tsv 2>/dev/null || echo "")
+          fi
+          
           if [ ! -z "$RESOURCE_GROUP" ]; then
             echo "Starting webapp in resource group: $RESOURCE_GROUP"
-            az webapp start --name ecss-backend-django --resource-group "$RESOURCE_GROUP"
+            az webapp start --name ecss-backend-django --resource-group "$RESOURCE_GROUP" 2>/dev/null || true
           else
             echo "Could not determine resource group. Checking webapp status..."
-            az webapp list --query "[?name=='ecss-backend-django'].{name:name,resourceGroup:resourceGroup,state:state}" -o table
+            az webapp list --query "[?name=='ecss-backend-django'].{name:name,resourceGroup:resourceGroup,state:state}" -o table 2>/dev/null || true
           fi
 
       - name: Verify deployment
@@ -203,11 +214,13 @@ jobs:
             else
               echo "⚠️ App may still be starting. HTTP response: $response"
               echo "App logs:"
-              RESOURCE_GROUP=$(az webapp show --name ecss-backend-django --query resourceGroup -o tsv)
-              if [ ! -z "$RESOURCE_GROUP" ]; then
-                az webapp log tail --name ecss-backend-django --resource-group "$RESOURCE_GROUP" --provider application --verbosity verbose || true
-              else
-                echo "Could not retrieve logs - resource group not found"
+              
+              # Try to find resource group for logs
+              RESOURCE_GROUP=""
+              RESOURCE_GROUP=$(az webapp show --name ecss-backend-django --query resourceGroup -o tsv 2>/dev/null || echo "")
+              if [ -z "$RESOURCE_GROUP" ]; then
+                RESOURCE_GROUP=$(az webapp list --query "[?name=='ecss-backend-django'].resourceGroup | [0]" -o tsv 2>/dev/null || echo "")
               fi
-            fi
-          fi
+              
+              if [ ! -z "$RESOURCE_GROUP" ]; then
+                az webapp log tail --name ecss-backend-django --resource-group "$RESOURCE_GROUP" --provider application --verbosity verbose 2
