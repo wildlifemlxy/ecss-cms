@@ -70,12 +70,6 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_EB79F461F4B4430CAEDF712D5D8E3B10 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4129D336120440A3940229E354C62FAB }}
 
-      - name: Clean up Azure App Service site root (if needed)
-        run: |
-          az webapp ssh --name ecss-backend-django --resource-group <YOUR_RESOURCE_GROUP> --command "rm -rf /home/site/wwwroot/*"
-        env:
-          AZURE_CORE_OUTPUT: none
-
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
