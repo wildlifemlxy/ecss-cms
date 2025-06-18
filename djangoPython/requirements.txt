@@ -1,5 +1,4 @@
 # Pip configuration for Azure App Service compatibility
---upgrade-strategy only-if-needed
 --no-cache-dir
 
 # Core Django Framework (LTS version for stability)
