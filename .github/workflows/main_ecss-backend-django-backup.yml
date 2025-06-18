@@ -134,20 +134,39 @@ jobs:
         run: |
           echo "Pre-configuring Azure App Service..."
           
-          # Stop the app service to prevent conflicts during deployment
-          az webapp stop \
-            --resource-group ecss-backend-rg \
-            --name ${{ env.AZURE_WEBAPP_NAME }} || echo "App already stopped or not found"
+          # Check current service principal permissions
+          echo "Checking Azure permissions..."
+          if az webapp show --resource-group ecss-backend-rg --name ${{ env.AZURE_WEBAPP_NAME }} --query "name" --output tsv >/dev/null 2>&1; then
+            echo "✓ Basic read permissions confirmed"
+          else
+            echo "⚠️ Limited permissions detected - deployment may still work"
+          fi
           
-          # Configure app service settings
-          az webapp config set \
+          # Try to stop the app service (optional for deployment)
+          echo "Attempting to stop app service..."
+          if az webapp stop \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} 2>/dev/null; then
+            echo "✓ App service stopped successfully"
+          else
+            echo "⚠️ Could not stop app service - continuing with deployment"
+          fi
+          
+          # Try to configure basic settings
+          echo "Attempting to configure app service settings..."
+          if az webapp config set \
             --resource-group ecss-backend-rg \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --linux-fx-version "PYTHON|3.13" \
-            --startup-file "startup.sh"
+            --startup-file "startup.sh" 2>/dev/null; then
+            echo "✓ Basic configuration applied"
+          else
+            echo "⚠️ Could not apply configuration - will rely on deployment package settings"
+          fi
           
-          # Set environment variables
-          az webapp config appsettings set \
+          # Try to set critical environment variables
+          echo "Attempting to set environment variables..."
+          if az webapp config appsettings set \
             --resource-group ecss-backend-rg \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --settings \
@@ -156,7 +175,11 @@ jobs:
             SCM_DO_BUILD_DURING_DEPLOYMENT=false \
             ENABLE_ORYX_BUILD=false \
             WEBSITE_RUN_FROM_PACKAGE=1 \
-            WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
+            WEBSITES_ENABLE_APP_SERVICE_STORAGE=false 2>/dev/null; then
+            echo "✓ Environment variables configured"
+          else
+            echo "⚠️ Could not set environment variables - manual configuration may be needed"
+          fi
         continue-on-error: true
 
       - name: Deploy to Azure Web App
@@ -185,30 +208,159 @@ jobs:
       - name: Configure App Service Settings
         run: |
           echo "Configuring Azure App Service settings..."
-          az webapp config set \
+          
+          # Check if we have proper permissions first
+          echo "Checking Azure permissions..."
+          if az webapp show --resource-group ecss-backend-rg --name ${{ env.AZURE_WEBAPP_NAME }} --query "name" --output tsv >/dev/null 2>&1; then
+            echo "✓ Basic read permissions confirmed"
+          else
+            echo "⚠️ Limited permissions detected - skipping configuration"
+            exit 0
+          fi
+          
+          # Try to configure startup file with error handling
+          echo "Setting startup file..."
+          if az webapp config set \
             --resource-group ecss-backend-rg \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --startup-file "startup.sh" \
-            --linux-fx-version "PYTHON|3.13"
+            --linux-fx-version "PYTHON|3.13" 2>/dev/null; then
+            echo "✓ Startup file configured successfully"
+          else
+            echo "⚠️ Could not configure startup file - may require elevated permissions"
+          fi
           
-          # Set environment variables
-          az webapp config appsettings set \
+          # Try to set environment variables with error handling
+          echo "Setting environment variables..."
+          if az webapp config appsettings set \
             --resource-group ecss-backend-rg \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
             --settings \
             DJANGO_SETTINGS_MODULE=djangoPython.settings \
             PYTHONUNBUFFERED=1 \
             SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-            ENABLE_ORYX_BUILD=false
+            ENABLE_ORYX_BUILD=false \
+            DISABLE_COLLECTSTATIC=1 \
+            PRE_BUILD_SCRIPT_PATH="" \
+            POST_BUILD_SCRIPT_PATH="" \
+            ORYX_DISABLE_PYTHON_BUILD=true \
+            WEBSITE_PYTHON_DEFAULT_VERSION=3.13 2>/dev/null; then
+            echo "✓ Environment variables configured successfully"
+          else
+            echo "⚠️ Could not configure environment variables - may require elevated permissions"
+            echo "ℹ️ These settings can be configured manually in the Azure portal:"
+            echo "   - DJANGO_SETTINGS_MODULE=djangoPython.settings"
+            echo "   - PYTHONUNBUFFERED=1"
+            echo "   - SCM_DO_BUILD_DURING_DEPLOYMENT=false"
+            echo "   - ENABLE_ORYX_BUILD=false"
+            echo "   - DISABLE_COLLECTSTATIC=1"
+            echo "   - ORYX_DISABLE_PYTHON_BUILD=true"
+            echo "   - WEBSITE_PYTHON_DEFAULT_VERSION=3.13"
+            echo "   - Startup file: startup.sh"
+          fi
+        continue-on-error: true
+
+      - name: Force Startup Configuration Override
+        run: |
+          echo "=== FORCING STARTUP CONFIGURATION OVERRIDE ==="
+          echo "This step ensures Oryx auto-detection is completely bypassed"
+          
+          # Method 1: Set explicit startup command (overrides any auto-detection)
+          echo "Setting explicit startup command..."
+          if az webapp config set \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --startup-file "gunicorn --bind=0.0.0.0:\$PORT --workers=2 --timeout=120 --access-logfile=- --error-logfile=- --log-level=info djangoPython.wsgi:application" 2>/dev/null; then
+            echo "✓ Explicit startup command set successfully"
+          else
+            echo "⚠️ Could not set explicit startup command - trying alternative method"
+            
+            # Alternative: Set startup file reference
+            if az webapp config set \
+              --resource-group ecss-backend-rg \
+              --name ${{ env.AZURE_WEBAPP_NAME }} \
+              --startup-file "startup.sh" 2>/dev/null; then
+              echo "✓ Startup file reference set successfully"
+            else
+              echo "⚠️ Could not set startup file - manual configuration required"
+            fi
+          fi
+          
+          # Method 2: Set additional Oryx override variables
+          echo "Setting additional Oryx override variables..."
+          if az webapp config appsettings set \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --settings \
+            WEBSITE_RUN_FROM_PACKAGE=0 \
+            PYTHONPATH=/home/site/wwwroot \
+            WEBSITE_USE_PLACEHOLDER=0 2>/dev/null; then
+            echo "✓ Additional override variables set successfully"
+          else
+            echo "⚠️ Could not set additional variables"
+          fi
+          
+          # Method 3: Restart the app to apply new configuration
+          echo "Restarting app to apply configuration..."
+          if az webapp restart \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} 2>/dev/null; then
+            echo "✓ App restarted successfully"
+          else
+            echo "⚠️ Could not restart app"
+          fi
+          
+          echo "=== Configuration Override Complete ==="
+        continue-on-error: true
+
+      - name: Verify WSGI Configuration
+        run: |
+          echo "=== VERIFYING WSGI CONFIGURATION ==="
+          
+          # Check if startup command was set correctly
+          echo "Checking startup command configuration..."
+          startup_cmd=$(az webapp config show \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --query "appCommandLine" \
+            --output tsv 2>/dev/null || echo "")
+          
+          if [[ "$startup_cmd" == *"djangoPython.wsgi:application"* ]]; then
+            echo "✓ Startup command correctly configured with djangoPython.wsgi:application"
+            echo "Command: $startup_cmd"
+          elif [[ "$startup_cmd" == *"asgiref.wsgi"* ]]; then
+            echo "❌ CRITICAL: Startup command still using asgiref.wsgi"
+            echo "Command: $startup_cmd"
+            echo "This indicates Oryx override failed - manual configuration required"
+          else
+            echo "⚠️ Startup command: $startup_cmd"
+            echo "Manual verification needed"
+          fi
+          
+          # Check Oryx override environment variables
+          echo "Checking Oryx override variables..."
+          oryx_disabled=$(az webapp config appsettings list \
+            --resource-group ecss-backend-rg \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --query "[?name=='ENABLE_ORYX_BUILD'].value" \
+            --output tsv 2>/dev/null || echo "")
+          
+          if [[ "$oryx_disabled" == "false" ]]; then
+            echo "✓ ENABLE_ORYX_BUILD is set to false"
+          else
+            echo "⚠️ ENABLE_ORYX_BUILD not properly set"
+          fi
+          
+          echo "=== WSGI Configuration Check Complete ==="
         continue-on-error: true
 
       - name: Verify deployment
         run: |
-          echo "Deployment completed successfully!"
+          echo "=== DEPLOYMENT VERIFICATION ==="
           echo "Application URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
           
           # Check deployment status
-          echo "=== Checking deployment status ==="
+          echo "Checking app service status..."
           az webapp show \
             --resource-group ecss-backend-rg \
             --name ${{ env.AZURE_WEBAPP_NAME }} \
