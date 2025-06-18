@@ -138,7 +138,12 @@ class LoginPage extends Component {
                 name: ""
               });
               //console.log(response.data.message.details.site, response.data.message.details.role);
-              this.props.history.push({ pathname: '/home', state: { accountId: loginResponse.data.message.details._id, name: loginResponse.data.message.details.name, role: loginResponse.data.message.details.role, siteIC: loginResponse.data.message.details.site}}); 
+              // Handle site as array if it contains comma-separated values
+              const siteData = loginResponse.data.message.details.site;
+              const siteArray = siteData && siteData.includes(',') 
+                ? siteData.split(',').map(site => site.trim()) 
+                : siteData;
+              this.props.history.push({ pathname: '/home', state: { accountId: loginResponse.data.message.details._id, name: loginResponse.data.message.details.name, role: loginResponse.data.message.details.role, siteIC: siteArray}}); 
             }
         }, 5000);
       } else {
