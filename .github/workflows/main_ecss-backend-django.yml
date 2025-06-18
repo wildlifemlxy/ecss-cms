@@ -67,7 +67,11 @@ jobs:
           source venv/bin/activate
           rm -rf deployment_package
           mkdir -p deployment_package
+          
+          # Copy Django application files to the root of deployment package
           cp -r djangoPython/* deployment_package/
+          
+          # Create proper Python packages directory
           mkdir -p deployment_package/.python_packages/lib/python${{ env.PYTHON_VERSION }}/site-packages
           echo "Copying Python packages..."
           cp -r venv/lib/python*/site-packages/* deployment_package/.python_packages/lib/python${{ env.PYTHON_VERSION }}/site-packages/ 2>/dev/null || echo "Package copy completed"
@@ -78,19 +82,42 @@ jobs:
           python -c "import djangoPython.wsgi; print('✓ WSGI module imports successfully')" || echo "❌ WSGI module import failed"
           cd ..
           
-          # Create startup command that matches the directory structure
+          # Create optimized startup script for Azure App Service
+          cat > deployment_package/startup.sh << 'EOF'
+#!/bin/bash
+echo "=== Azure App Service Startup ==="
+cd /home/site/wwwroot
+export PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/.python_packages/lib/python3.13/site-packages:$PYTHONPATH"
+export DJANGO_SETTINGS_MODULE=djangoPython.settings
+export PYTHONUNBUFFERED=1
+export PORT=${PORT:-8000}
+
+echo "Current directory: $(pwd)"
+echo "Python path: $PYTHONPATH"
+echo "Starting Gunicorn with WSGI: djangoPython.wsgi:application"
+
+# Start Gunicorn with optimized settings for Azure
+gunicorn \
+  --bind=0.0.0.0:$PORT \
+  --workers=2 \
+  --worker-class=sync \
+  --timeout=120 \
+  --keep-alive=2 \
+  --max-requests=1000 \
+  --max-requests-jitter=50 \
+  --access-logfile=- \
+  --error-logfile=- \
+  --log-level=info \
+  --capture-output \
+  djangoPython.wsgi:application
+EOF
+
+          chmod +x deployment_package/startup.sh
+          
+          # Also create startup.txt as fallback
           cat > deployment_package/startup.txt << 'EOF'
-          #!/bin/bash
-          cd /home/site/wwwroot
-          export PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/.python_packages/lib/python3.13/site-packages:$PYTHONPATH"
-          export DJANGO_SETTINGS_MODULE=djangoPython.settings
-          export PYTHONUNBUFFERED=1
-          export PORT=${PORT:-8000}
-          echo "Starting Django application..."
-          echo "Current directory: $(pwd)"
-          echo "WSGI module: djangoPython.wsgi:application"
-          gunicorn --bind=0.0.0.0:$PORT --timeout=600 --workers=4 djangoPython.wsgi:application
-          EOF
+gunicorn --bind=0.0.0.0:8000 --workers=2 --timeout=120 --access-logfile=- --error-logfile=- djangoPython.wsgi:application
+EOF
           
           find deployment_package -name "*.pyc" -delete 2>/dev/null || true
           find deployment_package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
