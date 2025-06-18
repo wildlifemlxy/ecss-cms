@@ -1,11 +1,14 @@
-name: ECSS Backend Django
+name: ECSS Backend Django - Production Deployment
 
-#Try 1
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.13'
+  AZURE_WEBAPP_NAME: 'ecss-backend-django'
 
 jobs:
   build_and_deploy:
@@ -16,23 +19,25 @@ jobs:
 
     environment:
       name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
-      - name: Check out repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 1
 
-      - name: Set up Python version
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
       - name: Create virtual environment and install dependencies
         run: |
           python -m venv venv
           source venv/bin/activate
-          pip install --upgrade pip
+          pip install --upgrade pip setuptools wheel
           
           if [ -f djangoPython/requirements.txt ]; then
             echo "Installing dependencies from djangoPython/requirements.txt"
@@ -43,62 +48,50 @@ jobs:
             exit 1
           fi
 
-      - name: Zip artifact for deployment
+      - name: Run Django checks
         run: |
-          # Activate virtual environment
           source venv/bin/activate
-          
-          # Create a clean deployment directory
+          cd djangoPython
+          python manage.py check --deploy
+        continue-on-error: true
+
+      - name: Collect static files
+        run: |
+          source venv/bin/activate
+          cd djangoPython
+          python manage.py collectstatic --noinput --clear
+        continue-on-error: true
+
+      - name: Create deployment package
+        run: |
+          source venv/bin/activate
           rm -rf deployment_package
           mkdir -p deployment_package
-          
-          # Copy Django application files (flatten the structure)
           cp -r djangoPython/* deployment_package/
+          mkdir -p deployment_package/.python_packages/lib/python${{ env.PYTHON_VERSION }}/site-packages
+          echo "Copying Python packages..."
+          cp -r venv/lib/python*/site-packages/* deployment_package/.python_packages/lib/python${{ env.PYTHON_VERSION }}/site-packages/ 2>/dev/null || echo "Package copy completed"
           
-          # Create a proper site-packages directory structure
-          mkdir -p deployment_package/.python_packages/lib/python3.13/site-packages
+          cat > deployment_package/startup.txt << 'EOF'
+          #!/bin/bash
+          export PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/.python_packages/lib/python3.13/site-packages:$PYTHONPATH"
+          export DJANGO_SETTINGS_MODULE=djangoPython.settings
+          export PYTHONUNBUFFERED=1
+          gunicorn --bind=0.0.0.0:8000 --workers=2 --timeout=120 --access-logfile=- --error-logfile=- --log-level=info djangoPython.wsgi:application
+          EOF
           
-          # Copy installed packages to the proper location
-          echo "Copying Python packages to .python_packages..."
-          cp -r venv/lib/python*/site-packages/* deployment_package/.python_packages/lib/python3.13/site-packages/ 2>/dev/null || echo "Package copy skipped"
-          
-          # Create a custom startup script that sets the Python path correctly
-          cat > deployment_package/azure_startup.sh << 'EOF'
-#!/bin/bash
-echo "=== Azure Django Startup ==="
-export PYTHONPATH="/home/site/wwwroot:/home/site/wwwroot/.python_packages/lib/python3.13/site-packages:$PYTHONPATH"
-export DJANGO_SETTINGS_MODULE=djangoPython.settings
-export PYTHONUNBUFFERED=1
-export PORT=${PORT:-8000}
-
-echo "Python path: $PYTHONPATH"
-echo "Starting Gunicorn with djangoPython.wsgi:application"
-
-exec gunicorn \
-    --bind=0.0.0.0:$PORT \
-    --workers=2 \
-    --timeout=120 \
-    --access-logfile=- \
-    --error-logfile=- \
-    --log-level=info \
-    djangoPython.wsgi:application
-EOF
-          
-          chmod +x deployment_package/azure_startup.sh
-          
-          # Remove unnecessary files
-          find deployment_package -name "*.pyc" -delete
+          find deployment_package -name "*.pyc" -delete 2>/dev/null || true
           find deployment_package -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
           find deployment_package -name ".DS_Store" -delete 2>/dev/null || true
           find deployment_package -name "*.pyo" -delete 2>/dev/null || true
           find deployment_package -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true
           
-          # Create the deployment zip
           cd deployment_package
-          zip -r ../release.zip . -x "*.DS_Store*"
+          zip -r ../release.zip . -x "*.DS_Store*" "*.git*"
           cd ..
           
           echo "✓ Deployment package created successfully"
+          echo "Package size: $(du -h release.zip | cut -f1)"
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -108,8 +101,21 @@ EOF
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1F917677349441DF9FFD4FFAA1773557 }}
 
       - name: Deploy to Azure Web App
+        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'ecss-backend-django'
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
           slot-name: 'Production'
           package: release.zip
+
+      - name: Verify deployment
+        run: |
+          echo "Deployment completed successfully!"
+          echo "Application URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+          sleep 30
+          response=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" || echo "000")
+          if [ "$response" = "200" ] || [ "$response" = "302" ]; then
+            echo "✓ Application is responding (HTTP $response)"
+          else
+            echo "⚠️ Application health check returned HTTP $response"
+          fi
