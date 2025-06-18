@@ -94,9 +94,12 @@ jobs:
           pip install -r requirements.txt
         #if: steps.determine_deployment.outputs.deploy == 'true'
 
-      - name: Zip artifact for deployment
+      - name: Prepare Django application for deployment
         run: |
-          zip -r release.zip djangoPython -x "djangoPython/venv/*"
+          cd djangoPython
+          # Ensure all necessary files are present
+          ls -la
+          echo "Django application prepared for deployment"
         #if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Login to Azure
@@ -112,5 +115,5 @@ jobs:
         with:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
-          package: release.zip
+          package: './djangoPython'
         #if: steps.determine_deployment.outputs.deploy == 'true'
