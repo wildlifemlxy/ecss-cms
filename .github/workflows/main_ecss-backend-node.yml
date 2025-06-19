@@ -36,14 +36,12 @@ jobs:
             RESOURCE_GROUP="ECSS-Course-Management-System"
             DEPLOYMENT_STATUS=$(az webapp show --name ecss-backend-node --resource-group $RESOURCE_GROUP --query "state" -o tsv)
         
-            echo "Current deployment status: $DEPLOYMENT_STATUS"  # Show the deployment status
-        
-            if [ "$DEPLOYMENT_STATUS" == "Running" ]; then
+            echo "Current deployment status: $DEPLOYMENT_STATUS"  # Show the deployment status            if [ "$DEPLOYMENT_STATUS" == "Running" ]; then
               echo "Deployment is already in progress for ecss-backend-node. Exiting early."
-              echo "::set-output name=deployment_in_progress::true"  # Set the output variable to indicate deployment is in progress
+              echo "deployment_in_progress=true" >> $GITHUB_OUTPUT
             else
               echo "No deployment in progress for ecss-backend-node. Proceeding with build."
-              echo "::set-output name=deployment_in_progress::false"  # Set the output variable to indicate no deployment in progress
+              echo "deployment_in_progress=false" >> $GITHUB_OUTPUT
             fi
         
       - name: Fetch previous commit (before push)
@@ -59,14 +57,12 @@ jobs:
         run: |
           echo "Checking for changes in the backend folder between before and after push..."
           git fetch origin main --depth=2  # Fetch the last 2 commits
-          CHANGES=$(git diff --name-only HEAD~1 HEAD -- backend/)
-
-          if [ -z "$CHANGES" ]; then
+          CHANGES=$(git diff --name-only HEAD~1 HEAD -- backend/)          if [ -z "$CHANGES" ]; then
             echo "No changes detected in the backend folder. Skipping build and deploy."
-            echo "::set-output name=changes_detected::false"
+            echo "changes_detected=false" >> $GITHUB_OUTPUT
           else
             echo "Changes detected in the backend folder. Proceeding with build and deploy."
-            echo "::set-output name=changes_detected::true"
+            echo "changes_detected=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Debug changes detected
@@ -106,6 +102,7 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'ecss-backend-node'
+          #publish-profile: ${{ secrets.AZUREWEBAPP_PUBLISHPROFILE_ECSSBACKENDNODE }}
           package: ./release.zip
           startup-command: 'npm i && npm i cors && npm start'
 
