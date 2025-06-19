@@ -1,4 +1,4 @@
-name: ECSS Backend DjangoPython
+name: ECSS Backend Django
 
 on:
   push:
@@ -7,73 +7,50 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_and_deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # Required for actions/checkout
+      id-token: write  # Required for Azure login
+
+    environment:
+      name: 'Production'
 
     steps:
-      - name: Checkout code
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
 
-      - name: Create and start virtual environment
-        run: |
-          python -m venv /tmp/venv
-          source /tmp/venv/bin/activate
-
       - name: Install dependencies
         run: |
-          source /tmp/venv/bin/activate
+          cd djangoPython
           pip install --upgrade pip
-          pip install -r djangoPython/requirements.txt
+          pip install -r requirements.txt
 
-      # Optional: Add test steps here (pytest, Django tests, etc.)
-
-      - name: Zip artifact for deployment
+      - name: Prepare Django application for deployment
         run: |
-          zip -r release.zip . -x "*/tmp/venv/*"
+          cd djangoPython
+          # Ensure all necessary files are present
+          ls -la
+          echo "Django application prepared for deployment"
+        #if: steps.determine_deployment.outputs.deploy == 'true'
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: release.zip
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
-
-      - name: Unzip artifact
-        run: unzip release.zip
-
-      - name: Azure Login
+      - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_F6493B6D4208411C837A9687049B1A56 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_EB79F461F4B4430CAEDF712D5D8E3B10 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4129D336120440A3940229E354C62FAB }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DB1EDA88A3DA4E8D846F3C3D5AB12A22 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_22BDF8F60B124137A56F942213EAB1D3 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1F917677349441DF9FFD4FFAA1773557 }}
+        #if: steps.determine_deployment.outputs.deploy == 'true'
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
         with:
           app-name: 'ecss-backend-django'
           slot-name: 'Production'
-          package: release.zip
+          package: './djangoPython'
+        #if: steps.determine_deployment.outputs.deploy == 'true'
