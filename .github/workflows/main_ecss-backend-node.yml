@@ -106,9 +106,9 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'ecss-backend-node'
-          slot-name: 'Production'
-          package: ./release.zip  # Use the zip file created from the backend folder
-          
+          package: ./release.zip
+          startup-command: 'npm i && npm i cors && npm start'
+
       - name: Ensure deployment continues in background
         #if: ${{ steps.check_changes.outputs.changes_detected == 'true' }} 
         run: |
