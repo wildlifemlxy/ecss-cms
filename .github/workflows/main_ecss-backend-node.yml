@@ -22,9 +22,9 @@ jobs:
       - name: Log in to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_41A26900721847DFB378D91324F04C5C }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F80B66AC3E847918F02B61E622A3768 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
+            client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_36278AF309984CDFB949D520E90D2D51 }}
+            tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2F8F6BF325C6476B8722B9967C7C207C }}
+            subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_D217683D12E1411696253FF9DBEB5277 }}
 
       - name: Set the correct Azure subscription
         run: |
