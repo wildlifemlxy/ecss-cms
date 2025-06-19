@@ -69,37 +69,29 @@ jobs:
             echo "changes_detected=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Debug changes detected
-        run: 'echo "Changes detected: ${{ steps.check_changes.outputs.changes_detected }}"'
-
       - name: Set up Node.js version
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
 
       - name: npm install, build, and test
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         run: |
           cd backend
           npm install
           npm run build --if-present
 
       - name: Zip artifact for deployment
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         run: |
           cd backend
           zip -r ../release.zip .
 
       - name: Upload artifact for deployment
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: node-app
           path: release.zip
 
       - name: Stop Azure Web App (prevent conflicts)
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         run: |
           echo "Stopping Azure Web App to prevent deployment conflicts..."
           az webapp stop --name ecss-backend-node --resource-group ECSS-Course-Management-System
@@ -107,7 +99,6 @@ jobs:
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'ecss-backend-node'
@@ -140,13 +131,11 @@ jobs:
           clean: true
 
       - name: Start Azure Web App
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         run: |
           echo "Starting Azure Web App..."
           az webapp start --name ecss-backend-node --resource-group ECSS-Course-Management-System
 
       - name: Verify deployment
-        if: ${{ steps.check_changes.outputs.changes_detected == 'true' }}
         run: |
           echo "Waiting for app to start..."
           sleep 30
