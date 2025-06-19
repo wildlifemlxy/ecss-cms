@@ -40,7 +40,7 @@ jobs:
           cd backend
           npm install
           npm run build --if-present
-
+          
       - name: Zip artifact for deployment
         run: |
           cd backend
@@ -52,6 +52,30 @@ jobs:
           name: node-app
           path: release.zip
 
+      - name: Clear Node.js and npm cache
+        run: |
+          echo "Clearing Node.js and npm cache..."
+          npm cache clean --force
+          rm -rf ~/.npm/_cacache
+          echo "Node.js cache cleared"
+
+      - name: Clear Azure Web App cache before deployment
+        run: |
+          echo "Clearing Azure Web App cache..."
+          az webapp restart --name ecss-backend-node --resource-group $(az webapp show --name ecss-backend-node --query resourceGroup -o tsv)
+          echo "Azure Web App restarted"
+
+      - name: Clear application-level cache
+        run: |
+          echo "Clearing application-level cache..."
+          az webapp ssh --name ecss-backend-node --resource-group $(az webapp show --name ecss-backend-node --query resourceGroup -o tsv) --command "pm2 flush || true"
+          echo "Application cache cleared"
+
+      - name: Clear application cache files
+        run: |
+          echo "Clearing application cache files..."
+          az webapp ssh --name ecss-backend-node --resource-group $(az webapp show --name ecss-backend-node --query resourceGroup -o tsv) --command "rm -rf /tmp/* /var/cache/* 2>/dev/null || true"
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -59,3 +83,8 @@ jobs:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
           package: ./release.zip
+
+      - name: Restart Azure Web App after deployment
+        run: |
+          echo "Restarting Azure Web App to clear all caches..."
+          az webapp restart --name ecss-backend-node --resource-group $(az webapp show --name ecss-backend-node --query resourceGroup -o tsv)
