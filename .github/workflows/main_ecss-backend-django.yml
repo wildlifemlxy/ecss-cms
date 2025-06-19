@@ -1,5 +1,4 @@
-name: ECSS Backend Django - Deploy to Azure
-
+name: ECSS Backend Django -  As of Jun 19 2025, 2000 hrs
 on:
   push:
     branches:
