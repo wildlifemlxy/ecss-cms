@@ -14,8 +14,6 @@ jobs:
       id-token: write
     environment:
       name: 'Production'
-    env:
-      PIP_ROOT_USER_ACTION: ignore
 
     steps:
       - name: Check out repository
@@ -31,43 +29,6 @@ jobs:
       - name: Set the correct Azure subscription
         run: |
           az account set --subscription ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_5AB7D5C3556C4887A1D6861E627F89F7 }}
-
-      - name: Check if a deployment is in progress
-        run: |
-            echo "Checking for active deployment process for ecss-backend-node..."
-            RESOURCE_GROUP="ECSS-Course-Management-System"
-            DEPLOYMENT_STATUS=$(az webapp show --name ecss-backend-node --resource-group $RESOURCE_GROUP --query "state" -o tsv)
-        
-            echo "Current deployment status: $DEPLOYMENT_STATUS"
-        
-            if [ "$DEPLOYMENT_STATUS" == "Running" ]; then
-              echo "Deployment is already in progress for ecss-backend-node. Exiting early."
-              echo "deployment_in_progress=true" >> $GITHUB_OUTPUT
-            else
-              echo "No deployment in progress for ecss-backend-node. Proceeding with build."
-              echo "deployment_in_progress=false" >> $GITHUB_OUTPUT
-            fi
-        
-      - name: Fetch previous commit
-        run: |
-          git fetch origin main --depth=2
-          echo "Before push commit:"
-          git log --oneline -n 2
-
-      - name: Check for changes in the backend folder
-        id: check_changes
-        run: |
-          echo "Checking for changes in the backend folder between before and after push..."
-          git fetch origin main --depth=2
-          CHANGES=$(git diff --name-only HEAD~1 HEAD -- backend/)
-
-          if [ -z "$CHANGES" ]; then
-            echo "No changes detected in the backend folder. Skipping build and deploy."
-            echo "changes_detected=false" >> $GITHUB_OUTPUT
-          else
-            echo "Changes detected in the backend folder. Proceeding with build and deploy."
-            echo "changes_detected=true" >> $GITHUB_OUTPUT
-          fi
 
       - name: Set up Node.js version
         uses: actions/setup-node@v3
@@ -91,12 +52,6 @@ jobs:
           name: node-app
           path: release.zip
 
-      - name: Stop Azure Web App (prevent conflicts)
-        run: |
-          echo "Stopping Azure Web App to prevent deployment conflicts..."
-          az webapp stop --name ecss-backend-node --resource-group ECSS-Course-Management-System
-        continue-on-error: true
-
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -104,48 +59,3 @@ jobs:
           app-name: 'ecss-backend-node'
           slot-name: 'Production'
           package: ./release.zip
-          clean: true
-        continue-on-error: true
-
-      - name: Wait and retry deployment
-        if: steps.deploy-to-webapp.outcome == 'failure'
-        run: |
-          echo "First deployment attempt failed. Waiting 60 seconds before retry..."
-          sleep 60
-
-      - name: Force stop any running deployments
-        if: steps.deploy-to-webapp.outcome == 'failure'
-        run: |
-          echo "Attempting to cancel any running deployments..."
-          az webapp deployment list-publishing-credentials --name ecss-backend-node --resource-group ECSS-Course-Management-System || true
-          sleep 30
-        continue-on-error: true
-
-      - name: Deploy to Azure Web App (Retry)
-        if: steps.deploy-to-webapp.outcome == 'failure'
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'ecss-backend-node'
-          slot-name: 'Production'
-          package: ./release.zip
-          clean: true
-
-      - name: Start Azure Web App
-        run: |
-          echo "Starting Azure Web App..."
-          az webapp start --name ecss-backend-node --resource-group ECSS-Course-Management-System
-
-      - name: Verify deployment
-        run: |
-          echo "Waiting for app to start..."
-          sleep 30
-          
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://ecss-backend-node.azurewebsites.net || echo "000")
-          
-          if [ "$response" -eq 200 ] || [ "$response" -eq 301 ] || [ "$response" -eq 302 ]; then
-            echo "✅ Deployment successful! App is responding with HTTP $response"
-          else
-            echo "⚠️ App deployed but may not be fully ready. HTTP response: $response"
-            echo "App logs (last 100 lines):"
-            az webapp log tail --name ecss-backend-node --resource-group ECSS-Course-Management-System --provider application --verbosity verbose || true
-          fi
