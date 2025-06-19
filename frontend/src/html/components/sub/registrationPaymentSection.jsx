@@ -1765,22 +1765,8 @@ class RegistrationPaymentSection extends Component {
         field: "location",
         width: 300,
         cellRenderer: (params) => {
-          // Hide value if the role is "Site in-charge" with only one site
-          // Show value for Site in-charges with multiple sites or other roles
-          if (role === "Site in-charge") {
-            const { siteIC } = this.props;
-            let hasMultipleSites = false;
-            
-            if (Array.isArray(siteIC)) {
-              hasMultipleSites = siteIC.length > 1;
-            } else if (typeof siteIC === 'string' && siteIC.includes(',')) {
-              hasMultipleSites = true;
-            }
-            
-            // Show location for Site in-charges with multiple sites
-            return hasMultipleSites ? params.value : null;
-          }
-          return params.value;
+          // Hide value if the role is "Site in-charge"
+          return role === "Site in-charge" ? null : params.value;
         },
       },
       {
