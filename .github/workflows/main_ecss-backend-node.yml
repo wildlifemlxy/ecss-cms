@@ -1,8 +1,4 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy Node.js app to Azure Web App - ecss-backend-node
-
+name: ECSS Backend Nod
 on:
   push:
     branches:
@@ -16,17 +12,18 @@ jobs:
       contents: read #This is required for actions/checkout
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: './backend/package.json'
 
       - name: npm install, build, and test
         working-directory: ./backend
         run: |
-          npm install
+          npm ci
+          npm run test --if-present
           npm run build --if-present
 
       - name: Zip artifact for deployment
