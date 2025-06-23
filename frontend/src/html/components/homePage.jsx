@@ -370,99 +370,6 @@ import React, { Component } from 'react';
       }
     }
 
-    handleSelectFromChild = async (updateState, dropdown) => {
-      console.log("Selected Data:", updateState, dropdown);
-      var {section} = this.state;
-      if(section === "courses")
-      {
-        if (dropdown === "showLanguageDropdown") {
-          this.setState({
-            selectedLanguage: updateState.language
-          });
-        }
-        else if (dropdown === "showLocationDropdown") {
-          this.setState({
-            selectedLocation: updateState.centreLocation
-          });
-        }
-        else if(dropdown === "showTypeDropdown")
-        {
-          this.setState({
-            selectedLocation: updateState.centreLocation
-          });
-        }
-      }
-      else if(section === "accounts")
-      {
-        if(dropdown === "showAccountTypeDropdown")
-        {
-          this.setState({
-            selectedAccountType: updateState.role
-          });
-        }
-      }
-    }
-
-    // Handle selection for registration payments
-    handleRegPaymentSelectFromChild = async (updateState, dropdown) => 
-    {
-      console.log("Selected Data (Registration Payment):", updateState, dropdown);
-      if(updateState.centreLocation)
-      {
-        this.setState({
-          selectedLocation: updateState.centreLocation
-        });
-      }
-      else if(updateState.courseType)
-      {
-        this.setState({
-          selectedCourseType: updateState.courseType
-        });
-      }
-      else if(updateState.courseName)
-      {
-        console.log("Hello");
-        this.setState({
-          selectedCourseName: updateState.courseName
-        });
-      }
-      else if(updateState.quarter)
-      {
-        console.log("Hello");
-        this.setState({
-          selectedQuarter: updateState.quarter
-        });
-      }
-    }
-
-    toggleReportComponent = async(reportType) =>
-    {
-      try 
-      {
-          this.setState({ resetSearch: true, }, () => {
-            this.setState({ resetSearch: false });
-          });
-
-         
-          this.setState({
-            courseType: null,
-            sidebarVisible: false,
-            isRegistrationPaymentVisible: false,
-            section: "",
-            accountType: null,
-            createAccount: false,
-            reportVisibility: true, 
-            reportType: reportType,
-            attendanceVisibility: false,
-            isMembershipVisible: false
-          });
-      } 
-      catch (error) 
-      {
-        console.log(error);
-      }
-    }
-
     // Handle selection for registration payments
     handleRegPaymentSearchFromChild = async (data) => {
       this.setState({
@@ -1230,7 +1137,11 @@ import React, { Component } from 'react';
           this.toggleDashboardComponent();
           break;
         case 'courses':
-          this.toggleCourseComponent('All Courses');
+        case 'nsa-courses':
+          this.toggleCourseComponent('NSA');
+          break;
+        case 'ilp-courses':
+          this.toggleCourseComponent('ILP');
           break;
         case 'attendance':
           this.toggleAttendanceComponent('All Types');
@@ -1239,7 +1150,20 @@ import React, { Component } from 'react';
           this.toggleMembershipComponent();
           break;
         case 'reports':
-          this.toggleReportComponent('Registration Report');
+        case 'monthly-report':
+          this.toggleReportComponent('Monthly Report');
+          break;
+        case 'payment-report':
+          this.toggleReportComponent('Payment Report');
+          break;
+        case 'create-account':
+          this.toggleAccountsComponent('Create Account');
+          break;
+        case 'accounts':
+          this.toggleAccountsComponent('Account Table');
+          break;
+        case 'access-rights':
+          this.toggleAccountsComponent('Access Rights Table');
           break;
         default:
           console.log('Navigation section not found:', section);
@@ -1279,7 +1203,7 @@ import React, { Component } from 'react';
             <div className="header">
               <button className="sidebar-toggle" onClick={this.toggleSidebar}>
                 ☰
-              x</button>
+              </button>
               <div className="language-toggle">
                 <button onClick={this.toggleLanguage}>
                   {language === 'en' ? '中文' : 'English'}
@@ -1353,6 +1277,8 @@ import React, { Component } from 'react';
                   <div className="dashboard-section">
                     {<DashboardSection
                       closePopup1={this.closePopup}
+                      role={role}
+                      siteIC={siteIC}
                      />}
                   </div>
                   </>

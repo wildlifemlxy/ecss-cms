@@ -458,6 +458,44 @@ class RegistrationController {
             await this.databaseConnectivity.close(); // Ensure the connection is closed
         }    
     }
+
+    async bulkUpdateParticipants(updates, staff, date, time)
+    {
+        try {
+            // Connect to the database
+            var result = await this.databaseConnectivity.initialize();
+            console.log("Database Connectivity:", result);
+
+            if(result === "Connected to MongoDB Atlas!")
+            {
+                var databaseName = "Courses-Management-System";
+                
+                // Process bulk updates using the database connectivity layer
+                var connectedDatabase = await this.databaseConnectivity.bulkUpdateRegistrations(
+                    databaseName, 
+                    updates, 
+                    staff, 
+                    date, 
+                    time
+                );
+                
+                console.log("Bulk Update Result:", connectedDatabase);
+                return connectedDatabase;
+            }
+        } 
+        catch (error) 
+        {
+            console.error("Error in bulk update:", error);
+            return {
+                success: false,
+                message: "Error performing bulk update",
+                error: error
+            };
+        }
+        finally {
+            await this.databaseConnectivity.close(); // Ensure the connection is closed
+        }    
+    }
 }
 
 module.exports = RegistrationController;

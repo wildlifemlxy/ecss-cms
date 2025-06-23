@@ -15,11 +15,11 @@ class ReportSection extends Component {
         { headerName: "S/N", field: "index", width: 100, sortable: true },
         { headerName: "Received From", field: "participant.name", width: 200, sortable: true },
         { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true },
-        { headerName: "Course Location", field: "course.courseLocation", width: 200, sortable: true },
+        { headerName: "Course Location", field: "course.courseLocation", width: 300, sortable: true },
         { headerName: "Payment Method", field: "course.payment", width: 150, sortable: true },
         { headerName: "Price", field: "course.coursePrice", width: 150, sortable: true },
         { headerName: "Payment Status", field: "status", width: 200, sortable: true },
-        { headerName: "Receipt Number", field: "official.receiptNo", width: 250, sortable: true },
+        { headerName: "Receipt Number", field: "official.receiptNo", width: 300, sortable: true },
         { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
         { headerName: "Payment Date", field: "official.date", width: 150, sortable: true },
         { headerName: "Refunded Date", field: "official.refundedDate", width: 150, sortable: true },
@@ -40,8 +40,10 @@ class ReportSection extends Component {
       totalCash: 0,
       totalPayNow: 0,
       showMonthYearDropdown: false,
-      selectedSiteICLocation: '', // Add state for selected Site IC location
-      showSiteICDropdown: false // State to control visibility of Site IC dropdown
+      selectedSiteICLocation: '', // Start with no default value
+      showSiteICDropdown: false, // State to control visibility of Site IC dropdown
+      showSiteDropdown: false, // State to control visibility of Site dropdown list
+      filteredSiteOptions: [] // List of filtered site options
     };
   }
 
@@ -57,17 +59,7 @@ class ReportSection extends Component {
       this.setState({ showReport: true, dateRange: `${this.state.fromDate} - ${this.state.toDate}` });
       await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
       await this.calculateTotalPriceForDateRange(this.state.fromDate, this.state.toDate);
-      // If multiple siteICs, show dropdown after generate
-      const siteICArray = Array.isArray(this.props.siteIC)
-        ? this.props.siteIC
-        : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
-          ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
-          : this.props.siteIC ? [this.props.siteIC] : [];
-      if (siteICArray.length > 1) {
-        this.setState({ showSiteICDropdown: true });
-      } else {
-        this.setState({ showSiteICDropdown: false });
-      }
+      this.setState({showSiteICDropdown: true})
   };
   
   // Fetch invoice data when the component mounts
@@ -258,7 +250,9 @@ class ReportSection extends Component {
         showTable: false,
         fromDate: "",
         toDate: "",
-        selectedMonthYear: ""
+        selectedMonthYear: "",
+        // No default site selection - empty means all locations
+        selectedSiteICLocation: ""
       });
     } catch (error) {
       console.error('Error fetching invoice details:', error);
@@ -312,11 +306,17 @@ class ReportSection extends Component {
         const paymentDate = item.official?.date;
         const payment = parseDate(paymentDate);
         const courseLocation = item.course.courseLocation;
-        // Use selectedSiteIC for filtering if set (support array for multi-select)
-        const selectedSiteIC = Array.isArray(this.state.selectedSiteICLocation) && this.state.selectedSiteICLocation.length > 0
-          ? this.state.selectedSiteICLocation
-          : [this.state.selectedSiteICLocation || siteICDisplayArray[0]];
-        const targetLocations = selectedSiteIC;
+        // Use selectedSiteIC for filtering if set (support "all" option for multiple locations)
+        const selectedSiteIC = this.state.selectedSiteICLocation;
+        let targetLocations;
+        
+        if (selectedSiteIC === 'All Locations' || selectedSiteIC === 'all' || selectedSiteIC === '' || !selectedSiteIC) {
+          // If "All Locations" is selected, empty, or no selection, use all available locations
+          targetLocations = siteICDisplayArray;
+        } else {
+          // Use the specific selected location
+          targetLocations = [selectedSiteIC];
+        }
         if (payment) {
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
             if (this.props.role && (this.props.role.toLowerCase() === "admin" || this.props.role.toLowerCase() === "sub-admin")) {
@@ -382,7 +382,7 @@ class ReportSection extends Component {
   handleMonthYearChange = (selectedMonthYear) => 
   {
     console.log("Selected Month Year:", selectedMonthYear);
-    this.setState({ selectedMonthYear, showMonthYearDropdown: false });
+    this.setState({ selectedMonthYear, showMonthYearDropdown: false});
       // Recalculate total price and apply filter after selecting month-year
     this.calculateTotalPriceForSelectedMonth(selectedMonthYear);
     this.filterInvoiceDataByMonthYear(selectedMonthYear);
@@ -680,6 +680,32 @@ class ReportSection extends Component {
           filteredMonthYearOptions,
           selectedMonthYear: value, // Assuming you want the name to be centrelocation
         });
+      } else if (name === 'selectedSiteICLocation') {
+        // Get available site options
+        const siteICArray = Array.isArray(this.props.siteIC)
+          ? this.props.siteIC
+          : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
+            ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
+            : this.props.siteIC ? [this.props.siteIC] : [];
+
+        const siteOptions = [];
+        if (siteICArray.length > 1) {
+          siteOptions.push('All Locations');
+        }
+        siteICArray.forEach(loc => {
+          const trimmed = loc.split('-')[0].trim();
+          siteOptions.push(trimmed);
+        });
+
+        // Filter site options based on input value
+        const filteredSiteOptions = siteOptions.filter(site =>
+          site.toLowerCase().includes(value.toLowerCase())
+        );
+
+        this.setState({
+          filteredSiteOptions,
+          selectedSiteICLocation: value,
+        });
       }
     });
   };
@@ -693,11 +719,27 @@ class ReportSection extends Component {
         showMonthYearDropdown: true
       });
     }
+    else if(dropdown === 'showSiteDropdown')
+    {
+      this.setState({
+        showSiteDropdown: true
+      });
+    }
   }
+
+  handleSiteChange = (selectedSite) => 
+  {
+    console.log("Selected Site:", selectedSite);
+    // Keep the actual selected value, including "All Locations"
+    this.setState({ selectedSiteICLocation: selectedSite, showSiteDropdown: false}, async () => {
+      await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
+      await this.calculateTotalPriceForDateRange();
+    });
+  };
   
   render() 
   {
-    var {showMonthYearDropdown, filteredMonthYearOptions, updatedInvoiceData, showSiteICDropdown, selectedSiteICLocation} = this.state;
+    var {showMonthYearDropdown, filteredMonthYearOptions, updatedInvoiceData, showSiteICDropdown, selectedSiteICLocation, showSiteDropdown, filteredSiteOptions} = this.state;
     ModuleRegistry.registerModules([AllCommunityModule]);
     return (
       <>
@@ -737,40 +779,67 @@ class ReportSection extends Component {
             {/* Only display the table and export button if a month-year is selected */}
             {this.state.showTable && (
               <>
-                {/* Show Site IC dropdown if applicable */}
-                {this.state.showSiteICDropdown && (
-                  <div style={{ textAlign: 'center', margin: '20px 0' }}>
-                    <label htmlFor="siteIC-dropdown" style={{ marginRight: 8, fontWeight: 'bold' }}>Select Site:</label>
-                    <select
-                      id="siteIC-dropdown"
-                      value={this.state.selectedSiteICLocation || ''}
-                      onChange={e => {
-                        // Support multi-select: store all selected options in state
-                        const selected = Array.from(e.target.selectedOptions).map(opt => opt.value);
-                        this.setState({ selectedSiteICLocation: selected }, async () => {
-                          await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
-                          await this.calculateTotalPriceForDateRange();
-                        });
-                      }}
-                      style={{ padding: '8px', fontSize: '1rem', border: '1px solid #000', borderRadius: '4px' }}
-                      multiple
-                      size={2}
-                    >
-                      {(() => {
-                        const siteICArray = Array.isArray(this.props.siteIC)
-                          ? this.props.siteIC
-                          : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
-                            ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
-                            : this.props.siteIC ? [this.props.siteIC] : [];
-                        return siteICArray.map((loc, idx) => {
-                          const trimmed = loc.split('-')[0].trim();
-                          return <option key={idx} value={trimmed}>{trimmed}</option>;
-                        });
-                      })()}
-                    </select>
-                  </div>
-                )}
+              {console.log("This props.1:", this.props)}
                 <div className='report-container'>
+                  {/* Show Site IC dropdown if applicable */}
+                  {this.state.showSiteICDropdown && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', margin: '10px 0' }}>
+                      <label style={{ fontWeight: 'bold', minWidth: '80px' }}>
+                        Select Site:
+                      </label>
+                      <div
+                        id="site-selector"
+                        name="siteSelector"
+                        className={`dropdown-container1 ${showSiteDropdown ? 'open' : ''}`}
+                        style={{ flex: 1, maxWidth: '300px' }}
+                      >
+                        <input
+                          type="text"
+                          id="site-dropdown"
+                          name="selectedSiteICLocation"
+                          value={this.state.selectedSiteICLocation}
+                          onChange={this.handleChange}
+                          onClick={() => this.handleDropdownToggle('showSiteDropdown')}
+                          placeholder="Click to select site"
+                          autoComplete="off"
+                        />
+                        {showSiteDropdown && (
+                          <ul className="dropdown-list1">
+                            {(() => {
+                              // Get available site options
+                              const siteICArray = Array.isArray(this.props.siteIC)
+                                ? this.props.siteIC
+                                : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
+                                  ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
+                                  : this.props.siteIC ? [this.props.siteIC] : [];
+
+                              const allSiteOptions = [];
+                              if (siteICArray.length > 1) {
+                                allSiteOptions.push('All Locations');
+                              }
+                              siteICArray.forEach(loc => {
+                                const trimmed = loc.split('-')[0].trim();
+                                allSiteOptions.push(trimmed);
+                              });
+
+                              // Use filtered options if available, otherwise show all
+                              const optionsToShow = filteredSiteOptions.length > 0 ? filteredSiteOptions : allSiteOptions;
+
+                              return optionsToShow.map((site, idx) => (
+                                <li
+                                  key={idx}
+                                  onClick={() => this.handleSiteChange(site)}
+                                >
+                                  {site}
+                                </li>
+                              ));
+                            })()}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   <p>
                     <strong>
                       Report For {this.state.selectedMonthYear}
@@ -861,6 +930,65 @@ class ReportSection extends Component {
             {this.state.showReport && (
               <>
                 <div className='report-container'>
+                  {/* Show Site IC dropdown for Payment Report */}
+                  {this.state.showSiteICDropdown && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', margin: '10px 0' }}>
+                      <label style={{ fontWeight: 'bold', minWidth: '80px' }}>
+                        Select Site:
+                      </label>
+                      <div
+                        id="site-selector-payment"
+                        name="siteSelectorPayment"
+                        className={`dropdown-container1 ${showSiteDropdown ? 'open' : ''}`}
+                        style={{ flex: 1, maxWidth: '300px', marginLeft: '0px' }}
+                      >
+                        <input
+                          type="text"
+                          id="site-dropdown-payment"
+                          name="selectedSiteICLocation"
+                          value={this.state.selectedSiteICLocation}
+                          onChange={this.handleChange}
+                          onClick={() => this.handleDropdownToggle('showSiteDropdown')}
+                          placeholder="Click to select site"
+                          autoComplete="off"
+                        />
+                        {showSiteDropdown && (
+                          <ul className="dropdown-list1">
+                            {(() => {
+                              // Get available site options
+                              const siteICArray = Array.isArray(this.props.siteIC)
+                                ? this.props.siteIC
+                                : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
+                                  ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
+                                  : this.props.siteIC ? [this.props.siteIC] : [];
+
+                              const allSiteOptions = [];
+                              if (siteICArray.length > 1) {
+                                allSiteOptions.push('All Locations');
+                              }
+                              siteICArray.forEach(loc => {
+                                const trimmed = loc.split('-')[0].trim();
+                                allSiteOptions.push(trimmed);
+                              });
+
+                              // Use filtered options if available, otherwise show all
+                              const optionsToShow = filteredSiteOptions.length > 0 ? filteredSiteOptions : allSiteOptions;
+
+                              return optionsToShow.map((site, idx) => (
+                                <li
+                                  key={idx}
+                                  onClick={() => this.handleSiteChange(site)}
+                                >
+                                  {site}
+                                </li>
+                              ));
+                            })()}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   <p>
                     <strong>Report For {this.state.dateRange}</strong>
                   </p>

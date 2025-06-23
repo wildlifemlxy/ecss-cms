@@ -419,6 +419,44 @@ router.post('/', async function(req, res, next)
         var result = await registrationController.addCancellationRemarks(req.body.id, req.body.editedValue);
         return res.json({"result": result});
     }
+    else if(req.body.purpose === "bulkUpdate")
+    {
+        console.log("Bulk Update Request:", req.body);
+        const { updates, staff } = req.body;
+        const currentDateTime = getCurrentDateTime();
+        const date = currentDateTime.date;
+        const time = currentDateTime.time;
+        
+        try {
+            // Use the registration controller's bulk update method
+            const result = await registrationController.bulkUpdateParticipants(updates, staff, date, time);
+            
+            if (result.success) {
+                return res.json({
+                    result: true,
+                    message: result.message || `Successfully updated ${updates.length} records`,
+                    successCount: result.successCount || updates.length,
+                    errorCount: result.errorCount || 0,
+                    errors: result.errors || []
+                });
+            } else {
+                return res.json({
+                    result: false,
+                    message: result.message || "Bulk update failed",
+                    successCount: result.successCount || 0,
+                    errorCount: result.errorCount || updates.length,
+                    errors: result.errors || []
+                });
+            }
+        } catch (error) {
+            console.error("Bulk update error:", error);
+            return res.json({
+                result: false,
+                message: "Bulk update failed due to system error",
+                error: error.message
+            });
+        }
+    }
 });
 
 module.exports = router

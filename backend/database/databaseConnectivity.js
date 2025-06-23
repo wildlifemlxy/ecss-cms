@@ -1928,6 +1928,120 @@ class DatabaseConnectivity {
             variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         );
     }
+
+    // Bulk update method for registration records
+    async bulkUpdateRegistrations(databaseName, updates, staff, date, time) {
+        const db = this.client.db(databaseName);
+        const table = db.collection("Registration Forms");
+
+        try {
+            if (!updates || !Array.isArray(updates) || updates.length === 0) {
+                return {
+                    success: false,
+                    message: "No updates provided"
+                };
+            }
+
+            // Prepare bulk write operations
+            const bulkOps = updates.map(update => {
+                const { id, paymentStatus, paymentMethod } = update;
+                
+                // Validate required fields
+                if (!id) {
+                    throw new Error(`Missing ID for update: ${JSON.stringify(update)}`);
+                }
+
+                // Build update object based on what fields are being updated
+                const updateFields = {};
+
+                if (paymentStatus) {
+                    updateFields.status = paymentStatus;
+                    
+                    // Add official details for payment status updates
+                    updateFields["official.name"] = staff;
+                    updateFields["official.date"] = date;
+                    updateFields["official.time"] = time;
+
+                    // Reset certain fields based on status
+                    if (paymentStatus === "Paid" || paymentStatus === "SkillsFuture Done" || paymentStatus === "Generating SkillsFuture Invoice") {
+                        // Keep existing official data for successful payments
+                    } else if (paymentStatus === "Cancelled") {
+                        updateFields["official.confirmed"] = false;
+                    } else {
+                        // For other statuses like "Pending", reset confirmation
+                        updateFields["official.confirmed"] = false;
+                        updateFields["official.receiptNo"] = "";
+                    }
+                }
+
+                if (paymentMethod) {
+                    updateFields["course.payment"] = paymentMethod;
+                    
+                    // Reset payment-related fields when changing payment method
+                    updateFields.status = "Pending";
+                    updateFields["official.receiptNo"] = "";
+                    updateFields["official.name"] = staff;
+                    updateFields["official.date"] = date;
+                    updateFields["official.time"] = time;
+                    updateFields["official.confirmed"] = false;
+                }
+
+                return {
+                    updateOne: {
+                        filter: { _id: new ObjectId(id) },
+                        update: { $set: updateFields }
+                    }
+                };
+            });
+
+            console.log(`Executing bulk update with ${bulkOps.length} operations`);
+            console.log("Sample bulk operation:", JSON.stringify(bulkOps[0], null, 2));
+
+            // Execute bulk write operation
+            const result = await table.bulkWrite(bulkOps, { ordered: false });
+
+            console.log("Bulk update result:", {
+                matchedCount: result.matchedCount,
+                modifiedCount: result.modifiedCount,
+                upsertedCount: result.upsertedCount,
+                insertedCount: result.insertedCount
+            });
+
+            // Check for any write errors
+            if (result.writeErrors && result.writeErrors.length > 0) {
+                console.error("Bulk write errors:", result.writeErrors);
+                return {
+                    success: false,
+                    message: `Bulk update completed with ${result.writeErrors.length} errors`,
+                    details: {
+                        total: updates.length,
+                        successful: result.modifiedCount,
+                        failed: result.writeErrors.length,
+                        errors: result.writeErrors
+                    }
+                };
+            }
+
+            return {
+                success: true,
+                message: `Successfully updated ${result.modifiedCount} out of ${updates.length} records`,
+                details: {
+                    total: updates.length,
+                    matched: result.matchedCount,
+                    modified: result.modifiedCount,
+                    upserted: result.upsertedCount
+                }
+            };
+
+        } catch (error) {
+            console.error("Error during bulk update:", error);
+            return {
+                success: false,
+                message: "Error performing bulk update",
+                error: error.message
+            };
+        }
+    }
 }
 
 // Export the instance for use in other modules

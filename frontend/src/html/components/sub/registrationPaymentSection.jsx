@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import ReactDOM from 'react-dom';
 import axios from 'axios';
 import '../../../css/sub/registrationPayment.css';
 import * as XLSX from 'xlsx';
@@ -8,6 +9,9 @@ import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
 import JSZip from 'jszip';
 import { io } from 'socket.io-client';
+
+// Register the community modules
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 class RegistrationPaymentSection extends Component {
     constructor(props) {
@@ -33,9 +37,13 @@ class RegistrationPaymentSection extends Component {
         message: '',
         status: '',
         isAlertShown: false,
-        selectedRows: []
+        selectedRows: [],
+        showBulkUpdateModal: false,
+        bulkUpdateStatus: '',
+        bulkUpdateMethod: ''
       };
       this.tableRef = React.createRef();
+      this.gridRef = React.createRef();
     }
 
     toggleRow = (index) => {
@@ -68,59 +76,21 @@ class RegistrationPaymentSection extends Component {
       try {
         var {siteIC, role} = this.props;  
         
-        // Enhanced logging for multiple sites debugging
-        console.log("=== FETCH COURSE REGISTRATIONS DEBUG ===");
-        console.log("Role:", role);
-        console.log("SiteIC type:", typeof siteIC);
-        console.log("SiteIC value:", siteIC);
-        console.log("SiteIC JSON:", JSON.stringify(siteIC));
-        
         // Handle siteIC as either string or array for backend compatibility
         let processedSiteIC = siteIC;
         if (Array.isArray(siteIC)) {
-          console.log("SiteIC is array with", siteIC.length, "sites:", siteIC);
           processedSiteIC = siteIC; // Keep as array for backend
         } else if (typeof siteIC === 'string' && siteIC.includes(',')) {
-          console.log("SiteIC is comma-separated string:", siteIC);
           processedSiteIC = siteIC.split(',').map(site => site.trim()); // Convert to array
-          console.log("Converted to array:", processedSiteIC);
         } else if (typeof siteIC === 'string') {
-          console.log("SiteIC is single string:", siteIC);
           processedSiteIC = siteIC; // Keep as single string
         }
-        
-        console.log("Sending to backend - Role:", role, "ProcessedSiteIC:", processedSiteIC);
-        console.log("Backend URL:", `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`);
         
         const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role, siteIC: processedSiteIC });
         const response1 = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { purpose: 'retrieve', role: "admin", siteIC: "" });
         
-        console.log("=== API RESPONSE DEBUG ===");
-        console.log("Course Registration Response Status:", response.status);
-        console.log("Course Registration Response Data:", response.data);
-        console.log("Course Registration Response Count:", response.data?.result?.length || 0);
-        console.log("Admin Response Count:", response1.data?.result?.length || 0);
-        
-        // Log some sample data if available
-        if (response.data?.result?.length > 0) {
-          console.log("Sample records from response:");
-          response.data.result.slice(0, 3).forEach((record, index) => {
-            console.log(`Record ${index + 1}:`, {
-              name: record.participant?.name,
-              location: record.course?.courseLocation,
-              course: record.course?.courseEngName
-            });
-          });
-        } else {
-          console.log("No records found in response");
-        }
-    
         const data = this.languageDatabase(response.data.result, language);
         const data1 = this.languageDatabase(response1.data.result, language);
-        
-        console.log("=== PROCESSED DATA DEBUG ===");
-        console.log("Processed data count:", data.length);
-        console.log("Processed admin data count:", data1.length);
         
         return {data, data1};
     
@@ -132,13 +102,13 @@ class RegistrationPaymentSection extends Component {
     };
 
     languageDatabase(array, language) {
+      if (!Array.isArray(array)) return [];
+      
       for (let i = 0; i < array.length; i++) {
         if (language === 'en') {
           const participant = array[i].participant;
           participant.residentialStatus = participant.residentialStatus.split(' ')[0];
           participant.race = participant.race.split(' ')[0];
-
-          console.log("Education Level:", participant.educationLevel);
 
           if (participant.educationLevel.split(' ').length === 3) {
             participant.educationLevel = participant.educationLevel.split(' ').slice(0, 2).join(' ');
@@ -269,9 +239,6 @@ class RegistrationPaymentSection extends Component {
     var quarters = await this.getAllQuarters(data);
     this.props.passDataToParent(locations, types, names, quarters);
 
-    const statuses = data.map(item => item.status);
-    console.log('Statuses:', statuses);
-
     await this.props.getTotalNumberofDetails(data.length);
 
     const inputValues = {};
@@ -282,7 +249,6 @@ class RegistrationPaymentSection extends Component {
     const inputValues1 = {};
     data.forEach((item, index) => {
       inputValues1[index] = item.official.remarks;
-      console.log("Current Remarks: ", item.official.remarks)
     });
 
     this.setState({
@@ -503,10 +469,7 @@ class RegistrationPaymentSection extends Component {
 
       // Method to get all locations
       getAllTypes = async (datas) => {
-        return [...new Set(datas.map(data => {
-          //console.log(data.course)
-          return data.course.courseType;
-        }))];
+        return [...new Set(datas.map(data => data.course.courseType))];
       }
   
       // Method to get all languages
@@ -663,7 +626,7 @@ class RegistrationPaymentSection extends Component {
                 return match ? parseInt(match[1], 10) : null;
             }
         }).filter(num => num !== null);
-    
+
         const maxOtherNumber = otherReceiptNumbers.length > 0 ? Math.max(...otherReceiptNumbers) : 0;
     
         // Now, determine the next receipt number
@@ -905,119 +868,6 @@ class RegistrationPaymentSection extends Component {
         link.click(); // Trigger the download
     }*/
 
-    async saveData(paginatedDetails) {
-      console.log("Save Data:", paginatedDetails);
-      
-      // Prepare the data for Excel
-      const preparedData = []; 
-      
-      // Define the sub-headers
-      const headers = [
-          "S/N", 
-          "Participant Name", "Participant NRIC", "Participant Residential Status", 
-          "Participant Race", "Participant Gender", "Participant Contact Number",
-          "Participant Email", "Participant Postal Code", "Participant Education Level", 
-          "Participant Work Status", "Participant Date of Birth", "Registration Date",
-          "Course Type", "Course English Name", "Course Chinese Name", "Course Location", "Course Mode",
-          "Course Price", "Course Duration", "Agreement", "WhatsApp Message Sent", 
-          "Confirmation Status", "Payment Method", "Payment Status", "Staff Name", "Payment Date", "Payment Time", 
-          "Receipt/Invoice Number", "Remarks",  "Refunded Date" 
-      ];
-      
-      preparedData.push(headers);
-      
-      // Add the values - mapping from the actual JSON structure
-      paginatedDetails.forEach((detail, index) => {
-          const row = [
-              index + 1,
-              detail.participantInfo?.name || "",
-              detail.participantInfo?.nric || "",
-              detail.participantInfo?.residentialStatus || "",
-              detail.participantInfo?.race || "",
-              detail.participantInfo?.gender || "",
-              detail.participantInfo?.contactNumber || "",
-              detail.participantInfo?.email || "",
-              detail.participantInfo?.postalCode || "",
-              detail.participantInfo?.educationLevel || "",
-              detail.participantInfo?.workStatus || "",
-              detail.participantInfo?.dateOfBirth || "",
-              detail.registrationDate || "",
-              detail.courseInfo?.courseType || "",
-              detail.courseInfo?.courseEngName || "",
-              detail.courseInfo?.courseChiName || "",
-              detail.courseInfo?.courseLocation || "",
-              detail.courseInfo?.courseMode || "",
-              detail.courseInfo?.coursePrice || "",
-              detail.courseInfo?.courseDuration || "",
-              detail.agreement || "",
-              detail.sendDetails ? "Yes" : "No",
-              detail.courseInfo?.payment || "",
-              detail.status || "",
-              detail.officialInfo?.confirmed ? "Yes" : "No",
-              detail.officialInfo?.name || "",
-              detail.officialInfo?.date || "",
-              detail.officialInfo?.time || "",
-              detail.officialInfo?.receiptNo || "",
-              detail.officialInfo?.remarks || "",
-              detail.officialInfo?.refundedDate || "",
-          ];
-          preparedData.push(row);
-      });
-      
-      // Set column widths based on content
-      const colWidths = [];
-      for (let i = 0; i < headers.length; i++) {
-          let maxWidth = headers[i].length;
-          for (let j = 1; j < preparedData.length; j++) {
-              const cellValue = preparedData[j][i];
-              const cellWidth = cellValue ? String(cellValue).length : 0;
-              maxWidth = Math.max(maxWidth, cellWidth);
-          }
-          // Add some padding and set the width
-          colWidths.push({ wch: maxWidth + 2 });
-      }
-      
-      // Convert the prepared data into a worksheet
-      const worksheet = XLSX.utils.aoa_to_sheet(preparedData);
-      
-      // Apply column widths
-      worksheet['!cols'] = colWidths;
-      
-      // Apply bold formatting to header row
-      const range = XLSX.utils.decode_range(worksheet['!ref']);
-      for (let col = range.s.c; col <= range.e.c; col++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-          if (!worksheet[cellAddress]) worksheet[cellAddress] = {};
-          worksheet[cellAddress].s = { font: { bold: true } };
-      }
-      
-      // Create a new workbook and add the worksheet
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Exported Data");
-      
-      // Generate filename with current date
-      const date = new Date();
-      const formattedDate = `${String(date.getDate()).padStart(2, '0')}${String(date.getMonth() + 1).padStart(2, '0')}${date.getFullYear()}`;
-      const fileName = `exported_data_${formattedDate}`;
-      
-      // Generate a binary string
-      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-      
-      // Create a blob from the binary string
-      const blob = new Blob([excelBuffer], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-      
-      // Create a link element for downloading
-      const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
-      link.download = `${fileName}.xlsx`; // Specify the file name with .xlsx extension
-      link.click(); // Trigger the download
-      
-      // Clean up
-      window.URL.revokeObjectURL(link.href);
-    }
-
     convertDateFormat1(dateString) {
       const months = {
         January: '01',
@@ -1076,20 +926,31 @@ class RegistrationPaymentSection extends Component {
       return `${day}/${month}/${year}`;
     }
 
-    exportToLOP = async () => 
-    {
+    exportToLOP = async () => {
       try {
-        console.log("Selected Row:", this.state.selectedRows);
-        var {selectedRows} = this.state;      
-        // Fetch the Excel file from public folder (adjust the path if necessary)
-        const filePath = '/external/OSG NSA List of participants (20250401).xlsx';  // Path relative to the public folder
-        const response = await fetch(filePath);
+        const { selectedRows } = this.state;
+        if (!selectedRows.length) {
+          return this.props.warningPopUpMessage("No rows selected. Please select rows to export.");
+        }
     
+        // Determine file and format by courseType of the first selected row
+        const firstType = selectedRows[0]?.courseInfo?.courseType;
+        let filePath, outputFileName;
+        if (firstType === "ILP") {
+          filePath = '/external/OSG ILP List of participants (20250401).xlsx';
+          outputFileName = `OSG ILP List of participants (20350401) as of ${this.getCurrentDateTime()}.xlsx`;
+        } else {
+          filePath = '/external/OSG NSA List of participants (20250401).xlsx';
+          outputFileName = `OSG NSA List of participants (20350401) as of ${this.getCurrentDateTime()}.xlsx`;
+        }
+    
+        // Fetch the Excel file
+        const response = await fetch(filePath);
         if (!response.ok) {
           return this.props.warningPopUpMessage("Error fetching the Excel file.");
         }
     
-        const data = await response.arrayBuffer(); // Convert file to ArrayBuffer
+        const data = await response.arrayBuffer();
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(data);
     
@@ -1101,36 +962,31 @@ class RegistrationPaymentSection extends Component {
         const originalRow = sourceSheet.getRow(9); // Row 9 is the template row to copy
         const startRow = 9;
     
-        console.log("Paginated Details :", selectedRows, selectedRows.length);
-
+        // Sort participants alphabetically
         selectedRows.sort((a, b) => {
           const nameA = a.participantInfo.name.trim().toLowerCase();
           const nameB = b.participantInfo.name.trim().toLowerCase();
-          return nameA.localeCompare(nameB); // Compare names alphabetically
+          return nameA.localeCompare(nameB);
         });
     
         selectedRows.forEach((detail, index) => {
-          console.log("Paginated Detail1",  detail);
-         // console.log("Date Of Birth:", detail.participantInfo.dateOfBirth);
-          if (detail.courseInfo.courseType === "NSA") {
-            const rowIndex = startRow + index;
-            const newDataRow = sourceSheet.getRow(rowIndex);
-            newDataRow.height = originalRow.height;
+          const rowIndex = startRow + index;
+          const newDataRow = sourceSheet.getRow(rowIndex);
+          newDataRow.height = originalRow.height;
     
-            // Populate cells with data from `detail`
+          if (firstType === "NSA") {
+            // --- NSA FORMAT (keep your existing logic) ---
             sourceSheet.getCell(`A${rowIndex}`).value = rowIndex - startRow + 1;
             sourceSheet.getCell(`B${rowIndex}`).value = detail.participantInfo.name;
             sourceSheet.getCell(`C${rowIndex}`).value = detail.participantInfo.nric;
             sourceSheet.getCell(`D${rowIndex}`).value = detail.participantInfo.residentialStatus.substring(0, 2);
     
-            //console.log("Date of birth:", detail.participantInfo.name, detail?.participantInfo?.dateOfBirth.split("/"));
             const dob = detail?.participantInfo?.dateOfBirth;
-
             if (dob) {
-                const [day, month, year] = dob.split("/");
-                sourceSheet.getCell(`E${rowIndex}`).value = day.trim();
-              sourceSheet.getCell(`F${rowIndex}`).value = month.trim();
-              sourceSheet.getCell(`G${rowIndex}`).value = year.trim()
+              const [day, month, year] = dob.split("/");
+              sourceSheet.getCell(`E${rowIndex}`).value = day?.trim();
+              sourceSheet.getCell(`F${rowIndex}`).value = month?.trim();
+              sourceSheet.getCell(`G${rowIndex}`).value = year?.trim();
             }
     
             sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.gender.split(" ")[0];
@@ -1141,12 +997,9 @@ class RegistrationPaymentSection extends Component {
     
             const educationParts = detail.participantInfo.educationLevel.split(" ");
             let educationValue = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
-            console.log("Before Education Level:", educationValue);
-            if (educationValue === "Master's Degree") {
-                educationValue = "Masters/Doctorate";                      
-            }
-            console.log("After Education Level:", educationValue);
-            sourceSheet.getCell(`M${rowIndex}`).value = educationValue
+            if (educationValue === "Master's Degree") educationValue = "Masters/Doctorate";
+            sourceSheet.getCell(`M${rowIndex}`).value = educationValue;
+    
             const workParts = detail.participantInfo.workStatus.split(" ");
             sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
     
@@ -1156,20 +1009,17 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
             let courseName = courseChiName || courseEngName;
             let languages = courseName.split("–").pop().trim();
-            console.log("Course Name111111:", courseName);
             if (!((languages === "English") || (languages === "Mandarin"))) {
-              // If "English" or "Mandarin" is not in the course name, don't split
               sourceSheet.getCell(`P${rowIndex}`).value = courseName.trim();
             } else {
-              // Otherwise, split by "–" and assign the first part
               sourceSheet.getCell(`P${rowIndex}`).value = courseName.split("–")[0].trim();
             }
-            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;  
-            let priceStr = detail.courseInfo.coursePrice; // e.g., "$12.34"
-            let numericValue = parseFloat(priceStr.replace('$', ''))// Step 2: Multiply by 5
+            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;
+            let priceStr = detail.courseInfo.coursePrice;
+            let numericValue = parseFloat(priceStr.replace('$', ''));
             let multiplied = numericValue * 5;
             let formattedPrice = `$${multiplied.toFixed(2)}`;
-            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;        
+            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;
     
             const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
             sourceSheet.getCell(`S${rowIndex}`).value = this.convertDateFormat1(startDate);
@@ -1186,82 +1036,37 @@ class RegistrationPaymentSection extends Component {
               const newCell = newDataRow.getCell(colNumber);
               newCell.style = cell.style;
             });
-          }
-          else if (detail.courseInfo.courseType === "ILP") {
-            const rowIndex = startRow + index;
-            const newDataRow = sourceSheet.getRow(rowIndex);
-            newDataRow.height = originalRow.height;
-
-            sourceSheet.getColumn('Q').hidden = true;
-            sourceSheet.getColumn('R').hidden = true;
-            sourceSheet.getColumn('S').hidden = true;
-            sourceSheet.getColumn('O').hidden = true;
-            sourceSheet.getColumn('V').hidden = true;
-            sourceSheet.getColumn('W').hidden = true;
-            sourceSheet.getColumn('X').hidden = true;
-            sourceSheet.getColumn('Y').hidden = true;
-            sourceSheet.getColumn('Z').hidden = true;
-            sourceSheet.getColumn('AD').hidden = true;
-    
-            // Populate cells with data from `detail`
+          } else if (firstType === "ILP") {
+            // --- ILP FORMAT (customize as needed) ---
+            // Example: Only fill in a few columns, adjust as per your ILP template
             sourceSheet.getCell(`A${rowIndex}`).value = rowIndex - startRow + 1;
             sourceSheet.getCell(`B${rowIndex}`).value = detail.participantInfo.name;
             sourceSheet.getCell(`C${rowIndex}`).value = detail.participantInfo.nric;
             sourceSheet.getCell(`D${rowIndex}`).value = detail.participantInfo.residentialStatus.substring(0, 2);
     
-            //console.log("Date of birth:", detail.participantInfo.name, detail?.participantInfo?.dateOfBirth.split("/"));
             const dob = detail?.participantInfo?.dateOfBirth;
-
             if (dob) {
-                const [day, month, year] = dob.split("/");
-                sourceSheet.getCell(`E${rowIndex}`).value = day.trim();
-              sourceSheet.getCell(`F${rowIndex}`).value = month.trim();
-              sourceSheet.getCell(`G${rowIndex}`).value = year.trim()
+              const [day, month, year] = dob.split("/");
+              sourceSheet.getCell(`E${rowIndex}`).value = year?.trim();
             }
     
-            sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.gender.split(" ")[0];
-            sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.race.split(" ")[0][0];
-            sourceSheet.getCell(`J${rowIndex}`).value = detail.participantInfo.contactNumber;
-            sourceSheet.getCell(`K${rowIndex}`).value = detail.participantInfo.email;
-            sourceSheet.getCell(`L${rowIndex}`).value = detail.participantInfo.postalCode;
-    
-            const educationParts = detail.participantInfo.educationLevel.split(" ");
-            let educationValue = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
-            console.log("Before Education Level:", educationValue);
-            if (educationValue === "Master's Degree") {
-                educationValue = "Masters/Doctorate";                      
-            }
-            console.log("After Education Level:", educationValue);
-            sourceSheet.getCell(`M${rowIndex}`).value = educationValue
-            const workParts = detail.participantInfo.workStatus.split(" ");
-            sourceSheet.getCell(`N${rowIndex}`).value = workParts.length === 3 ? workParts[0] + " " + workParts[1] : workParts[0];
-    
+            sourceSheet.getCell(`F${rowIndex}`).value = detail.participantInfo.gender.split(" ")[0];
+            sourceSheet.getCell(`G${rowIndex}`).value = detail.participantInfo.race.split(" ")[0][0];
+            sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.contactNumber;
+            sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.email;
+            sourceSheet.getCell(`J${rowIndex}`).value = detail.participantInfo.educationLevel;
+
+            // ILP-specific: Course code and name
             let courseEngName = detail.courseInfo.courseEngName;
-            let courseChiName = detail.courseInfo.courseChiName;
-            let courseCode = this.ecssChineseCourseCode(courseChiName) || this.ecssEnglishCourseCode(courseEngName);
-            sourceSheet.getCell(`O${rowIndex}`).value = courseCode.trim();
-           if (courseChiName && courseChiName.trim()) {
-            sourceSheet.getCell(`P${rowIndex}`).value = courseChiName.trim() + "\n" + courseEngName.trim();
-            } else {
-                sourceSheet.getCell(`P${rowIndex}`).value = courseEngName.trim();
-            }
-            sourceSheet.getCell(`P${rowIndex}`).value = courseChiName.trim() + "\n" + courseEngName.trim();
-            sourceSheet.getCell(`R${rowIndex}`).value = detail.courseInfo.coursePrice;
-            let priceStr = detail.courseInfo.coursePrice; // e.g., "$12.34"
-            let numericValue = parseFloat(priceStr.replace('$', ''))// Step 2: Multiply by 5
-            let multiplied = numericValue * 5;
-            let formattedPrice = `$${multiplied.toFixed(2)}`;
-            sourceSheet.getCell(`Q${rowIndex}`).value = formattedPrice;        
-    
+            sourceSheet.getCell(`K${rowIndex}`).value = courseEngName;
+
+            // ILP-specific: Hide columns not needed
+            sourceSheet.getCell(`L${rowIndex}`).value = "";
             const [startDate, endDate] = detail.courseInfo.courseDuration.split(" - ");
-            sourceSheet.getCell(`S${rowIndex}`).value = this.convertDateFormat1(startDate);
-            sourceSheet.getCell(`T${rowIndex}`).value = this.convertDateFormat1(endDate);
-            sourceSheet.getCell(`U${rowIndex}`).value = detail.courseInfo.courseMode === "Face-to-Face" ? "F2F" : detail.courseInfo.courseMode;
-    
-            sourceSheet.getCell(`W${rowIndex}`).value = detail.courseInfo.coursePrice;
-            sourceSheet.getCell(`X${rowIndex}`).value = detail.courseInfo.payment === "SkillsFuture" ? "SFC" : detail.courseInfo.payment;
-            sourceSheet.getCell(`AD${rowIndex}`).value = detail.officialInfo.receiptNo;
-            sourceSheet.getCell(`V${rowIndex}`).value = detail.courseInfo.courseLocation === "Pasir Ris West Wellness Centre" ? "510605," : "";
+            sourceSheet.getCell(`M${rowIndex}`).value = this.convertDateFormat1(startDate);
+            sourceSheet.getCell(`N${rowIndex}`).value = this.convertDateFormat1(endDate);
+
+            sourceSheet.getCell(`O${rowIndex}`).value = detail.courseInfo.courseMode === "Face-to-Face" ? "F2F" : detail.courseInfo.courseMode;
     
             // Copy styles from the original row
             originalRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -1270,34 +1075,29 @@ class RegistrationPaymentSection extends Component {
             });
           }
         });
-
-
-        let total = selectedRows.reduce((sum, item) => {
-          let priceStr = item?.courseInfo?.coursePrice || "$0";
-          let numeric = parseFloat(priceStr.replace('$', ''));
-        
-          // If parseFloat fails and returns NaN, fallback to 0
-          return sum + (isNaN(numeric) ? 0 : numeric);
-        }, 0);
-        
-        let formattedTotal = `$${total.toFixed(2)}`;
-        
-        sourceSheet.getCell(`R5`).value = formattedTotal;
-
-       // Create new file name and sav
-        const originalFileName = `OSG NSA List of participants (20350401) as of ${this.getCurrentDateTime()}.xlsx`
+    
+        // Total calculation (NSA only, skip for ILP if not needed)
+        if (firstType === "NSA") {
+          let total = selectedRows.reduce((sum, item) => {
+            let priceStr = item?.courseInfo?.coursePrice || "$0";
+            let numeric = parseFloat(priceStr.replace('$', ''));
+            return sum + (isNaN(numeric) ? 0 : numeric);
+          }, 0);
+          let formattedTotal = `$${total.toFixed(2)}`;
+          sourceSheet.getCell(`R5`).value = formattedTotal;
+        }
+    
+        // Save and download
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
-    
-        // Trigger download
-        saveAs(blob, originalFileName);
+        saveAs(blob, outputFileName);
       } catch (error) {
         console.error("Error exporting LOP:", error);
         this.props.warningPopUpMessage("An error occurred during export.");
       }
-    };  
+    };
 
 
     /*ecssCourseCode(course) {
@@ -1485,20 +1285,24 @@ class RegistrationPaymentSection extends Component {
       }
     
     exportAttendance = async () => {
-      var { selectedCourseName, selectedLocation } = this.props;
-      var {selectedRows} = this.state;
-      console.log("Export To Attendance:", selectedRows);
+      var { selectedRows } = this.state;
+      
+      console.log("Export To Attendance - Selected Data:", selectedRows);
+    
+      if (selectedRows.length === 0) {
+        return this.props.warningPopUpMessage("No rows selected. Please select rows to export.");
+      }
     
       try {
-        // Fetch the Excel file from public folder (adjust the path if necessary)
-        const filePath = '/external/Attendance.xlsx';  // Path relative to the public folder
+        // Fetch the Excel file from public folder
+        const filePath = '/external/Attendance.xlsx';
         const response = await fetch(filePath);
     
         if (!response.ok) {
           return this.props.warningPopUpMessage("Error fetching the Excel file.");
         }
     
-        const data = await response.arrayBuffer(); // Convert file to ArrayBuffer
+        const data = await response.arrayBuffer();
         const workbook = new ExcelJS.Workbook();
         await workbook.xlsx.load(data);
     
@@ -1507,117 +1311,129 @@ class RegistrationPaymentSection extends Component {
           return this.props.warningPopUpMessage("Sheet 'Sheet1' not found!");
         }
     
+        // Get course name and location from first selected row
+        const firstRow = selectedRows[0];
+        const courseName = firstRow.course?.courseEngName || firstRow.courseInfo?.courseEngName || "Unknown Course";
+        const courseLocation = firstRow.course?.courseLocation || firstRow.courseInfo?.courseLocation || "Unknown Location";
+    
         // Set Course Title in A1
         const cellA1 = sourceSheet.getCell('A1');
-        cellA1.value = `Course Title: ${selectedCourseName}`;
+        cellA1.value = `Course Title: ${courseName}`;
         cellA1.font = { name: 'Calibri', size: 18, bold: true };
     
-        // Set Course Commencement Date in A2
+        // Set Course Commencement Date in A2 - Add null check to prevent errors
         let courseCommencementDate = '';
-        for (let i = 0; i < selectedRows.length; i++) {
-          const item = selectedRows[i];
-          if (item.course === selectedCourseName) {
-            courseCommencementDate = item.courseInfo.courseDuration.split("-")[0].trim();
-            break;
+        // Check if courseDuration exists and handle the case where it might be undefined
+        const courseDuration = firstRow.course?.courseDuration || firstRow.courseInfo?.courseDuration;
+        if (courseDuration) {
+          const parts = courseDuration.split("-");
+          if (parts && parts.length > 0) {
+            courseCommencementDate = parts[0].trim();
           }
         }
-      
+        
         console.log("Course Commerce Date:", courseCommencementDate);
-
+    
         const cellA2 = sourceSheet.getCell('A2');
         cellA2.value = `Course Commencement Date: ${courseCommencementDate}`;
         cellA2.font = { name: 'Calibri', size: 18, bold: true };
     
-        // Set Venue in A3 based on selected location
+        // Set Venue in A3 based on location
         const cellA3 = sourceSheet.getCell('A3');
-        if (selectedLocation === "Tampines 253 Centre") {
+        if (courseLocation === "Tampines 253 Centre") {
           cellA3.value = `Venue: Blk 253 Tampines St 21 #01-406 Singapore 521253`;
-        } else if (selectedLocation === "CT Hub") {
+        } else if (courseLocation === "CT Hub") {
           cellA3.value = `Venue: En Community Services Society 2 Kallang Avenue CT Hub #06-14 Singapore 339407`;
-        } else if (selectedLocation === "Tampines North Community Centre") {
+        } else if (courseLocation === "Tampines North Community Centre") {
           cellA3.value = `Venue: Tampines North Community Club Blk 421 Tampines St 41 #01-132 Singapore 520420`;
-        } else if (selectedLocation === "Pasir Ris West Wellness Centre") {
+        } else if (courseLocation === "Pasir Ris West Wellness Centre") {
           cellA3.value = `Venue: Pasir Ris West Wellness Centre Blk 605 Elias Road #01-200 Singapore 510605`;
+        } else {
+          cellA3.value = `Venue: ${courseLocation}`;
         }
         cellA3.font = { name: 'Calibri', size: 18, bold: true };
-
-        // Sort participants alphabetically by name (trim spaces)
-        let sortedParticipants = selectedRows
-                                  .filter(item => item.course === selectedCourseName && item.courseInfo.courseLocation === selectedLocation)
-                                  .sort((a, b) => a.participantInfo.name.trim().toLowerCase().localeCompare(b.participantInfo.name.trim().toLowerCase()));
+    
+        // Sort participants alphabetically by name - add null checks
+        let sortedParticipants = [...selectedRows]
+          .sort((a, b) => {
+            const nameA = (a.participant?.name || a.participantInfo?.name || "").trim().toLowerCase();
+            const nameB = (b.participant?.name || b.participantInfo?.name || "").trim().toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
         console.log("Sorted Participants:", sortedParticipants);
-
-       // Loop for S/N and Name starting from row 6 in Columns A and B
-        let rowIndex = 6; // Start from row 6 for S/N and Name
-        let participantIndex = 1;  // Initialize participant index for S/N
+    
+        // Loop for S/N and Name starting from row 6
+        let rowIndex = 6;
+        let participantIndex = 1;
         for (let i = 0; i < sortedParticipants.length; i++) {
           const item = sortedParticipants[i];
-          if (item.course === selectedCourseName && item.courseInfo.courseLocation === selectedLocation) {
-            const cellA = sourceSheet.getCell(`A${rowIndex}`);
-            const cellB = sourceSheet.getCell(`B${rowIndex}`);
+          const cellA = sourceSheet.getCell(`A${rowIndex}`);
+          const cellB = sourceSheet.getCell(`B${rowIndex}`);
     
-            cellA.value = participantIndex;  // Set S/N dynamically
-            cellB.value = item.participantInfo.name;
+          cellA.value = participantIndex;
+          // Use optional chaining to avoid errors
+          cellB.value = item.participant?.name || item.participantInfo?.name || "Unknown";
     
-            // Apply font styling
-            cellA.font = { name: 'Calibri', size: 18, bold: true };
-            cellB.font = { name: 'Calibri', size: 18, bold: true };
+          cellA.font = { name: 'Calibri', size: 18, bold: true };
+          cellB.font = { name: 'Calibri', size: 18, bold: true };
     
-            rowIndex++;
-            participantIndex++; // Increment participant index for S/N
-          }
+          rowIndex++;
+          participantIndex++;
         }
     
-        // Set Weekly labels in row 4 (D4 onwards)
-        const courseDuration = selectedRows[0]?.courseInfo?.courseDuration || '';
-        const [startDate, endDate] = courseDuration.split(" - ");  // Split course duration into start and end dates
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        // Set Weekly labels in row 4 (D4 onwards) - Add proper error handling
+        const [startDate, endDate] = (courseDuration || "").split(" - ");
+        // Default to current date if no valid start date
+        const start = startDate ? new Date(startDate) : new Date();
+        // Default to a month later if no valid end date
+        const end = endDate ? new Date(endDate) : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+        // Handle invalid dates
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+          console.error("Invalid course dates:", { startDate, endDate });
+          // Use current date as fallback
+          const today = new Date();
+          start = today;
+          end = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+        }
     
         // Calculate weeks
         let weekIndex = 1;
         let currentDate = new Date(start);
-    
-        const row = sourceSheet.getRow(4); // Row 4 for weekly labels
-    
-        let lessonColumns = [];  // To store columns that will contain lessons
+        const row = sourceSheet.getRow(4);
+        let lessonColumns = [];
     
         // Loop for lessons (L1, L2, L3, etc.)
-        for (let col = 4; col <= 42; col += 2) {  // Every 2 columns will represent 1 lesson
+        for (let col = 4; col <= 42; col += 2) {
           if (currentDate <= end) {
             const lessonLabel = `L${weekIndex}: ${formatDateToDDMMYYYY(currentDate)}`;
-            const cell = row.getCell(col);  // Get the cell in the specific column of row 4
-    
-            // Set the value for the lesson
+            const cell = row.getCell(col);
+            
             cell.value = lessonLabel;
             cell.font = { name: 'Calibri', size: 16, bold: true };
-    
-            // Store the column index for lesson
+            
             lessonColumns.push(col);
-    
-            // Move to the next week
-            currentDate.setDate(currentDate.getDate() + 7);  // Move 1 week ahead
-            weekIndex++; // Increment the week number
+            
+            currentDate.setDate(currentDate.getDate() + 7);
+            weekIndex++;
           }
         }
     
-        // Helper function to format a date to dd/mm/yyyy
+        // Helper functions
         function formatDateToDDMMYYYY(date) {
           const day = String(date.getDate()).padStart(2, '0');
-          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+          const month = String(date.getMonth() + 1).padStart(2, '0');
           const year = date.getFullYear();
           return `${day}/${month}/${year}`;
         }
-
-        // Helper function to format a date to dd/mm/yyyy
+    
         function formatDateToDDMMYYYY1(date) {
           const day = String(date.getDate()).padStart(2, '0');
-          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+          const month = String(date.getMonth() + 1).padStart(2, '0');
           const year = date.getFullYear();
           return `${day}${month}${year}`;
         }
           
-    
         // Create a new file and trigger download
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], {
@@ -1625,13 +1441,13 @@ class RegistrationPaymentSection extends Component {
         });
     
         // Trigger the file download with a new name
-        saveAs(blob, `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${selectedCourseName}.xlsx`);
+        saveAs(blob, `Attendance (Course) ECSS${formatDateToDDMMYYYY1(start)} ${courseName}.xlsx`);
       } catch (error) {
-        console.error("Error exporting LOP:", error);
-        this.props.warningPopUpMessage("An error occurred during export.");
+        console.error("Error exporting attendance:", error);
+        this.props.warningPopUpMessage("An error occurred during export: " + error.message);
       }
     };
-    
+
     getCurrentDateTime = () => {
       const now = new Date();
       const day = String(now.getDate()).padStart(2, '0');
@@ -1673,12 +1489,11 @@ class RegistrationPaymentSection extends Component {
       </div>
     );
   };
-
   // Custom cell renderer for Payment Method with Buttons
   paymentMethodRenderer = (params, courseName, location, type) => {
     const currentPaymentMethod = params.value; // Get the current payment method value
 
-    let paymentMethods  ;
+    let paymentMethods;
     if(type === "NSA")
     {
       // List of payment methods
@@ -1710,7 +1525,6 @@ class RegistrationPaymentSection extends Component {
       paymentMethods = [];
     }
 
-
     // Handle button click to update the payment method in the row
     const handleButtonClick = (method) => {
       params.api.getRowNode(params.node.id).setDataValue('paymentMethod', method);
@@ -1732,249 +1546,234 @@ class RegistrationPaymentSection extends Component {
     );
   };
   
-  getColumnDefs = () => {
-    const { role } = this.props; // Get the role from props
-  
-    const columnDefs = [
-      {
-        headerName: "S/N",
-        field: "sn",
-        width: 100,
-        pinned: "left"
+ getColumnDefs = () => {
+  const { role, siteIC } = this.props; // Get the role from props
+  console.log("Props123455:", siteIC);
+
+  // Start with your fixed columns array
+  const columnDefs = [
+    {
+      headerName: "S/N",
+      field: "sn",
+      width: 100,
+      pinned: "left",
+    },
+    {
+      headerName: "Name",
+      field: "name",
+      width: 300,
+      editable: true,
+      pinned: "left",
+    },
+    {
+      headerName: "Contact Number",
+      field: "contactNo",
+      width: 150,
+      editable: true,
+    },
+    {
+      headerName: "Course Name",
+      field: "course",
+      width: 350,
+    },
+    {
+      headerName: "Course Mode",
+      field: "courseMode",
+      width: 150,
+    },
+    {
+      headerName: "Payment Method",
+      field: "paymentMethod",
+      cellRenderer: (params) => {
+        const { course, courseInfo } = params.data;
+        return this.paymentMethodRenderer(
+          params,
+          course,
+          courseInfo.courseLocation,
+          courseInfo.courseType
+        );
       },
-      {
-        headerName: "Name",
-        field: "name",
-        width: 300,
-        editable: true,
-        pinned: "left"
+      editable: false,
+      width: 500,
+    },
+    {
+      headerName: "Sending Payment Details",
+      field: "sendDetails",
+      width: 300,
+      cellRenderer: (params) => {
+        const isSent = params.data?.sendDetails;
+        if (isSent === undefined) return null;
+        const imageSrc = isSent
+          ? "https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png"
+          : "https://upload.wikimedia.org/wikipedia/commons/5/5f/Red_X.svg";
+        return (
+          <img
+            src={imageSrc}
+            alt={isSent ? "Sent" : "Not Sent"}
+            width="20"
+            height="20"
+          />
+        );
       },
-      {
-        headerName: "Contact Number",
-        field: "contactNo",
-        width: 150,
-        editable: true,
+    },
+    {
+      headerName: "Confirmation",
+      field: "confirmed",
+      cellRenderer: (params) => this.slideButtonRenderer(params),
+      editable: false,
+      width: 180,
+      cellStyle: (params) =>
+        params.data.paymentMethod !== "SkillsFuture" ? { display: "none" } : {},
+    },
+    {
+      headerName: "Payment Status",
+      field: "paymentStatus",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: (params) => {
+        const { paymentMethod, courseInfo, paymentStatus } = params.data;
+        const courseType = courseInfo.courseType;
+
+        const initialOptions =
+          courseType === "NSA"
+            ? paymentMethod === "SkillsFuture"
+              ? [
+                  "Pending",
+                  "Generating SkillsFuture Invoice",
+                  "SkillsFuture Done",
+                  "Cancelled",
+                  "Withdrawn",
+                  "Refunded",
+                ]
+              : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded"]
+            : ["Pending", "Confirmed", "Withdrawn"];
+
+        let options;
+        if (paymentStatus === "Pending") {
+          options = initialOptions.filter(
+            (status) => status !== "Withdrawn" && status !== "Refunded"
+          );
+        } else if (paymentStatus === "Paid") {
+          options = initialOptions.filter(
+            (status) => status !== "Cancelled" && status !== "Refunded"
+          );
+        } else if (paymentStatus === "Withdrawn") {
+          options = initialOptions.filter((status) => status !== "Cancelled");
+        } else {
+          options = initialOptions;
+        }
+
+        const filteredOptions = options.filter((status) => status !== paymentStatus);
+
+        return { values: filteredOptions };
       },
-      {
-        headerName: "Course Name",
-        field: "course",
-        width: 350,
+      cellRenderer: (params) => {
+        const statusStyles = {
+          Pending: "#FFA500",
+          "Generating SkillsFuture Invoice": "#00CED1",
+          "SkillsFuture Done": "#008000",
+          Cancelled: "#FF0000",
+          Withdrawn: "#800000",
+          Paid: "#008000",
+          Confirmed: "#008000",
+          Refunded: "#D2691E",
+        };
+        const statusText = params.value;
+        const backgroundColor = statusStyles[statusText] || "#D3D3D3";
+
+        return (
+          <span
+            style={{
+              fontWeight: "bold",
+              color: "#FFFFFF",
+              textAlign: "center",
+              display: "inline-block",
+              borderRadius: "20px",
+              padding: "5px 15px",
+              minWidth: "150px",
+              lineHeight: "30px",
+              whiteSpace: "nowrap",
+              backgroundColor,
+            }}
+          >
+            {statusText}
+          </span>
+        );
       },
+      editable: true,
+      width: 350,
+    },
+    {
+      headerName: "Receipt/Invoice Number",
+      field: "recinvNo",
+      width: 300,
+    },
+    {
+      headerName: "Payment Date",
+      field: "paymentDate",
+      width: 350,
+      editable: true,
+    },
+    {
+      headerName: "Refunded Date",
+      field: "refundedDate",
+      width: 350,
+      editable: true,
+    },
+    {
+      headerName: "Remarks",
+      field: "remarks",
+      width: 300,
+      editable: (params) => {
+        return !(
+          params.data.paymentStatus === "Withdrawn" ||
+          params.data.paymentStatus === "Cancelled" ||
+          params.data.paymentStatus === "Refunded"
+        );
+      },
+    },
+  ];
+
+  // Conditionally add "Course Location" column
+  if (Array.isArray(siteIC) || !siteIC) {
+    columnDefs.splice(
+      4,
+      0,
       {
         headerName: "Course Location",
         field: "location",
         width: 300,
         cellRenderer: (params) => {
-          // Hide value if the role is "Site in-charge"
-          return role === "Site in-charge" ? null : params.value;
-        },
-      },
-      {
-        headerName: "Course Mode",
-        field: "courseMode",
-        width: 150,
-      },
-      {
-        headerName: "Payment Method",
-        field: "paymentMethod",
-        cellRenderer: (params) => {
-          const { course, courseInfo } = params.data;
-          return this.paymentMethodRenderer(params, course, courseInfo.courseLocation, courseInfo.courseType);
-        },
-        editable: false,
-        width: 500,
-      },
-      {
-        headerName: "Sending Payment Details",
-        field: "sendDetails",
-        width: 300,
-        cellRenderer: (params) => {
-          const isSent = params.data?.sendDetails; // No need for !! as we handle undefined explicitly
-        
-          if (isSent === undefined) {
-            return null; // Return nothing (blank cell)
+          // If siteIC is NOT an array or is falsy (null/undefined/empty string),
+          // just show the value as is (no filter)
+          if (!Array.isArray(siteIC)) {
+            return params.value;
           }
-        
-          const imageSrc = isSent
-            ? "https://upload.wikimedia.org/wikipedia/commons/2/29/Tick-green.png" // ✅ Green Tick
-            : "https://upload.wikimedia.org/wikipedia/commons/5/5f/Red_X.svg"; // ❌ Red Cross
-        
-          return <img src={imageSrc} alt={isSent ? "Sent" : "Not Sent"} width="20" height="20" />;
-        }        
-      },      
-      {
-        headerName: "Confirmation",
-        field: "confirmed",
-        cellRenderer: (params) => this.slideButtonRenderer(params),
-        editable: false,
-        width: 180,
-        cellStyle: (params) => {
-          return params.data.paymentMethod !== "SkillsFuture" ? { display: "none" } : {};
+
+          // If siteIC is an array, check if params.value is in the siteIC array
+          for (let i = 0; i < siteIC.length; i++) {
+            if (params.value === siteIC[i]) {
+              return params.value; // matched — show the value
+            }
+          }
+
+          // If no match found, return empty string to hide the value
+          return "";
         },
-      },
-      {
-        headerName: "Payment Status",
-        field: "paymentStatus",
-        cellEditor: "agSelectCellEditor",
-        cellEditorParams: (params) => {
-          const { paymentMethod, courseInfo, paymentStatus } = params.data;
-          const courseType = courseInfo.courseType;
-        // First determine the options array as before
-        const initialOptions = 
-        courseType === "NSA"
-          ? paymentMethod === "SkillsFuture"
-            ? ["Pending", "Generating SkillsFuture Invoice", "SkillsFuture Done", "Cancelled", "Withdrawn", "Refunded"]
-            : ["Pending", "Paid", "Cancelled", "Withdrawn", "Refunded"]
-          : ["Pending", "Confirmed", "Withdrawn"];
-
-        // Remove "Withdrawn" and "Refunded" options if current status is "Pending"
-        let options;
-
-        if (paymentStatus === "Pending") {
-          options = initialOptions.filter(status => status !== "Withdrawn" && status !== "Refunded");
-        } else if (paymentStatus === "Paid") {
-          options = initialOptions.filter(status => status !== "Cancelled" && status != "Refunded");
-        } 
-        else if (paymentStatus === "Withdrawn") {
-          options = initialOptions.filter(status => status !== "Cancelled" );
-        }else {
-          options = initialOptions;
-        }
-
-          // Then filter out the current payment status
-        const filteredOptions = options.filter(status => status !== paymentStatus);
-      
-          return { values: filteredOptions };
-        },
-        cellRenderer: (params) => {
-          const statusStyles = {
-            Pending: "#FFA500", // Orange
-            "Generating SkillsFuture Invoice": "#00CED1", // Dark Turquoise
-            "SkillsFuture Done": "#008000", // Green
-            Cancelled: "#FF0000", // Red
-            "Withdrawn": "#800000", // Red
-            Paid: "#008000", // Green
-            Confirmed: "#008000", // Green
-            Refunded: "#D2691E", // Lighter brown (Dark orange brown)
-          };
-      
-          const statusText = params.value;
-          const backgroundColor = statusStyles[statusText] || "#D3D3D3"; // Default gray if the status doesn't match
-      
-          return (
-            <span
-              style={{
-                fontWeight: "bold",
-                color: "#FFFFFF", // Ensure the text color is white for all statuses
-                textAlign: "center",
-                display: "inline-block",
-                borderRadius: "20px",
-                padding: "5px 15px",
-                minWidth: "150px",
-                lineHeight: "30px",
-                whiteSpace: "nowrap",
-                backgroundColor: backgroundColor,
-              }}
-            >
-              {statusText}
-            </span>
-          );
-        },
-        editable: true,
-        width: 350,
-      }, 
-      {
-        headerName: "Receipt/Invoice Number",
-        field: "recinvNo",
-        width: 300,
-      },     
-      {
-        headerName: "Payment Date",
-        field: "paymentDate",
-        width: 350,
-        editable: true
-      },
-
-      {
-        headerName: "Refunded Date",
-        field: "refundedDate",
-        width: 350,
-        editable: true
-      },
-      {
-        headerName: "Remarks",
-        field: "remarks",
-        width: 300,
-        editable: (params) => {
-          // Disable editing if the paymentStatus is "Cancelled" or "Refunded"
-          return params.data.paymentStatus === 'Withdrawn' || params.data.paymentStatus === 'Cancelled' || params.data.paymentStatus === 'Refunded';
-        }
       }
-    ];
+    );
+  }
 
+  columnDefs.push({
+    headerName: "", // blank header (no text)
+    field: "checkbox",
+    checkboxSelection: true,
+    width: 50,
+    pinned: "right",
+  });
 
-    // Add the "Delete" button column conditionally
-    {/*if (!["Site in-charge", "Finance"].includes(role)) {
-      columnDefs.push({
-        headerName: "",
-        field: "delete",
-        width: 100,
-        pinned: 'right', // Pin the checkbox column
-        cellRenderer: (params) => (
-          <button
-            onClick={() => this.handleDelete(params.data.id)}
-            style={{
-              backgroundColor: "#87CEEB",
-              color: "#ffffff",
-              borderRadius: "5px",
-              width: "fit-content",
-              fontWeight: "bold",
-              height: "fit-content",
-              margin: "auto",
-            }}
-          >
-            Delete
-          </button>
-        )
-      });
-    }*/}
-  
-    // Add the "Port Over" button column conditionally
-    if (!["Ops in-charge", "NSA in-charge", "Finance"].includes(role)) {
-      columnDefs.push({
-        headerName: "",
-        field: "portOver",
-        width: 150,
-        pinned: 'right', // Pin the checkbox column
-        cellRenderer: (params) => (
-          <button
-            onClick={() => this.handlePortOver(params.data.id, params.data.participantInfo, params.data.courseInfo, params.data.paymentStatus)}
-            style={{
-              backgroundColor: "#C7A29B", // Pastel Brown
-              color: "#ffffff",
-              borderRadius: "5px",
-              width: "fit-content",
-              fontWeight: "bold", 
-              height: "fit-content",
-              margin: "auto",
-            }}
-          >
-            Port Over
-          </button>
-        ),
-      });
-    }
-    columnDefs.push({
-      headerName: '', // blank header (no text)
-      field: 'checkbox',
-      checkboxSelection: true,
-      width: 50,
-      pinned: 'right', // Pin the checkbox column
-    });
-    
-    
-    return columnDefs;
-  };
+  return columnDefs;
+};
+
   
   
   handleDelete = async(id) =>
@@ -2004,54 +1803,44 @@ class RegistrationPaymentSection extends Component {
 
   getRowData = (registerationDetails) => 
   {
-    console.log("Get Row Data:", registerationDetails);
-   //const paginatedDetails = this.getPaginatedDetails();
-   //console.log("Hi")
-  
-    // Assuming paginatedDetails is an array of objects with the necessary fields.
-    const rowData = registerationDetails.map((item, index) => {
-      return {
-        id: item._id,
-        sn: index + 1,  // Serial number (S/N)
-        name: item.participant.name,  // Replace with the actual field for name
-        contactNo: item.participant.contactNumber,  // Replace with the actual field for contact number
-        course: item.course.courseEngName,  // Replace with the actual field for payment status
-        courseChi: item.course.courseChiName,  // Replace with the actual field for payment status
-        location: item.course.courseLocation,  // Replace with the actual field for payment status
-        courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course?.courseMode,
-        sendDetails: item.sendingWhatsappMessage,
-        paymentMethod: item.course.payment,  // Replace with the actual field for payment method
-        confirmed: item.official.confirmed,  // Replace with the actual field for receipt/invoice number
-        paymentStatus: item.status,  // Replace with the actual field for payment status
-        recinvNo: item.official.receiptNo,  // Replace with the actual field for receipt/invoice number
-        participantInfo: item.participant,
-        courseInfo: item.course,
-        officialInfo: item.official,
-        agreement: item.agreement,
-        status: item.status,
-        registrationDate: item.registrationDate,
-        refundedDate: item.official?.refundedDate || "",
-        remarks: item.official?.remarks || "",
-        paymentDate: item.official?.date || ""
-      };
-    });
-    console.log("All Rows Data:", rowData);
-    // Set the state with the new row data
-  
-    this.setState({registerationDetails: rowData, rowData });
+    // Optimize memory usage by avoiding large console logs
+    const rowData = registerationDetails.map((item, index) => ({
+      id: item._id,
+      sn: index + 1,
+      name: item.participant.name,
+      contactNo: item.participant.contactNumber,
+      course: item.course.courseEngName,
+      courseChi: item.course.courseChiName,
+      location: item.course.courseLocation,
+      courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course?.courseMode,
+      paymentMethod: item.course.payment,
+      confirmed: item.official.confirmed,
+      paymentStatus: item.status,
+      recinvNo: item.official.receiptNo,
+      participantInfo: item.participant,
+      courseInfo: item.course,
+      officialInfo: item.official,
+      agreement: item.agreement,
+      status: item.status,
+      registrationDate: item.registrationDate,
+      refundedDate: item.official?.refundedDate || "",
+      remarks: item.official?.remarks || "",
+      paymentDate: item.official?.date || ""
+    }));
+    
+    // Keep original data structure separate from row data for grid display
+    this.setState({ rowData });
   };
 
 
   handleValueClick = async (event) =>
   {
-    console.log("handleValueClick", event.data);
     const id = event.data.id;
     const columnName = event.colDef.headerName;
     const receiptInvoice = event.data.recinvNo;
     const participantInfo = event.data.participantInfo;
     const courseInfo = event.data.courseInfo;
     const officialInfo = event.data.officialInfo;
-    console.log("officialInfo:", officialInfo);
 
     const rowIndex = event.rowIndex; // Get the clicked row index
     const expandedRowIndex = this.state.expandedRowIndex;
@@ -2059,15 +1848,32 @@ class RegistrationPaymentSection extends Component {
     try {
       if(columnName === "S/N")
         {
-          // Optional: Handle additional logic here if necessary
-          console.log("Cell clicked", event);
           // Check if clicked on a row and handle expansion
           if (expandedRowIndex === rowIndex) {
             // If the same row is clicked, collapse it
-            this.setState({ expandedRowIndex: null });
+            this.setState({ expandedRowIndex: null }, () => {
+              // Remove the detail view
+              const detailElement = document.getElementById(`detail-view-${rowIndex}`);
+              if (detailElement) {
+                ReactDOM.unmountComponentAtNode(detailElement);
+                detailElement.remove();
+              }
+            });
           } else {
+            // Remove any existing detail views first
+            if (expandedRowIndex !== null) {
+              const oldDetailElement = document.getElementById(`detail-view-${expandedRowIndex}`);
+              if (oldDetailElement) {
+                ReactDOM.unmountComponentAtNode(oldDetailElement);
+                oldDetailElement.remove();
+              }
+            }
+            
             // Expand the new row
-            this.setState({ expandedRowIndex: rowIndex });
+            this.setState({ expandedRowIndex: rowIndex }, () => {
+              // Apply the renderer after state is updated
+              const rowNode = this.gridApi.getRowNode(event.node.id);
+            });
           }
   
         }
@@ -2076,7 +1882,6 @@ class RegistrationPaymentSection extends Component {
           if(receiptInvoice !== "")
           {
             this.props.showUpdatePopup("In Progress... Please wait...");
-            console.log("Receipt/Invoice Number");
             await this.receiptShown(participantInfo, courseInfo, receiptInvoice, officialInfo);
             this.props.closePopup();
           }
@@ -2138,18 +1943,183 @@ class RegistrationPaymentSection extends Component {
     };
   };
 
-    // Add custom row below the clicked row
+  
     getRowStyle = (params) => {
-      // If this is the expanded row, display the custom <div>
-      if (this.state.expandedRowIndex !== null && this.state.expandedRowIndex === params.rowIndex) {
-        return { background: '#f1f1f1' }; // Example style for expanded row
-      }
-      return null;
-    };
+    const { expandedRowIndex, rowData } = this.state;
+    const rowIndex = params.rowIndex;
+    const row = rowData && rowData[rowIndex];
+  
+    // Highlight expanded row
+    if (expandedRowIndex !== null && expandedRowIndex === rowIndex) {
+      return {
+        background: '#f1f1f1',
+        borderBottom: '1px solid #ddd'
+      };
+    }
+  
+    // ILP: soft pastel green
+    if (row && row.courseInfo && row.courseInfo.courseType === "ILP") {
+      return {
+        background: '#d0f5e8' // soft pastel green
+      };
+    }
+  
+    // Anomaly for non-ILP (optional, keep your old logic if needed)
+    const anomalyStyles = this.getAnomalyRowStyles(rowData);
+    if (anomalyStyles && anomalyStyles[rowIndex]) {
+      return anomalyStyles[rowIndex];
+    }
+  
+    return null;
+  };
+
+    // Render the detailed view of a row when expanded
+    renderDetailView = (rowData) => {
+      if (!rowData) return null;
+      
+      const { participantInfo, courseInfo, officialInfo, status, id } = rowData;
+      
+      return (
+        <div className="detail-view-container">
+          <div className="detail-view-header">
+            <h3>Registration Details</h3>
+          </div>
+          
+          <div className="detail-view-content">
+            <div className="detail-view-section">
+              <h4>Participant Information</h4>
+              <div className="detail-view-grid">
+                <div className="detail-field">
+                  <span className="detail-label">Name:</span>
+                  <span className="detail-value">{participantInfo.name}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">NRIC:</span>
+                  <span className="detail-value">{participantInfo.nric}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Contact:</span>
+                  <span className="detail-value">{participantInfo.contactNumber}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Email:</span>
+                  <span className="detail-value">{participantInfo.email}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Gender:</span>
+                  <span className="detail-value">{participantInfo.gender}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">DOB:</span>
+                  <span className="detail-value">{participantInfo.dateOfBirth}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Residential Status:</span>
+                  <span className="detail-value">{participantInfo.residentialStatus}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Race:</span>
+                  <span className="detail-value">{participantInfo.race}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Postal Code:</span>
+                  <span className="detail-value">{participantInfo.postalCode}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Education Level:</span>
+                  <span className="detail-value">{participantInfo.educationLevel}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Work Status:</span>
+                  <span className="detail-value">{participantInfo.workStatus}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="detail-view-section">
+              <h4>Course Information</h4>
+              <div className="detail-view-grid">
+                <div className="detail-field">
+                  <span className="detail-label">Course Type:</span>
+                  <span className="detail-value">{courseInfo.courseType}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">English Name:</span>
+                  <span className="detail-value">{courseInfo.courseEngName}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Chinese Name:</span>
+                  <span className="detail-value">{courseInfo.courseChiName}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Location:</span>
+                  <span className="detail-value">{courseInfo.courseLocation}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Mode:</span>
+                  <span className="detail-value">{courseInfo.courseMode}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Price:</span>
+                  <span className="detail-value">{courseInfo.coursePrice}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Duration:</span>
+                  <span className="detail-value">{courseInfo.courseDuration}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="detail-view-section">
+              <h4>Payment Information</h4>
+              <div className="detail-view-grid">
+                <div className="detail-field">
+                  <span className="detail-label">Payment Method:</span>
+                  <span className="detail-value">{courseInfo.payment}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Payment Status:</span>
+                  <span className="detail-value">{status}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Confirmation Status:</span>
+                  <span className="detail-value">{officialInfo.confirmed ? 'Confirmed' : 'Not Confirmed'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Receipt/Invoice Number:</span>
+                  <span className="detail-value">{officialInfo.receiptNo || 'N/A'}</span>
+                </div>
+                {officialInfo.refundedDate && (
+                  <div className="detail-field">
+                    <span className="detail-label">Refunded Date:</span>
+                    <span className="detail-value">{officialInfo.refundedDate}</span>
+                  </div>
+                )}
+                <div className="detail-field">
+                  <span className="detail-label">Staff Name:</span>
+                  <span className="detail-value">{officialInfo.name || 'N/A'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Received Date:</span>
+                  <span className="detail-value">{officialInfo.date || 'N/A'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Received Time:</span>
+                  <span className="detail-value">{officialInfo.time || 'N/A'}</span>
+                </div>
+                <div className="detail-field">
+                  <span className="detail-label">Remarks:</span>
+                  <span className="detail-value">{officialInfo.remarks || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
   
 
   onCellValueChanged = async (event) => {
-    console.log("Event Data111:", event);
     const columnName = event.colDef.headerName;
     const id = event.data.id;
     const sn = event.data.sn;
@@ -2164,9 +2134,6 @@ class RegistrationPaymentSection extends Component {
     const paymentMethod = event.data.paymentMethod;
     const paymentStatus = event.data.paymentStatus;
     const oldPaymentStatus = event.oldValue;
-
-    console.log("Column Name:", columnName);
-    //this.setState({editedRowIndex: id});
 
     try 
     {
@@ -2257,9 +2224,8 @@ class RegistrationPaymentSection extends Component {
                           console.log("Updated Successfully");
                         } catch (error) {
                           console.error("Error occurred during parallel task execution:", error);
-                        }
-                    };
-                    await performParallelTasks();
+                        }};
+                        await performParallelTasks();
                   } 
               }
           }
@@ -2482,52 +2448,19 @@ class RegistrationPaymentSection extends Component {
     
     // Fetch new data
     const {data, data1} = await this.fetchCourseRegistrations(language);
-    //console.log("New Data:", newData);
     
-    // Map only the items that exist in current rowData
-    const existingIds = new Set(this.state.rowData.map(item => item.id));
-    console.log("existingIds:", existingIds);
-    
-    const updatedRowData = data
-      .filter(item => existingIds.has(item._id))
-      .map((item, index) => ({
-        id: item._id,
-        sn: index + 1,
-        name: item.participant.name,
-        contactNo: item.participant.contactNumber,
-        course: item.course.courseEngName,
-        courseChi: item.course.courseChiName,
-        location: item.course.courseLocation,
-        courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course.courseMode,
-        paymentMethod: item.course.payment,
-        confirmed: item.official.confirmed,
-        paymentStatus: item.status,
-        recinvNo: item.official.receiptNo,
-        participantInfo: item.participant,
-        courseInfo: item.course,
-        officialInfo: item.official,
-        refundedDate: item.official?.refundedDate, // Fixed typo from 'offical'
-        agreement: item.agreement,
-        remarks: item.official?.remarks,
-        registrationDate: item.registrationDate,
-        sendDetails: item.sendingWhatsappMessage,
-        paymentDate: item.official?.date || ""
-      }));
-
-      /*if (!this.state.isAlertShown) {
-        await this.anomalitiesAlert(data1);
-         // Use a callback to set the state after the alert has been shown
-         this.setState({ isAlertShown: true });
-       }*/
-     
-    
-    // Update state and restore scroll position in one step
+    // Update original data state first
     this.setState({
       originalData: data,
-      registerationDetails: data,
-      rowData: updatedRowData
+      registerationDetails: data
     }, () => {
-      // Restore scroll position directly
+      // Generate row data from the original data
+      this.getRowData(data);
+      
+      // Re-apply current filters after data refresh
+      this.filterRegistrationDetails();
+      
+      // Restore scroll position
       if (gridContainer) {
         gridContainer.scrollTop = currentScrollTop;
       }
@@ -2571,44 +2504,6 @@ class RegistrationPaymentSection extends Component {
       console.log("Filters Applied:", { selectedLocation, selectedCourseType, searchQuery, selectedCourseName }, !searchQuery);
       console.log("Result:", selectedCourseName, !selectedCourseName); 
 
-
-      if (
-        (selectedLocation === "All Locations" || !selectedLocation) &&
-        (selectedCourseType === "All Courses Types" || !selectedCourseType) &&
-        (selectedCourseName === "All Courses Name" || !selectedCourseName) &&
-        (selectedQuarter === "All Quarters" || !selectedQuarter) &&
-        (searchQuery === "" || !searchQuery)
-      ) {
-        const rowData = originalData.map((item, index) => ({
-          id: item._id,
-          sn: index + 1,  // Serial number (S/N)
-          name: item.participant.name,  // Participant's name
-          contactNo: item.participant.contactNumber,  // Contact number
-          course: item.course.courseEngName,  // Course English name
-          courseChi: item.course.courseChiName,  // Course Chinese name
-          courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course.courseMode,
-          location: item.course.courseLocation,  // Course location
-          paymentMethod: item.course.payment,  // Payment method
-          confirmed: item.official.confirmed,  // Confirmation status
-          paymentStatus: item.status,  // Payment status
-          recinvNo: item.official.receiptNo,  // Receipt number
-          participantInfo: item.participant,  // Participant details
-          courseInfo: item.course,  // Course details
-          officialInfo: item.official,  // Official details
-          refundedDate: item.offical?.refundedDate,// Official details*/
-          agreement: item.agreement,
-          registrationDate: item.registrationDate,
-          remarks: item.official.remarks,
-          sendDetails: item.sendingWhatsappMessage,
-          paymentDate: item.official?.date || ""
-        }));
-  
-        // Update the row data with the filtered results
-        this.setState({rowData});
-        //this.setState({registerationDetails: rowData});
-        this.updateRowData(rowData);
-      }
-
       // Normalize the search query
       const normalizedSearchQuery = searchQuery ? searchQuery.toLowerCase().trim() : '';
 
@@ -2621,68 +2516,67 @@ class RegistrationPaymentSection extends Component {
         searchQuery: normalizedSearchQuery || null,
       };
 
+      // Apply filters step by step
+      let filteredDetails = originalData;
 
-    // Apply filters step by step
-    let filteredDetails = originalData;
+      // Apply location filter
+      if (filters.location) {
+        filteredDetails = filteredDetails.filter(data => data.course?.courseLocation === filters.location);
+      }
 
-    // Apply location filter
-    if (filters.location) {
-      filteredDetails = filteredDetails.filter(data => data.course?.courseLocation === filters.location);
-    }
+      if (filters.courseType) {
+        filteredDetails = filteredDetails.filter(data => data.course?.courseType === filters.courseType);
+      }
+      
+      if (filters.courseName) {
+        filteredDetails = filteredDetails.filter(data => data.course?.courseEngName === filters.courseName);
+      }
 
-    if (filters.courseType) {
-      filteredDetails = filteredDetails.filter(data => data.course?.courseType === filters.courseType);
-    }
+      if (filters.quarter) {
+        filteredDetails = filteredDetails.filter(data => {
+          const courseDuration = data.course?.courseDuration;
+          if (!courseDuration) return false; // Skip if courseDuration is missing
+      
+          const firstDate = courseDuration.split(' - ')[0]; // Extract "2 May 2025"
+          const [day, monthStr, year] = firstDate.split(' '); // Split into components
+      
+          // Convert month string to a number
+          const monthMap = {
+            "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+            "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
+          };        
+      
+          const month = monthMap[monthStr];
+          if (!month || !year) return false; // Skip if month or year is missing
     
-    if (filters.courseName) {
-      filteredDetails = filteredDetails.filter(data => data.course?.courseEngName === filters.courseName);
-    }
+          // Determine the quarter
+          let quarter = "";
+          if (month >= 1 && month <= 3) quarter = `Q1 ${year}`;
+          if (month >= 4 && month <= 6) quarter = `Q2 ${year}`;
+          if (month >= 7 && month <= 9) quarter = `Q3 ${year}`;
+          if (month >= 10 && month <= 12) quarter = `Q4 ${year}`;
+    
+          return quarter === filters.quarter; // Check if it matches the filter
+        });
+      }    
 
-    if (filters.quarter) {
-      filteredDetails = filteredDetails.filter(data => {
-        const courseDuration = data.course?.courseDuration;
-        if (!courseDuration) return false; // Skip if courseDuration is missing
-    
-        const firstDate = courseDuration.split(' - ')[0]; // Extract "2 May 2025"
-        const [day, monthStr, year] = firstDate.split(' '); // Split into components
-    
-        // Convert month string to a number
-        const monthMap = {
-          "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
-          "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12
-        };        
-    
-        const month = monthMap[monthStr];
-        if (!month || !year) return false; // Skip invalid entries
-    
-        // Determine the quarter
-        let quarter = "";
-        if (month >= 1 && month <= 3) quarter = `Q1 ${year}`;
-        if (month >= 4 && month <= 6) quarter = `Q2 ${year}`;
-        if (month >= 7 && month <= 9) quarter = `Q3 ${year}`;
-        if (month >= 10 && month <= 12) quarter = `Q4 ${year}`;
-    
-        return quarter === filters.quarter; // Check if it matches the filter
-      });
-    }    
-
-    // Apply search query filter
-    if (filters.searchQuery) {
-      filteredDetails = filteredDetails.filter(data => {
-        return [
-          (data.participant?.name || "").toLowerCase(),
-          (data.course?.courseLocation || "").toLowerCase(),
-          (data.course?.courseType || "").toLowerCase(),
-          (data.course?.courseEngName || "").toLowerCase(),
-          (data.course?.courseDuration || "").toLowerCase(),
-        ].some(field => field.includes(filters.searchQuery));
-      });
-    }
-
+      // Apply search query filter
+      if (filters.searchQuery) {
+        filteredDetails = filteredDetails.filter(data => {
+          return [
+            (data.participant?.name || "").toLowerCase(),
+            (data.course?.courseLocation || "").toLowerCase(),
+            (data.course?.courseType || "").toLowerCase(),
+            (data.course?.courseEngName || "").toLowerCase(),
+            (data.course?.courseDuration || "").toLowerCase(),
+          ].some(field => field.includes(filters.searchQuery));
+        });
+      }
 
       // Log filtered results
       console.log("Filtered Details:", filteredDetails);
 
+      // Convert filtered data to row format
       const rowData = filteredDetails.map((item, index) => ({
         id: item._id,
         sn: index + 1,  // Serial number (S/N)
@@ -2691,7 +2585,7 @@ class RegistrationPaymentSection extends Component {
         course: item.course.courseEngName,  // Course English name
         courseChi: item.course.courseChiName,  // Course Chinese name
         location: item.course.courseLocation,  // Course location
-        courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course.courseMode,
+        courseMode: item.course.courseMode === "Face-to-Face" ? "F2F" : item.course?.courseMode,
         paymentMethod: item.course.payment,  // Payment method
         confirmed: item.official.confirmed,  // Confirmation status
         paymentStatus: item.status,  // Payment status
@@ -2699,163 +2593,298 @@ class RegistrationPaymentSection extends Component {
         participantInfo: item.participant,  // Participant details
         courseInfo: item.course,  // Course details
         officialInfo: item.official,  // Official details
-        refundedDate: item.offical?.refundedDate,// Official details*/
+        refundedDate: item.official?.refundedDate, // Fixed typo from 'offical'
         agreement: item.agreement,
         registrationDate: item.registrationDate,
         sendDetails: item.sendingWhatsappMessage,
-        remarks: item.official.remarks,
+        remarks: item.official?.remarks || "",
         paymentDate: item.official?.date || ""
       }));
 
-      // Update the row data with the filtered results
-      this.setState({rowData})
-      this.updateRowData(filteredDetails);
+      // Update both the filtered details and row data for the grid
+      this.setState({
+        registerationDetails: filteredDetails,
+        rowData: rowData
+      });
     }
   }
 
+  // Bulk update methods
+  openBulkUpdateModal = () => {
+    if (this.state.selectedRows.length === 0) {
+      alert('Please select at least one row to update.');
+      return;
+    }
+    this.setState({ showBulkUpdateModal: true });
+  };
+
+  closeBulkUpdateModal = () => {
+    this.setState({ 
+      showBulkUpdateModal: false,
+      bulkUpdateStatus: '',
+      bulkUpdateMethod: ''
+    });
+  };
+
+  handleBulkUpdate = async () => {
+    const { selectedRows, bulkUpdateStatus, bulkUpdateMethod } = this.state;
+    
+    if (!bulkUpdateStatus && !bulkUpdateMethod) {
+      alert('Please select a status or payment method to update.');
+      return;
+    }
+
+    this.props.showUpdatePopup(`Updating ${selectedRows.length} records... Please wait...`);
+
+    try {
+      // Prepare bulk update data
+      const bulkUpdateData = {
+        purpose: 'bulkUpdate',
+        updates: selectedRows.map(row => ({
+          id: row.id,
+          paymentStatus: bulkUpdateStatus || null,
+          paymentMethod: bulkUpdateMethod || null
+        })),
+        staff: this.props.userName
+      };
+
+      // Send single request to backend
+      const response = await axios.post(
+        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+        bulkUpdateData
+      );
+
+      if (response.data.result === true) {
+        this.closeBulkUpdateModal();
+        await this.refreshChild();
+        this.props.closePopup();
+        alert(`Successfully updated ${selectedRows.length} records.`);
+      } else {
+        throw new Error(response.data.message || 'Bulk update failed');
+      }
+    } catch (error) {
+      console.error('Error during bulk update:', error);
+      this.props.closePopup();
+      alert('Error occurred during bulk update. Please try again.');
+    }
+  };
+
+  // Handle selection changes in the grid
   onSelectionChanged = (event) => {
     const selectedRows = event.api.getSelectedRows();
     this.setState({ selectedRows });
   };
 
-  render()
-  {
-    var {rowData, registerationDetails} = this.state;
-    ModuleRegistry.registerModules([AllCommunityModule]);
-    const anomalyStyles = this.getAnomalyRowStyles(rowData);
+  // Grid API initialization
+  onGridReady = (params) => {
+    this.gridApi = params.api;
+    this.gridColumnApi = params.columnApi;
+    
+    // Set up event handlers for row rendering
+    this.gridApi.addEventListener('rowDataUpdated', this.handleRowDataUpdate);
+    this.gridApi.addEventListener('modelUpdated', this.handleModelUpdate);
+  };
+
+  // Archive data method
+  archiveData = async () => {
+    const { registerationDetails } = this.state;
+    
+    if (registerationDetails.length === 0) {
+      alert('No data available to archive.');
+      return;
+    }
+
+
+    try {
+      // Prepare the data for Excel export
+      const preparedData = [];
+
+      // Define the headers
+      const headers = [
+        "S/N", "Participant Name", "Participant NRIC", "Participant Residential Status", 
+        "Participant Race", "Participant Gender", "Participant Date of Birth",
+        "Participant Contact Number", "Participant Email", "Participant Postal Code", 
+        "Participant Education Level", "Participant Work Status",
+        "Course Type", "Course English Name", "Course Chinese Name", "Course Location",
+        "Course Mode", "Course Price", "Course Duration", "Payment Method", 
+        "Registration Date", "Agreement", "Payment Status", "Confirmation Status", 
+        "Refunded Date", "WhatsApp Message Sent",
+        "Staff Name", "Received Date", "Received Time", "Receipt/Invoice Number", "Remarks"
+      ];
+
+      preparedData.push(headers);
+
+      // Add the values from all registration details
+      registerationDetails.forEach((detail, index) => {
+        const row = [
+          index + 1,
+          detail.participant.name,
+          detail.participant.nric,
+          detail.participant.residentialStatus,
+          detail.participant.race,
+          detail.participant.gender,
+          detail.participant.dateOfBirth,
+          detail.participant.contactNumber,
+          detail.participant.email,
+          detail.participant.postalCode,
+          detail.participant.educationLevel,
+          detail.participant.workStatus,
+          detail.course.courseType,
+          detail.course.courseEngName,
+          detail.course.courseChiName,
+          detail.course.courseLocation,
+          detail.course.courseMode,
+          detail.course.coursePrice,
+          detail.course.courseDuration,
+          detail.course.payment,
+          detail.registrationDate,
+          detail.agreement,
+          detail.status,
+          detail.official?.confirmed || false,
+          detail.official?.refundedDate || "",
+          detail.sendingWhatsappMessage || false,
+          detail.official?.name || "",
+          detail.official?.date || "",
+          detail.official?.time || "",
+          detail.official?.receiptNo || "",
+          detail.official?.remarks || ""
+        ];
+        preparedData.push(row);
+      });
+
+      // Convert the prepared data into a worksheet
+      const worksheet = XLSX.utils.aoa_to_sheet(preparedData);
+
+      // Create a new workbook and add the worksheet
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Archived Data");
+
+      // Generate filename with current date
+      const date = new Date();
+      const formattedDate = `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+      const fileName = `archived_data_${formattedDate}`;
+
+      // Generate a binary string
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+
+      // Create a blob from the binary string
+      const blob = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+
+      // Create a link element for downloading
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `${fileName}.xlsx`;
+      link.click();
+
+      // Clean up
+      window.URL.revokeObjectURL(link.href);
+
+      this.props.closePopup();
+      alert(`Successfully archived ${registerationDetails.length} records.`);
+
+    } catch (error) {
+      console.error('Error during archive:', error);
+      this.props.closePopup();
+      alert('Error occurred during archive. Please try again.');
+    }
+  };
+
+  render() {
+    const { selectedRows, showBulkUpdateModal, bulkUpdateStatus, bulkUpdateMethod, expandedRowIndex } = this.state;
 
     return (
-      <>
-        <div className="registration-payment-container" >
-          <div className="registration-payment-heading">
-            <h1>{this.props.language === 'zh' ? '报名与支付' : 'Registration And Payment'}</h1>
-            <div className="button-row">
-              <button className="save-btn" onClick={() => this.saveData(rowData)}>
-                Save/Archive Data
-              </button>
-              <button className="export-btn" onClick={() => this.exportToLOP()}>
-                Export To LOP
-              </button>
-              <button className="attendance-btn" onClick={() => this.exportAttendance()}>
-                Course Attendance
-              </button>
-            </div>
-            <div className="grid-container">
-            <AgGridReact
-              columnDefs={this.state.columnDefs}
-              rowData={rowData}
-              domLayout="normal"
-              paginationPageSize={rowData.length}
-              sortable={true}
-              statusBar={false}
-              pagination={true}
-              rowSelection="multiple" // <-- Enables multi-selection
-              defaultColDef={{
-                resizable: true,
-                sortable: true, // Just in case you want all columns to be sortable by default
-              }}
-              onGridReady={this.onGridReady}
-              onCellValueChanged={this.onCellValueChanged}
-              onCellClicked={this.handleValueClick}
-              onSelectionChanged={this.onSelectionChanged}
-              suppressRowClickSelection={true} // prevents cell click from selecting
-              getRowStyle={(params) => {
-                const rowIndex = params.node.rowIndex;
-                const courseType = params.data.courseInfo.courseType;
-
-                let rowStyle = {};
-
-                if (courseType === 'ILP') {
-                  rowStyle.backgroundColor = '#A8D5BA';
-                } else if (courseType === 'OtherType') {
-                  rowStyle.backgroundColor = '#FFB6C1';
-                }
-
-                if (anomalyStyles[rowIndex]) {
-                  rowStyle.backgroundColor = '#FFDDC1'; // anomaly wins
-                }
-
-                return rowStyle;
-              }}
-            />
-
-
-
-            </div>
-              {/* Render custom <div> below the expanded row */}
-              {this.state.expandedRowIndex !== null && (
-              <div
-              style={{
-                padding: '10px',
-                backgroundColor: '#F9E29B',
-                marginLeft: '5%',
-                width: '88vw',
-                height: 'fit-content',
-                borderRadius: '15px', // Make the border more rounded
-                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', // Optional: Add a subtle shadow for a floating effect
-              }}
-                >
-                {/* Custom content you want to display */}
-                <p  style={{textAlign:"left"}}><h2 style={{color:'#000000'}}>More Information</h2></p>
-                <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Participant Details</h3></p>
-                <p style={{textAlign:"left"}}>
-                  <strong>NRIC: </strong>{rowData[this.state.expandedRowIndex].participantInfo.nric}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Residential Status: </strong>{rowData[this.state.expandedRowIndex].participantInfo.residentialStatus}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Race: </strong>{rowData[this.state.expandedRowIndex].participantInfo.race}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Gender: </strong>{rowData[this.state.expandedRowIndex].participantInfo.gender}
-                </p>                  <p style={{textAlign:"left"}}>
-                  <strong>Date of Birth: </strong>{rowData[this.state.expandedRowIndex].participantInfo.dateOfBirth}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Contact Number : </strong>{rowData[this.state.expandedRowIndex].participantInfo.contactNumber}
-                </p> 
-                <p style={{textAlign:"left"}}>
-                  <strong>Email: </strong>{rowData[this.state.expandedRowIndex].participantInfo.email}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Postal Code: </strong>{rowData[this.state.expandedRowIndex].participantInfo.postalCode}
-                </p>                  
-                <p style={{textAlign:"left"}}>
-                  <strong>Education Level: </strong>{rowData[this.state.expandedRowIndex].participantInfo.educationLevel}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Work Status: </strong>{rowData[this.state.expandedRowIndex].participantInfo.workStatus}
-                </p>
-                <p  style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Course Details</h3></p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Type: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseType}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Price: </strong>{rowData[this.state.expandedRowIndex].courseInfo.coursePrice}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Duration: </strong>{rowData[this.state.expandedRowIndex].courseInfo.courseDuration}
-                </p>
-                <p style={{textAlign:"left"}}><h3 style={{color:'#000000'}}>Official Use</h3></p>
-                <p style={{textAlign:"left"}}> 
-                  <strong>Staff Name: </strong>{rowData[this.state.expandedRowIndex].officialInfo.name}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Received Date: </strong>{rowData[this.state.expandedRowIndex].officialInfo.date}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Received Time: </strong>{rowData[this.state.expandedRowIndex].officialInfo.time}
-                </p>
-                <p style={{textAlign:"left"}}>
-                  <strong>Registration Date: </strong>{rowData[this.state.expandedRowIndex].registrationDate}
-                </p>
-              </div>
-            )}
-          </div>
+      <div className="registration-payment-container">
+        <div className="registration-payment-heading">
+          <h2>Registration & Payment Details</h2>
         </div>
-      </>
-    )
+
+        <div className="button-row">
+          <button className="save-btn" onClick={() => this.archiveData()}>
+            Archive Data
+          </button>
+          <button className="export-btn" 
+          onClick={this.exportToLOP}
+          disabled={selectedRows.length === 0}>
+            Export to LOP
+          </button>
+          <button 
+            className="attendance-btn" 
+            onClick={this.exportAttendance}
+          >
+            Export Attendance
+          </button>
+          <button 
+            className="bulk-update-btn" 
+            onClick={this.openBulkUpdateModal}
+            disabled={selectedRows.length === 0}
+          >
+            Bulk Update ({selectedRows.length})
+          </button>
+        </div>
+
+        <div className="grid-container">
+          <AgGridReact
+            ref={this.gridRef}
+            rowData={this.state.rowData}
+            columnDefs={this.state.columnDefs}
+            rowSelection="multiple"
+            onGridReady={this.onGridReady}
+            onSelectionChanged={this.onSelectionChanged}
+            onCellValueChanged={this.onCellValueChanged}
+            onCellClicked={this.handleValueClick}
+            suppressRowClickSelection={true}
+            pagination={true}
+            paginationPageSize={this.state.rowData.length}
+            domLayout="normal"
+            getRowStyle={this.getRowStyle}
+          />
+        </div>
+        
+        {/* Bulk Update Modal */}
+        {showBulkUpdateModal && (
+          <div className="modal-overlay" onClick={this.closeBulkUpdateModal}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <h3>Bulk Update Selected Records</h3>
+              <div className="bulk-update-options">
+                <div className="update-section">
+                  <label htmlFor="bulkStatus">Payment Status:</label>
+                  <select
+                    id="bulkStatus"
+                    value={bulkUpdateStatus}
+                    onChange={(e) => this.setState({ bulkUpdateStatus: e.target.value })}
+                  >
+                    <option value="">-- No Change --</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Unpaid">Unpaid</option>
+                    <option value="Refunded">Refunded</option>
+                    <option value="Confirmed">Confirmed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="modal-buttons">
+                <button className="update-btn" onClick={this.handleBulkUpdate}>
+                  Update {selectedRows.length} Records
+                </button>
+                <button className="cancel-btn" onClick={this.closeBulkUpdateModal}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Expanded Row Detail View */}
+        {expandedRowIndex !== null && (
+          <div className="expanded-row-detail">
+            {this.renderDetailView(this.state.rowData[expandedRowIndex])}
+          </div>
+        )}
+      </div>
+    );
   }
 }
 

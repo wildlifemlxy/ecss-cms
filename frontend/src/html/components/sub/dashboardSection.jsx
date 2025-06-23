@@ -12,7 +12,7 @@ class DashboardSection extends Component {
             selectedQuarter: '',
             selectedLocation: '',
             selectedCourse: '',
-            selectedCourseType: 'NSA', // Default to NSA
+            selectedCourseType: 'All', // Default to All courses
             statistics: {
                 totalRegistrations: 0,
                 totalPaid: 0,
@@ -38,10 +38,11 @@ class DashboardSection extends Component {
     // Fetch registration data from backend
     fetchRegistrationData = async () => {
         try {
-            // Get user role and siteIC from context or props
-            // You may need to adjust these based on how you store user data
-            const role = localStorage.getItem('userRole') || 'admin'; // Default to admin
-            const siteIC = localStorage.getItem('siteIC') || ''; // Get from storage or context
+            // Get user role and siteIC from props, localStorage, or default values
+            const role = this.props.role || localStorage.getItem('userRole') || 'admin';
+            const siteIC = this.props.siteIC || localStorage.getItem('siteIC') || '';
+            
+            console.log('Fetching data with role:', role, 'and siteIC:', siteIC);
             
             const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { 
                 purpose: 'retrieve', 
@@ -59,8 +60,12 @@ class DashboardSection extends Component {
             
             console.log('Processed registration data array:', dataArray);
             
+            // Filter data based on siteIC
+            const filteredData = this.filterDataBySiteIC(dataArray, siteIC);
+            console.log('Filtered data based on siteIC:', filteredData);
+            
             this.setState({
-                registrationData: dataArray,
+                registrationData: filteredData,
                 loading: false
             }, () => {
                 // Set the earliest quarter as default
@@ -81,6 +86,39 @@ class DashboardSection extends Component {
                 loading: false
             });
         }
+    };
+
+    // Filter data based on siteIC
+    filterDataBySiteIC = (dataArray, siteIC) => {
+        console.log('Filtering data with siteIC:', siteIC);
+        
+        // If siteIC is empty string, show all data
+        if (!siteIC || siteIC === '') {
+            console.log('siteIC is empty, showing all data');
+            return dataArray;
+        }
+        
+        // If siteIC is an array and has more than one element, show all data
+        if (Array.isArray(siteIC) && siteIC.length > 1) {
+            console.log('siteIC is an array with more than one element, showing all data');
+            return dataArray;
+        }
+        
+        // If siteIC is an array with only one element, filter for that site
+        if (Array.isArray(siteIC) && siteIC.length === 1) {
+            console.log('siteIC is an array with one element, filtering for site:', siteIC[0]);
+            return dataArray.filter(record => {
+                const recordSite = record.course?.courseLocation || record.siteIC || '';
+                return recordSite === siteIC[0];
+            });
+        }
+        
+        // If siteIC is a specific value, show only data for that site
+        console.log('siteIC is a specific value, filtering for site:', siteIC);
+        return dataArray.filter(record => {
+            const recordSite = record.course?.courseLocation || record.siteIC || '';
+            return recordSite === siteIC;
+        });
     };
 
     // Get quarter from date string
@@ -173,7 +211,7 @@ class DashboardSection extends Component {
         registrationData.forEach(record => {
             if (record.course && 
                 record.course.courseLocation && 
-                record.course.courseType === selectedCourseType) {
+                (selectedCourseType === 'All' || record.course.courseType === selectedCourseType)) {
                 
                 // Check quarter filter
                 let quarterMatch = true;
@@ -210,7 +248,7 @@ class DashboardSection extends Component {
         registrationData.forEach(record => {
             if (record.course && 
                 record.course.courseEngName && 
-                record.course.courseType === selectedCourseType &&
+                (selectedCourseType === 'All' || record.course.courseType === selectedCourseType) &&
                 (selectedLocation === '' || record.course.courseLocation === selectedLocation)) {
                 
                 // Check quarter filter
@@ -261,7 +299,7 @@ class DashboardSection extends Component {
         
         const filteredData = registrationData.filter(record => {
             // Course type filter
-            const hasCourse = record.course && record.course.courseType === selectedCourseType;
+            const hasCourse = record.course && (selectedCourseType === 'All' || record.course.courseType === selectedCourseType);
             
             // Quarter filter
             let quarterMatch = true;
@@ -294,15 +332,15 @@ class DashboardSection extends Component {
 
         const totalRegistrations = filteredData.length;
         
-        // Count different statuses
+        // Debug: Log all unique statuses to understand the data
+        const allStatuses = filteredData.map(record => (record.status || '').toString().toLowerCase());
+        const uniqueStatuses = [...new Set(allStatuses)];
+        console.log('Unique statuses found in data:', uniqueStatuses);
+        
+        // Count different statuses - ensure they are mutually exclusive
         const paidCount = filteredData.filter(record => {
             const status = (record.status || '').toString().toLowerCase();
-            return status === 'paid' || status === 'confirmed';
-        }).length;
-
-        const refundedCount = filteredData.filter(record => {
-            const status = (record.status || '').toString().toLowerCase();
-            return status === 'refunded';
+            return status === 'paid';
         }).length;
 
         const confirmedCount = filteredData.filter(record => {
@@ -310,35 +348,60 @@ class DashboardSection extends Component {
             return status === 'confirmed';
         }).length;
 
-        const unpaidCount = filteredData.filter(record => {
+        const refundedCount = filteredData.filter(record => {
             const status = (record.status || '').toString().toLowerCase();
-            return status === 'pending' || status === 'not paid' || status === '';
+            return status === 'refunded';
         }).length;
 
-        // Payment method counting
-        const cashCount = filteredData.filter(record => {
+        const unpaidCount = filteredData.filter(record => {
+            const status = (record.status || '').toString().toLowerCase();
+            return status === 'pending' || status === 'not paid' || status === 'unpaid' || status === '';
+        }).length;
+
+        // Total paid includes both 'paid' and 'confirmed' for payment method counting
+        const totalPaidCount = paidCount + confirmedCount;
+
+        // Payment method counting - only count from paid and confirmed registrations
+        const paidAndConfirmedRecords = filteredData.filter(record => {
+            const status = (record.status || '').toString().toLowerCase();
+            return status === 'paid' || status === 'confirmed';
+        });
+
+        // Debug: Log payment methods to understand the data
+        const allPayments = paidAndConfirmedRecords.map(record => record.course?.payment || 'no payment info');
+        const uniquePayments = [...new Set(allPayments)];
+        console.log('Unique payment methods found in paid records:', uniquePayments);
+        console.log('Total paid and confirmed records:', paidAndConfirmedRecords.length);
+
+        const cashCount = paidAndConfirmedRecords.filter(record => {
             const payment = record.course && record.course.payment ? 
                 record.course.payment.toString().toLowerCase() : '';
             return payment.includes('cash');
         }).length;
 
-        const paynowCount = filteredData.filter(record => {
+        const paynowCount = paidAndConfirmedRecords.filter(record => {
             const payment = record.course && record.course.payment ? 
                 record.course.payment.toString().toLowerCase() : '';
             return payment.includes('paynow') || payment.includes('pay now');
         }).length;
 
-        const skillsfutureCount = filteredData.filter(record => {
+        const skillsfutureCount = paidAndConfirmedRecords.filter(record => {
             const payment = record.course && record.course.payment ? 
                 record.course.payment.toString().toLowerCase() : '';
             return payment.includes('skillsfuture') || payment.includes('skills future') || payment.includes('sf');
         }).length;
 
-        const completionRate = totalRegistrations > 0 ? (paidCount / totalRegistrations) * 100 : 0;
+        console.log('Payment method counts - Cash:', cashCount, 'PayNow:', paynowCount, 'SkillsFuture:', skillsfutureCount);
+
+        const completionRate = totalRegistrations > 0 ? (totalPaidCount / totalRegistrations) * 100 : 0;
+
+        // Add debug logging to verify the math
+        console.log('Status counts - Paid:', paidCount, 'Confirmed:', confirmedCount, 'Pending:', unpaidCount, 'Refunded:', refundedCount);
+        console.log('Total from status counts:', paidCount + confirmedCount + unpaidCount + refundedCount, 'vs Total Registrations:', totalRegistrations);
 
         const statistics = {
             totalRegistrations,
-            totalPaid: paidCount,
+            totalPaid: totalPaidCount,
             totalNotPaid: unpaidCount,
             totalRefunded: refundedCount,
             totalConfirmed: confirmedCount,
@@ -362,7 +425,7 @@ class DashboardSection extends Component {
         }
 
         const filteredData = registrationData.filter(record => {
-            const hasCourse = record.course && record.course.courseType === selectedCourseType;
+            const hasCourse = record.course && (selectedCourseType === 'All' || record.course.courseType === selectedCourseType);
             
             let quarterMatch = true;
             if (selectedQuarter && record.course && record.course.courseDuration) {
@@ -423,7 +486,7 @@ class DashboardSection extends Component {
         }
 
         const filteredData = registrationData.filter(record => {
-            const hasCourse = record.course && record.course.courseType === selectedCourseType;
+            const hasCourse = record.course && (selectedCourseType === 'All' || record.course.courseType === selectedCourseType);
             
             let quarterMatch = true;
             if (selectedQuarter && record.course && record.course.courseDuration) {
@@ -514,7 +577,7 @@ class DashboardSection extends Component {
             selectedQuarter: '',
             selectedLocation: '',
             selectedCourse: '',
-            selectedCourseType: 'NSA'
+            selectedCourseType: 'All'
         }, () => {
             this.calculateStatistics();
         });
@@ -588,6 +651,12 @@ class DashboardSection extends Component {
                             <label>Course Type:</label>
                             <div className="button-group">
                                 <button 
+                                    className={`filter-btn ${selectedCourseType === 'All' ? 'active' : ''}`}
+                                    onClick={() => this.handleCourseTypeChange({ target: { value: 'All' } })}
+                                >
+                                    All Courses
+                                </button>
+                                <button 
                                     className={`filter-btn ${selectedCourseType === 'NSA' ? 'active' : ''}`}
                                     onClick={() => this.handleCourseTypeChange({ target: { value: 'NSA' } })}
                                 >
@@ -653,6 +722,16 @@ class DashboardSection extends Component {
                     <div className="stats-group">
                         <div className="stats-group-header">
                             <h4>Registration Overview</h4>
+                            {selectedLocation && (
+                                <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}>
+                                    📍 Location: {selectedLocation}
+                                </p>
+                            )}
+                            {!selectedLocation && availableLocations.length > 0 && (
+                                <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}>
+                                    📍 All Locations ({availableLocations.length} locations)
+                                </p>
+                            )}
                         </div>
                         <div className="stats-grid">
                             <div className="stat-card primary">
@@ -660,6 +739,16 @@ class DashboardSection extends Component {
                                 <div className="stat-content">
                                     <h3>Total Registrations</h3>
                                     <p className="stat-number">{statistics.totalRegistrations}</p>
+                                    {selectedLocation && (
+                                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                                            at {selectedLocation}
+                                        </p>
+                                    )}
+                                    {!selectedLocation && availableLocations.length > 0 && (
+                                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                                            across {availableLocations.length} location{availableLocations.length !== 1 ? 's' : ''}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -682,7 +771,7 @@ class DashboardSection extends Component {
                             <div className="stat-card warning">
                                 <div className="stat-icon">⏳</div>
                                 <div className="stat-content">
-                                    <h3>Not Paid</h3>
+                                    <h3>Pending</h3>
                                     <p className="stat-number">{statistics.totalNotPaid}</p>
                                 </div>
                             </div>
@@ -735,7 +824,7 @@ class DashboardSection extends Component {
                     <h3>Summary</h3>
                     <div className="summary-content">
                         <p>
-                            Showing statistics for <strong>{selectedCourseType}</strong> courses
+                            Showing statistics for <strong>{selectedCourseType === 'All' ? 'All' : selectedCourseType}</strong> courses
                             {selectedQuarter && ` in ${selectedQuarter}`}
                             {selectedLocation && ` at ${selectedLocation}`}
                             {selectedCourse && ` for "${selectedCourse}"`}
