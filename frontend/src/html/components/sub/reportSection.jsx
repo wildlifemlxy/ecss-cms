@@ -40,7 +40,8 @@ class ReportSection extends Component {
       totalCash: 0,
       totalPayNow: 0,
       showMonthYearDropdown: false,
-      selectedSiteICLocation: '' // Add state for selected Site IC location
+      selectedSiteICLocation: '', // Add state for selected Site IC location
+      showSiteICDropdown: false // State to control visibility of Site IC dropdown
     };
   }
 
@@ -53,10 +54,20 @@ class ReportSection extends Component {
   };
 
   generateReportButton = async () => {
-      //await this.fetchInvoiceDetails();
       this.setState({ showReport: true, dateRange: `${this.state.fromDate} - ${this.state.toDate}` });
       await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
       await this.calculateTotalPriceForDateRange(this.state.fromDate, this.state.toDate);
+      // If multiple siteICs, show dropdown after generate
+      const siteICArray = Array.isArray(this.props.siteIC)
+        ? this.props.siteIC
+        : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
+          ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
+          : this.props.siteIC ? [this.props.siteIC] : [];
+      if (siteICArray.length > 1) {
+        this.setState({ showSiteICDropdown: true });
+      } else {
+        this.setState({ showSiteICDropdown: false });
+      }
   };
   
   // Fetch invoice data when the component mounts
@@ -258,14 +269,11 @@ class ReportSection extends Component {
     try {
       this.props.loadingPopup1();
   
-      // Function to parse the date string in dd/mm/yyyy format
+      // Function to parse the date in dd/mm/yyyy format
       const parseDate = (dateStr) => {
         if (!dateStr) return null;
         const [day, month, year] = dateStr.split('/');
-        if (day && month && year) {
-          return new Date(`${year}-${month}-${day}`);
-        }
-        return null; // If invalid date format
+        return new Date(`${year}-${month}-${day}`);
       };
   
       // Validate if a date is valid
@@ -304,9 +312,11 @@ class ReportSection extends Component {
         const paymentDate = item.official?.date;
         const payment = parseDate(paymentDate);
         const courseLocation = item.course.courseLocation;
-        // Use selectedSiteIC for filtering if set
-        const selectedSiteIC = this.state.selectedSiteICLocation || siteICDisplayArray[0];
-        const targetLocation = selectedSiteIC;
+        // Use selectedSiteIC for filtering if set (support array for multi-select)
+        const selectedSiteIC = Array.isArray(this.state.selectedSiteICLocation) && this.state.selectedSiteICLocation.length > 0
+          ? this.state.selectedSiteICLocation
+          : [this.state.selectedSiteICLocation || siteICDisplayArray[0]];
+        const targetLocations = selectedSiteIC;
         if (payment) {
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
             if (this.props.role && (this.props.role.toLowerCase() === "admin" || this.props.role.toLowerCase() === "sub-admin")) {
@@ -316,18 +326,18 @@ class ReportSection extends Component {
               return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
             } else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
               // NSA in-charge or Site in-charge: can see only their assigned sites
-              return payment >= fromParsed && payment <= toParsed && targetLocation === courseLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+              return payment >= fromParsed && payment <= toParsed && targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture" && item.status != "Pending";
             } else {
-              // Default: restrict to targetLocation
-              return payment >= fromParsed && payment <= toParsed && courseLocation === targetLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+              // Default: restrict to targetLocations
+              return payment >= fromParsed && payment <= toParsed && targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture" && item.status != "Pending";
             }
           } else if (!fromParsed && !toParsed) {
             if (this.props.role && (this.props.role.toLowerCase() === "admin" || this.props.role.toLowerCase() === "sub-admin")) {
               return item.course.payment !== "SkillsFuture";
             } else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
-              return courseLocation === targetLocation && item.course.payment !== "SkillsFuture";
+              return targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture";
             }
-            return courseLocation === targetLocation && item.course.payment !== "SkillsFuture";
+            return targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture";
           }
         }
         return false;
@@ -687,7 +697,7 @@ class ReportSection extends Component {
   
   render() 
   {
-    var {showMonthYearDropdown, filteredMonthYearOptions, updatedInvoiceData} = this.state;
+    var {showMonthYearDropdown, filteredMonthYearOptions, updatedInvoiceData, showSiteICDropdown, selectedSiteICLocation} = this.state;
     ModuleRegistry.registerModules([AllCommunityModule]);
     return (
       <>
@@ -727,6 +737,39 @@ class ReportSection extends Component {
             {/* Only display the table and export button if a month-year is selected */}
             {this.state.showTable && (
               <>
+                {/* Show Site IC dropdown if applicable */}
+                {this.state.showSiteICDropdown && (
+                  <div style={{ textAlign: 'center', margin: '20px 0' }}>
+                    <label htmlFor="siteIC-dropdown" style={{ marginRight: 8, fontWeight: 'bold' }}>Select Site:</label>
+                    <select
+                      id="siteIC-dropdown"
+                      value={this.state.selectedSiteICLocation || ''}
+                      onChange={e => {
+                        // Support multi-select: store all selected options in state
+                        const selected = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                        this.setState({ selectedSiteICLocation: selected }, async () => {
+                          await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
+                          await this.calculateTotalPriceForDateRange();
+                        });
+                      }}
+                      style={{ padding: '8px', fontSize: '1rem', border: '1px solid #000', borderRadius: '4px' }}
+                      multiple
+                      size={2}
+                    >
+                      {(() => {
+                        const siteICArray = Array.isArray(this.props.siteIC)
+                          ? this.props.siteIC
+                          : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
+                            ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
+                            : this.props.siteIC ? [this.props.siteIC] : [];
+                        return siteICArray.map((loc, idx) => {
+                          const trimmed = loc.split('-')[0].trim();
+                          return <option key={idx} value={trimmed}>{trimmed}</option>;
+                        });
+                      })()}
+                    </select>
+                  </div>
+                )}
                 <div className='report-container'>
                   <p>
                     <strong>

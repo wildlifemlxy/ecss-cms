@@ -90,7 +90,9 @@ class LoginPage extends Component {
                         "https://ecss-backend-node.azurewebsites.net"}/login`, { email, password });*/
 
         const axiosInstance = axios.create({
-          baseURL: `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}`,
+          baseURL: window.location.hostname === "localhost"
+          ? "http://localhost:3001"
+          : "https://ecss-backend-node.azurewebsites.net",
           timeout: 5000, // Set a reasonable timeout to avoid waiting too long
           headers: { 'Content-Type': 'application/json' },
         });
