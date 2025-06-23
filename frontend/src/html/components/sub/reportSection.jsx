@@ -183,10 +183,12 @@ class ReportSection extends Component {
     try {
       const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/generate_monthly_report/`);
       const data = response.data.data;
+      console.log("Fetched Invoice Data:", data);
 
+      // FIX: Use item.course?.courseLocation for filtering
       const filteredData = data.filter(item => {
         return item.course?.payment !== "SkillsFuture" && 
-               ["CT Hub", "Renewal Christian Church"].includes(item.courseLocation);
+               ["CT Hub", "Renewal Christian Church"].includes(item.course?.courseLocation);
       });
       
 
@@ -645,7 +647,7 @@ class ReportSection extends Component {
   
   render() 
   {
-    var {showMonthYearDropdown, filteredMonthYearOptions,} = this.state;
+    var {showMonthYearDropdown, filteredMonthYearOptions, updatedInvoiceData} = this.state;
     ModuleRegistry.registerModules([AllCommunityModule]);
     return (
       <>
@@ -814,6 +816,9 @@ class ReportSection extends Component {
               </>
             )}
           </>
+        )}
+        {this.state.showTable && updatedInvoiceData.length === 0 && (
+          <div style={{textAlign: 'center', color: 'red'}}>No data available for the selected period.</div>
         )}
       </>
       );   
