@@ -241,6 +241,7 @@ class AccountsSection extends Component {
          qRCode: item["QR Code"],
          attendance: item["Attendances"],
          membership: item["Membership"],
+         reports: item["Reports"],
        };
      });
    
@@ -821,6 +822,28 @@ class AccountsSection extends Component {
                       <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
                         <strong>QR Code Deletion: </strong>
                         {this.state.accessRightsRowData[this.state.expandedRowIndex].qRCode["Delete QR Code"] ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+                    </div>
+                    <br/>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      <strong>Reports Module | </strong>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'center' }}>
+                        <strong>Monthly Reports: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].reports &&
+                        this.state.accessRightsRowData[this.state.expandedRowIndex].reports["Monthly Report"] === true ? (
+                          <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
+                        ) : (
+                          <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>
+                        )}
+                      </p>
+                      <p style={{ margin: '0', display: 'flex', alignItems: 'flex-start' }}>
+                        <strong>Payment Reports: </strong>
+                        {this.state.accessRightsRowData[this.state.expandedRowIndex].reports &&
+                        this.state.accessRightsRowData[this.state.expandedRowIndex].reports["Payment Report"] === true ? (
                           <i className="fas fa-check" style={{ color: 'green', fontSize: '20px', marginLeft: '5px' }}></i>
                         ) : (
                           <i className="fas fa-times" style={{ color: 'red', fontSize: '20px', marginLeft: '5px' }}></i>

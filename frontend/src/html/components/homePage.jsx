@@ -1160,10 +1160,10 @@ import React, { Component } from 'react';
           this.toggleAccountsComponent('Create Account');
           break;
         case 'accounts':
-          this.toggleAccountsComponent('Account Table');
+          this.toggleAccountsComponent('Accounts');
           break;
         case 'access-rights':
-          this.toggleAccountsComponent('Access Rights Table');
+          this.toggleAccountsComponent('Access Rights');
           break;
         default:
           console.log('Navigation section not found:', section);

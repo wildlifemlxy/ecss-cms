@@ -894,12 +894,14 @@ class Popup extends Component {
               {Object.keys(message4)
               .filter(mainKey => mainKey !== "id" && mainKey !== 'accType' && mainKey !== 'name' && mainKey !== 'sn') // Exclude unnecessary keys
               .map((mainKey) => {
+                console.log("Main Key:", mainKey);
                 const formattedKey = 
                   mainKey === "accounts" ? "Account" : 
                   mainKey === "regPay" ? "Registration And Payment" : 
                   mainKey === "qRCode" ? "QR Code" : 
                   mainKey === "courses" ? "Courses" : 
                   mainKey === "attendance" ? "Attendances" : 
+                  mainKey === "reports" ? "Reports" : 
                   mainKey === "membership" ? "Membership" : 
                   mainKey;
 

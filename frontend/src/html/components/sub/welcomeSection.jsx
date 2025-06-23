@@ -119,37 +119,7 @@ class WelcomeSection extends Component {
         return navigationCards;
     };
 
-    // Handle sub-key navigation (similar to sidebar logic)
-    handleSubKeyNavigation = (subKey) => {
-        console.log("Selected:", subKey);
-        if (this.props.onNavigate) {
-            // Transform subKey to match navigation expectations
-            let navigationKey = subKey;
-            if (subKey === "Create Account") {
-                navigationKey = "create-account";
-            } else if (subKey === "Account Table") {
-                navigationKey = "accounts";
-            } else if (subKey === "Access Rights Table") {
-                navigationKey = "access-rights";
-            } else if (subKey === "NSA Courses") {
-                navigationKey = "nsa-courses";
-            } else if (subKey === "ILP Courses") {
-                navigationKey = "ilp-courses";
-            } else if (subKey === "Registration And Payment Table") {
-                navigationKey = "registration";
-            } else if (subKey === "Monthly Report") {
-                navigationKey = "monthly-report";
-            } else if (subKey === "Payment Report") {
-                navigationKey = "payment-report";
-            } else if (subKey === "View Attendance") {
-                navigationKey = "attendance";
-            } else if (subKey === "View Membership") {
-                navigationKey = "membership";
-            }
-            
-            this.props.onNavigate(navigationKey);
-        }
-    };
+    
 
     // Toggle navigation card expansion
     toggleNavigationCard = (cardKey) => {
@@ -186,6 +156,47 @@ class WelcomeSection extends Component {
             day: 'numeric'
         });
     };
+
+  handleSubKeyNavigation = (subKey) => {
+    if (this.props.onNavigate) {
+        let navigationKey = subKey;
+        switch (subKey) {
+            case "Create Account":
+                navigationKey = "create-account";
+                break;
+            case "Account Table":
+                navigationKey = "accounts";
+                break;
+            case "Access Rights Table":
+                navigationKey = "access-rights";
+                break;
+            case "NSA Courses":
+                navigationKey = "nsa-courses";
+                break;
+            case "ILP Courses":
+                navigationKey = "ilp-courses";
+                break;
+            case "Registration And Payment Table":
+                navigationKey = "registration";
+                break;
+            case "Monthly Report":
+                navigationKey = "monthly-report";
+                break;
+            case "Payment Report":
+                navigationKey = "payment-report";
+                break;
+            case "View Attendance":
+                navigationKey = "attendance";
+                break;
+            case "View Membership":
+                navigationKey = "membership";
+                break;
+            default:
+                navigationKey = subKey;
+        }
+        this.props.onNavigate(navigationKey);
+    }
+};
 
     render() {
         const { userName, role, onNavigate } = this.props;
