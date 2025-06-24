@@ -8,6 +8,48 @@ class RegistrationController {
         this.databaseConnectivity = new DatabaseConnectivity(); // Create an instance of DatabaseConnectivity
     }
 
+        // Method to get all participants
+    async getAllParticipants() {
+        try {
+            console.log("Retrieving all participants...");
+            var result = await this.databaseConnectivity.initialize();
+            
+            if (result === "Connected to MongoDB Atlas!") {
+                var databaseName = "Courses-Management-System";
+                var collectionName = "Registration Forms";
+                
+                var getAllResult = await this.databaseConnectivity.getAllParticipants(
+                    databaseName,
+                    collectionName
+                );
+                
+                return {
+                    success: getAllResult.success,
+                    participants: getAllResult.participants || [],
+                    count: getAllResult.participants ? getAllResult.participants.length : 0,
+                    message: getAllResult.message || "Participants retrieved successfully"
+                };
+            } else {
+                return {
+                    success: false,
+                    participants: [],
+                    count: 0,
+                    message: "Database connection failed"
+                };
+            }
+        } catch (error) {
+            console.error("Get all participants error:", error);
+            return {
+                success: false,
+                participants: [],
+                count: 0,
+                message: "Error retrieving participants"
+            };
+        } finally {
+            await this.databaseConnectivity.close();
+        }
+    }
+
     // Method to handle user registration
     async newParticipant(data) 
     {
@@ -23,7 +65,7 @@ class RegistrationController {
                 var collectionName = "Registration Forms";
                 var connectedDatabase = await this.databaseConnectivity.insertToDatabase(databaseName, collectionName, data);   
                 console.log("Insert New Participants:", connectedDatabase);
-                if(connectedDatabase === true)
+                if(connectedDatabase.acknowledged === true)
                 {
                     return {
                         success: true,
@@ -255,7 +297,7 @@ class RegistrationController {
             if(result === "Connected to MongoDB Atlas!")
             {
                 var databaseName = "Courses-Management-System"; 
-                var connectedDatabase = await this.databaseConnectivity.updateConfirmtionOfficialUse(databaseName, id, name, date, time, status);  
+                var connectedDatabase = await this.databaseConnectivity.updateConfirmationOfficialUse(databaseName, id, name, date, time, status);  
                 return connectedDatabase.acknowledged;
                 //console.log("Updated Official Use:", connectedDatabase);
             }
@@ -409,6 +451,44 @@ class RegistrationController {
             return {
                 success: false,
                 message: "Error updating user",
+                error: error
+            };
+        }
+        finally {
+            await this.databaseConnectivity.close(); // Ensure the connection is closed
+        }    
+    }
+
+    async bulkUpdateParticipants(updates, staff, date, time)
+    {
+        try {
+            // Connect to the database
+            var result = await this.databaseConnectivity.initialize();
+            console.log("Database Connectivity:", result);
+
+            if(result === "Connected to MongoDB Atlas!")
+            {
+                var databaseName = "Courses-Management-System";
+                
+                // Process bulk updates using the database connectivity layer
+                var connectedDatabase = await this.databaseConnectivity.bulkUpdateRegistrations(
+                    databaseName, 
+                    updates, 
+                    staff, 
+                    date, 
+                    time
+                );
+                
+                console.log("Bulk Update Result:", connectedDatabase);
+                return connectedDatabase;
+            }
+        } 
+        catch (error) 
+        {
+            console.error("Error in bulk update:", error);
+            return {
+                success: false,
+                message: "Error performing bulk update",
                 error: error
             };
         }

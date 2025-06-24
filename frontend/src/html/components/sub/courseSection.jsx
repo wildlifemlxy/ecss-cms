@@ -3,6 +3,8 @@ import axios from 'axios';
 import '../../../css/sub/courseSection.css';
 import { AgGridReact } from 'ag-grid-react'; // React Data Grid Component
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'; 
+import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 class CoursesSection extends Component {
     constructor(props) {
@@ -132,7 +134,8 @@ class CoursesSection extends Component {
     getAllLanguages= async(courses)  =>  {
       return [...new Set(courses.map(course => {
         var courseDetails = this.getSelectedDetails(course.short_description);
-        return courseDetails.language;
+        console.log("Course Details123:", JSON.parse(courseDetails).language);
+        return JSON.parse(courseDetails).language;
       }))];
     }
 
@@ -141,12 +144,15 @@ class CoursesSection extends Component {
         this.setState({ loading: true });
         var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/courses/`, { courseType });
         var courses = response.data.courses;
-        console.log("From Django:", response);
+        console.log("From Django:", courses);
         
 
         // Extract locations and languages
         var locations = await this.getAllLocations(courses);
         var languages = await this.getAllLanguages(courses);
+
+        console.log("Locations123:", locations);
+        console.log("Languages123:", languages);
 
         this.props.passDataToParent(locations, languages);
 
@@ -172,7 +178,7 @@ class CoursesSection extends Component {
 
   getRowData = (filteredCourse) => 
   {
-    console.log("Get Row Data");
+    console.log("Get Row Data", filteredCourse);
     const locationMap = {
       "Tampines 253 Centre": "T-253",
       "Pasir Ris West Wellness Centre": "PRW",
@@ -197,7 +203,7 @@ class CoursesSection extends Component {
         courseMode: item?.attributes?.[2]?.options?.[0] === "Face-to-Face" ? "F2F" : item?.attributes?.[2]?.options?.[0],
         current: item.stock_quantity,
         projected: displayedDetails.vacancies,
-        maximum: Math.ceil(parseInt(displayedDetails.vacancies) * 1.5),
+        maximum: displayedDetails.vacancies === "" ? "" : Math.ceil(parseInt(displayedDetails.vacancies) * 1.5),
         noLesson: displayedDetails.noOfLesson,
         language: displayedDetails.language,
         status: displayedDetails.status,
@@ -214,7 +220,7 @@ class CoursesSection extends Component {
   };
   
 
-  getSelectedDetails(short_description, vacancy) {
+  /*getSelectedDetails(short_description, vacancy) {
     let array = short_description.split('<p>');
     if (array[0] === '') {
       array.shift(); // Remove the empty string at the start
@@ -323,7 +329,120 @@ class CoursesSection extends Component {
       status,
       eligibility: short_description.includes("SkillsFuture")
     });
+  }*/
+
+    getSelectedDetails(short_description, vacancy) {
+  let array = short_description.split('<p>');
+  if (array[0] === '') {
+    array.shift();
   }
+
+  array = array.flatMap(element => element.split('</p>')).filter(element => element.trim() !== '');
+
+  let noOfLesson = array.find(item => item.toLowerCase().includes("lesson")) || "";
+  noOfLesson = noOfLesson.split("<br />")[1] || "";
+  noOfLesson = noOfLesson.replace(/\n|<b>|<\/b>/g, "").match(/\d+/);
+  noOfLesson = noOfLesson ? parseInt(noOfLesson[0], 10) : "";
+
+  console.log("No. of Lesson:", noOfLesson);
+
+  let language = array
+    .map(item => item.replace(/\n|<b>|<\/b>/g, ""))
+    .find(item => item.toLowerCase().includes("language")) || "";
+  language = language.split("<br />").pop()?.trim() || "";
+
+  let vacancies = array
+    .map(item => item.replace(/\n|<b>|<\/b>/g, ""))
+    .find(item => item.toLowerCase().includes("vacancy")) || "";
+  vacancies = vacancies.split("<br />").pop()?.trim().split("/")[2] || "";
+  let vacanciesMatch = vacancies.match(/\d+/) ? parseInt(vacancies.match(/\d+/)[0], 10) : "";
+
+  let startDate = array
+    .map(item => item.replace(/\<strong>|\<\/strong>|\n|<b>|<\/b>/g, ""))
+    .find(item => item.toLowerCase().includes("start date")) || "";
+  startDate = startDate.split("<br />").pop()?.trim() || "";
+  let [day, monthStr, year] = startDate.split(" ");
+  day = parseInt(day) || 1;
+  year = parseInt(year) || new Date().getFullYear();
+  let month = this.changeMonthToNumber(monthStr || "");
+
+  let endDate = array
+    .map(item => item.replace(/\<strong>|\<\/strong>|\n|<b>|<\/b>/g, ""))
+    .find(item => item.toLowerCase().includes("end date")) || "";
+  endDate = endDate.split("<br />").pop()?.trim() || "";
+  let [day1, monthStr1, year1] = endDate.split(" ");
+  day1 = parseInt(day1) || 1;
+  year1 = parseInt(year1) || new Date().getFullYear();
+  let month1 = this.changeMonthToNumber(monthStr1 || "");
+
+  console.log("Course End Date:", startDate, endDate);
+
+  let timing = array
+    .map(item => item.replace(/\<strong>|\<\/strong>|\n|<b>|<\/b>/g, ""))
+    .find(item => item.toLowerCase().includes("lesson schedule")) || "";
+  timing = timing.split("<br />").pop()?.trim() || "";
+
+  let startTime = "";
+  let endTime = "";
+
+  if (timing) {
+    if (timing.includes("&#8211;")) {
+      [startTime, endTime] = timing.split("&#8211;").map(t => t.trim());
+    } else if (timing.includes("–")) {
+      [startTime, endTime] = timing.split("–").map(t => t.trim());
+    }
+
+    if (startTime.includes(",")) {
+      startTime = startTime.split(",")[1]?.trim() || startTime;
+    }
+  }
+
+  const startDateTime = new Date(year, month - 1, day);
+  const { hours: startHours, minutes: startMinutes } = this.convertTo24HourWithHrs(startTime || "") || { hours: 0, minutes: 0 };
+  startDateTime.setHours(startHours);
+  startDateTime.setMinutes(startMinutes);
+  startDateTime.setSeconds(0);
+
+  const endDateTime = new Date(year1, month1 - 1, day1);
+  const { hours: endHours, minutes: endMinutes } = this.convertTo24HourWithHrs(endTime || "") || { hours: 0, minutes: 0 };
+  endDateTime.setHours(endHours);
+  endDateTime.setMinutes(endMinutes);
+  endDateTime.setSeconds(0);
+
+  console.log("Start Date Course:", year, month, day, startDateTime);
+  console.log("End Date Time:", endDate, endDateTime);
+
+  let status = "";
+  const currentDate = new Date();
+
+  if (vacancy === 0) {
+    status = "Full";
+  } else if (vacancy > 0) {
+    if (currentDate < startDateTime) {
+      status = "Available";
+    } else if (currentDate >= endDateTime) {
+      status = "Ended";
+    } else {
+      status = "Ongoing";
+    }
+  }
+
+  startDate = this.shorternMonth(startDate || "");
+  endDate = this.shorternMonth(endDate || "");
+
+  return JSON.stringify({
+    noOfLesson: noOfLesson || "",
+    language: language || "",
+    vacancies: vacanciesMatch || "",
+    startDate: startDate || "",
+    endDate: endDate || "",
+    startTime: startTime || "",
+    endTime: endTime || "",
+    status: status || "",
+    eligibility: short_description.includes("SkillsFuture")
+  });
+}
+
     
   courseNameAndDetails(product_name) {
     var regex = /<br\s*\/?>/gi;
@@ -381,10 +500,13 @@ class CoursesSection extends Component {
       // Apply search query if it's provided
       if (normalizedSearchQuery) {
         filteredDetails = filteredDetails.filter(item => {
-          // Filter courses based on courseName or centreLocation
+          // Get location full name safely
+          //const locationFullName = locationMap[item.centreLocation] || item.centreLocation || '';
+          
+          // Check all fields that could be searched
           return (
-            item.courseName.toLowerCase().includes(normalizedSearchQuery) ||
-            locationMap[item.centreLocation].toLowerCase().includes(normalizedSearchQuery)
+            // Text fields
+            (item.courseName.toLowerCase() && item.courseName.toLowerCase().includes(normalizedSearchQuery))
           );
         });
       }
@@ -392,7 +514,7 @@ class CoursesSection extends Component {
       // Map filteredDetails to rowData
       const rowData = filteredDetails.map((item) => {
         console.log("Filtered Course Details:", item);
-  
+        console.log("Maximum Capacity", item.maximum);
         // Return mapped data
         return {
           courseId: item.courseId,
@@ -411,7 +533,7 @@ class CoursesSection extends Component {
         };
       });
   
-      console.log("Filtered Row Data:", rowData);
+      console.log(" :", rowData);
   
       this.setState({ rowData });
     }
@@ -566,6 +688,108 @@ class CoursesSection extends Component {
       }
     }
 
+  // This function exports data to Excel using the ExcelJS library with custom headers
+  saveData = async (rowData) => {
+    console.log("Course Data:", rowData);
+    
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Courses');
+      
+      // Define custom headers
+      const customHeaders = [
+        'Course Id', 
+        'Course Name', 
+        'Course Mode', 
+        'Current Capacity', 
+        'Projected Capacity', 
+        'Maximum Capacity', 
+        'No. of Lesson', 
+        'Language', 
+        'Status', 
+        'Course Duration', 
+        'Course Timing', 
+        'SkillsFuture Eligibility'
+      ];
+      
+      // Add headers
+      worksheet.addRow(customHeaders);
+      
+      // Style the header row
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD3D3D3' } // Light gray background
+      };
+      
+      // Map data fields to our custom headers
+      rowData.forEach(item => {
+        const rowValues = [
+          item.courseId,
+          item.courseName,
+          item.courseMode || '',
+          item.current,
+          // Convert projected from ["12"] to 12
+          Array.isArray(item.projected) ? parseInt(item.projected[0]) : item.projected,
+          item.maximum,
+          item.noLesson,
+          item.language,
+          item.status,
+          item.courseDuration,
+          item.courseTiming,
+          item.eligibility
+        ];
+        
+        const row = worksheet.addRow(rowValues);
+        
+        // Format eligibility cell with checkmark or X symbol
+        const eligibilityCell = row.getCell(12); // 12th column
+        if (item.eligibility === true) {
+          eligibilityCell.value = '✓';
+          eligibilityCell.font = { color: { argb: 'FF008000' } }; // Green color
+        } else if (item.eligibility === false) {
+          eligibilityCell.value = '✗';
+          eligibilityCell.font = { color: { argb: 'FFFF0000' } }; // Red color
+        }
+      });
+      
+      // Auto-fit columns
+      worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        column.eachCell({ includeEmpty: true }, cell => {
+          const columnLength = cell.value ? cell.value.toString().length : 10;
+          if (columnLength > maxLength) {
+            maxLength = columnLength;
+          }
+        });
+        column.width = Math.min(maxLength + 2, 30); // Cap width at 30
+      });
+      
+      // Generate Excel file
+      const buffer = await workbook.xlsx.writeBuffer();
+      
+      // Create a Blob and download
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+      link.download = `Course_Listing_${formattedDate}.xlsx`;
+      link.click();
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      
+      console.log("Excel export completed successfully");
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+    }
+  };
+
   render() 
   {
     ModuleRegistry.registerModules([AllCommunityModule]);  
@@ -575,21 +799,26 @@ class CoursesSection extends Component {
           <h1 style={{ textAlign: 'center' }}>
             {this.props.courseType === "NSA" ? "NSA Courses" : "ILP Courses"}
           </h1>
-        </div>
-        <div className="course-table-wrapper">
-          <AgGridReact
-            columnDefs={this.state.columnDefs}
-            rowData={this.state.rowData}
-            domLayout="normal"
-            statusBar={false}
-            pagination={true}
-            paginationPageSize={this.state.rowData.length}
-            defaultColDef={{
-              resizable: true, // Make columns resizable
-            }}
-            sortable={true} 
-            onCellClicked={this.handleValueClick}
-          />
+          <div className="button-row4">
+            <button className="save-btn" onClick={() => this.saveData(this.state.rowData)}>
+              Export To Excel
+            </button>
+          </div>
+            <div className="course-table-wrapper">
+              <AgGridReact
+                columnDefs={this.state.columnDefs}
+                rowData={this.state.rowData}
+                domLayout="normal"
+                statusBar={false}
+                pagination={true}
+                paginationPageSize={this.state.rowData.length}
+                defaultColDef={{
+                  resizable: true, // Make columns resizable
+                }}
+                sortable={true} 
+                onCellClicked={this.handleValueClick}
+              />
+            </div>
         </div>
         {this.state.expandedRowIndex !== null && (
             <div

@@ -13,15 +13,16 @@ class ReportSection extends Component {
       updatedInvoiceData: [],  // Store invoice data
       columnDefs: [  // Define the column headers and configurations
         { headerName: "S/N", field: "index", width: 100, sortable: true },
-        { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
-        { headerName: "Payment Date/ Last Updated", field: "official.date", width: 150, sortable: true },
-        { headerName: "Receipt Number", field: "official.receiptNo", width: 250, sortable: true },
         { headerName: "Received From", field: "participant.name", width: 200, sortable: true },
+        { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true },
+        { headerName: "Course Location", field: "course.courseLocation", width: 300, sortable: true },
         { headerName: "Payment Method", field: "course.payment", width: 150, sortable: true },
         { headerName: "Price", field: "course.coursePrice", width: 150, sortable: true },
         { headerName: "Payment Status", field: "status", width: 200, sortable: true },
-        { headerName: "Course Name", field: "course.courseEngName", width: 350, sortable: true },
-        { headerName: "Course Location", field: "course.courseLocation", width: 200, sortable: true },
+        { headerName: "Receipt Number", field: "official.receiptNo", width: 300, sortable: true },
+        { headerName: "Registration Date", field: "registrationDate", width: 150, sortable: true },
+        { headerName: "Payment Date", field: "official.date", width: 150, sortable: true },
+        { headerName: "Refunded Date", field: "official.refundedDate", width: 150, sortable: true },
         { headerName: "Misc", field: "misc", width: 250, sortable: true },
         { headerName: "Remarks", field: "official.remarks", width: 250, sortable: true },
       ], 
@@ -38,7 +39,11 @@ class ReportSection extends Component {
       dateRange: "", 
       totalCash: 0,
       totalPayNow: 0,
-      showMonthYearDropdown: false
+      showMonthYearDropdown: false,
+      selectedSiteICLocation: '', // Start with no default value
+      showSiteICDropdown: false, // State to control visibility of Site IC dropdown
+      showSiteDropdown: false, // State to control visibility of Site dropdown list
+      filteredSiteOptions: [] // List of filtered site options
     };
   }
 
@@ -51,10 +56,10 @@ class ReportSection extends Component {
   };
 
   generateReportButton = async () => {
-      //await this.fetchInvoiceDetails();
       this.setState({ showReport: true, dateRange: `${this.state.fromDate} - ${this.state.toDate}` });
       await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
       await this.calculateTotalPriceForDateRange(this.state.fromDate, this.state.toDate);
+      this.setState({showSiteICDropdown: true})
   };
   
   // Fetch invoice data when the component mounts
@@ -182,9 +187,49 @@ class ReportSection extends Component {
     try {
       const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/generate_monthly_report/`);
       const data = response.data.data;
+      console.log("Fetched Invoice Data:", data);
+      console.log("This.props:", this.props);
+
+      // Prepare siteIC as an array for dropdown (split by comma or handle as array, and trim after '-')
+      const siteICArray = Array.isArray(this.props.siteIC)
+        ? this.props.siteIC
+        : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
+          ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
+          : this.props.siteIC ? [this.props.siteIC] : [];
+      // Always show only the part before '-' and trim
+      const siteICDisplayArray = siteICArray.map(loc => loc.split('-')[0].trim());
+
+      let filteredData;
+      const role = this.props.role ? this.props.role.toLowerCase() : "";
+      // Treat NSA in-charge and Ops in-charge as admin/sub-admin
+      const isAdminLike = (
+        role === "admin" ||
+        role === "sub-admin" ||
+        role === "nsa in-charge" ||
+        role === "ops in-charge"
+      );
+      if (isAdminLike) {
+        // Remove location filter for all roles, only filter out SkillsFuture
+        filteredData = data.filter(item => item.course?.payment !== "SkillsFuture");
+        console.log("Filtered Data (Admin/Sub-admin/NSA/Ops in-charge):", filteredData);
+      } else if (role.includes("in-charge")) {
+        // Other in-charge roles: can see only their assigned sites
+        filteredData = data.filter(item => {
+          const courseLocation = item.course?.courseLocation?.split('-')[0]?.trim();
+          return item.course?.payment !== "SkillsFuture" && siteICDisplayArray.includes(courseLocation);
+        });
+        console.log("Filtered Data (Other In-charge):", filteredData);
+      } else {
+        // Default: restrict to assigned site(s)
+        filteredData = data.filter(item => {
+          const courseLocation = item.course?.courseLocation?.split('-')[0]?.trim();
+          return item.course?.payment !== "SkillsFuture" && siteICDisplayArray.includes(courseLocation);
+        });
+        console.log("Filtered Data (Default):", filteredData);
+      }
 
       // Map data to include an 'index' field for the AG-Grid
-      const mappedData = data.map((item, index) => ({
+      const mappedData = filteredData.map((item, index) => ({
         ...item,
         index: index + 1,
       }));
@@ -200,14 +245,15 @@ class ReportSection extends Component {
         updatedInvoiceData: mappedData, // Set the filtered data initially to the full data
         monthYearOptions, 
         filteredMonthYearOptions: monthYearOptions,
-        status: "Collection by Lee Chin",
+        status: `Collection by ${this.props.userName || 'Lee Chin'}`,
         showReport: false,
         showTable: false,
         fromDate: "",
         toDate: "",
-        selectedMonthYear: ""
+        selectedMonthYear: "",
+        // No default site selection - empty means all locations
+        selectedSiteICLocation: ""
       });
-
     } catch (error) {
       console.error('Error fetching invoice details:', error);
     }
@@ -217,14 +263,11 @@ class ReportSection extends Component {
     try {
       this.props.loadingPopup1();
   
-      // Function to parse the date string in dd/mm/yyyy format
+      // Function to parse the date in dd/mm/yyyy format
       const parseDate = (dateStr) => {
         if (!dateStr) return null;
         const [day, month, year] = dateStr.split('/');
-        if (day && month && year) {
-          return new Date(`${year}-${month}-${day}`);
-        }
-        return null; // If invalid date format
+        return new Date(`${year}-${month}-${day}`);
       };
   
       // Validate if a date is valid
@@ -243,37 +286,67 @@ class ReportSection extends Component {
         console.error("Invalid toDate:", toDate);
       }
   
+      // Prepare siteIC as an array for dropdown (split by comma or handle as array, and trim after '-')
+      const siteICArray = Array.isArray(this.props.siteIC)
+        ? this.props.siteIC
+        : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
+          ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
+          : this.props.siteIC ? [this.props.siteIC] : [];
+      // Always show only the part before '-' and trim
+      const siteICDisplayArray = siteICArray.map(loc => loc.split('-')[0].trim());
+  
       // Filter and map the data to ensure the index always starts from 1 after each filter
       let customIndex = 1; // Always start the index from 1
       console.log("Original Invoice Data:", this.state.invoiceData);
-  
+
       // Filter the data based on date range and location
       const filteredData = this.state.invoiceData.filter((item) => {
-        const itemDate = item.registrationDate; // assuming item.registrationDate is the date field in your data
-        const date = parseDate(itemDate); // Parse the item date
+        const itemDate = item.registrationDate;
+        const date = parseDate(itemDate);
         const paymentDate = item.official?.date;
         const payment = parseDate(paymentDate);
-        const courseLocation = item.course.courseLocation; // Get the courseLocation from the item
-        const targetLocation = "Tampines 253 Centre"; // This is your target location
-  
-        // If item has a valid date
+        const courseLocation = item.course.courseLocation;
+        // Use selectedSiteIC for filtering if set (support "all" option for multiple locations)
+        const selectedSiteIC = this.state.selectedSiteICLocation;
+        let targetLocations;
+        
+        if (selectedSiteIC === 'All Locations' || selectedSiteIC === 'all' || selectedSiteIC === '' || !selectedSiteIC) {
+          // If "All Locations" is selected, empty, or no selection, use all available locations
+          targetLocations = siteICDisplayArray;
+        } else {
+          // Use the specific selected location
+          targetLocations = [selectedSiteIC];
+        }
         if (payment) {
-          // If both fromDate and toDate are valid, filter based on date range and location
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
-            return payment >= fromParsed && payment <= toParsed && courseLocation === targetLocation && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+            if (this.props.role && (this.props.role.toLowerCase() === "admin" || this.props.role.toLowerCase() === "sub-admin")) {
+              // Admins see all sites
+              return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+            } else if (this.props.siteIC === null || this.props.siteIC === undefined || this.props.siteIC == "") {
+              return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+            } else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
+              // NSA in-charge or Site in-charge: can see only their assigned sites
+              return payment >= fromParsed && payment <= toParsed && targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+            } else {
+              // Default: restrict to targetLocations
+              return payment >= fromParsed && payment <= toParsed && targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture" && item.status != "Pending";
+            }
           } else if (!fromParsed && !toParsed) {
-            // If no date range, just filter by courseLocation
-            return courseLocation === targetLocation && item.course.payment !== "SkillsFuture";
+            if (this.props.role && (this.props.role.toLowerCase() === "admin" || this.props.role.toLowerCase() === "sub-admin")) {
+              return item.course.payment !== "SkillsFuture";
+            } else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
+              return targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture";
+            }
+            return targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture";
           }
         }
-  
-        return false; // If no valid date is available, exclude this item
+        return false;
       }).map((item) => {
         const newItem = {
           ...item,
-          index: customIndex, // Assign current customIndex
+          index: customIndex,
         };
-        customIndex++; // Increment the index for the next item
+        customIndex++;
         return newItem;
       });
   
@@ -309,7 +382,7 @@ class ReportSection extends Component {
   handleMonthYearChange = (selectedMonthYear) => 
   {
     console.log("Selected Month Year:", selectedMonthYear);
-    this.setState({ selectedMonthYear, showMonthYearDropdown: false });
+    this.setState({ selectedMonthYear, showMonthYearDropdown: false});
       // Recalculate total price and apply filter after selecting month-year
     this.calculateTotalPriceForSelectedMonth(selectedMonthYear);
     this.filterInvoiceDataByMonthYear(selectedMonthYear);
@@ -347,39 +420,78 @@ class ReportSection extends Component {
   
   generateMonthlyReport = () => {
     const { updatedInvoiceData, selectedMonthYear } = this.state;
-  
+    
     const headers = [
-      'S/N',
-      'Registration Date',
-      'Payment Date/ Last Updated',
-      'Receipt Number',
-      'Received From',
-      'Payment Method',
-      'Price',
-      'Course Name',
-      'Course Location',
-      'Misc',
+      'S/N', 'Received From', 'Course Name', 
+      'Course Location', 'Payment Method', 'Price', 
+      'Payment Status', 'Receipt Number', 'Registration Date', 
+      'Payment Date', 'Refunded Date', 'Misc',
       'Remarks'
     ];
   
-    // Prepare the rows from the filtered data
-    const rows = updatedInvoiceData.map((item, index) => [
+    // First filter out SkillsFuture payments
+    const filteredData = updatedInvoiceData.filter(item => 
+      item.course?.payment !== "SkillsFuture"
+    );
+    
+    // Group by receipt number prefix
+    const groupedByPrefix = {};
+    
+    filteredData.forEach(item => {
+      const receiptNo = item.official?.receiptNo || '';
+      const prefix = receiptNo.split('-')[0]?.trim() || 'Unknown';
+      
+      if (!groupedByPrefix[prefix]) {
+        groupedByPrefix[prefix] = [];
+      }
+      groupedByPrefix[prefix].push(item);
+    });
+    
+    // For each prefix group, sort by numeric part
+    Object.keys(groupedByPrefix).forEach(prefix => {
+      groupedByPrefix[prefix].sort((a, b) => {
+        const receiptA = a.official?.receiptNo || '';
+        const receiptB = b.official?.receiptNo || '';
+        
+        // Extract the numeric part after the dash
+        const numA = receiptA.split('-')[1]?.trim();
+        const numB = receiptB.split('-')[1]?.trim();
+        
+        if (!numA) return 1;  // Items without numeric part go last
+        if (!numB) return -1;
+        
+        return parseInt(numA, 10) - parseInt(numB, 10);
+      });
+    });
+    
+    // Flatten the grouped and sorted data back into a single array
+    const sortedData = [];
+    Object.keys(groupedByPrefix).sort().forEach(prefix => {
+      sortedData.push(...groupedByPrefix[prefix]);
+    });
+  
+    // Prepare the rows from the sorted data
+    var rows = sortedData.map((item, index) => [
       index + 1, // Serial number (S/N)
-      item.registrationDate || '', // Registration Date
-      item.official.date || '', // Payment Date
-      item.official?.receiptNo || '', // Receipt Number
       item.participant?.name || '', // Received From
-      item.course?.payment || '', // Payment Method
-      item.course?.coursePrice || '', // Price
       item.course?.courseEngName || '', // Course Name
       item.course?.courseLocation || '', // Course Location
+      item.course?.payment || '', // Payment Method
+      item.course?.coursePrice || '', // Price
+      item.status || '', // Payment Status
+      item.official?.receiptNo || '', // Receipt Number
+      item.registrationDate || '', // Registration Date
+      item.official?.date || '', // Added optional chaining for consistency
+      item.official?.refundedDate || '',
+      '',
+      item.official?.remarks || ''
     ]);
   
     // Calculate total price for the filtered data
-    const totalPrice = updatedInvoiceData.reduce((total, item) => {
+    const totalPrice = sortedData.reduce((total, item) => {
       let price = 0;
-      if (item.official.date) {
-        const priceString = item.course?.coursePrice.replace('$', '').trim();
+      if (item.official?.date) {
+        const priceString = (item.course?.coursePrice || '').replace('$', '').trim();
         if (priceString !== "" && !isNaN(parseFloat(priceString))) {
           price = parseFloat(priceString);
         }
@@ -389,7 +501,7 @@ class ReportSection extends Component {
   
     const formattedTotalPrice = `$  ${totalPrice.toFixed(2)}`;
   
-    // Prepare empty and collection rows
+    // The rest of your code remains unchanged
     const emptyRow = new Array(headers.length).fill('');
     const collectionRow = new Array(headers.length).fill('');
     collectionRow[2] = 'dd-mm-yy'; 
@@ -428,15 +540,17 @@ class ReportSection extends Component {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Invoice Report');
     XLSX.writeFile(wb, `Invoice Report - ${selectedMonthYear}.xlsx`);
-  };  
+  };
 
   generatePaymentReport = () => {
     const { updatedInvoiceData, dateRange } = this.state;
   
     const headers = [
-      'S/N', 'Registration Date', 'Payment Date/ Last Updated', 'Receipt Number', 
-      'Received From', 'Payment Method', 'Price', 'Course Name', 
-      'Course Location', 'Status', 'Misc', 'Remarks'
+      'S/N', 'Received From', 'Course Name', 
+      'Course Location', 'Payment Method', 'Price', 
+      'Payment Status', 'Receipt Number', 'Registration Date', 
+      'Payment Date', 'Refunded Date', 'Misc',
+      'Remarks'
     ];
   
     // Group by receiptNo (the first part before the "-")
@@ -464,22 +578,33 @@ class ReportSection extends Component {
       };
     });
   
+    /*
+      'S/N', 'Received From', 'Course Name', 
+      'Course Location', 'Payment Method', 'Price', 
+      'Payment Status', 'Receipt Number', 'Registration Date', 
+      'Payment Date', 'Refunded Date', 'Misc',
+      'Remarks'
+    */
+
     // Prepare the rows from the sorted and grouped data
     const rows = [];
     sortedGroupedData.forEach(group => {
       group.data.forEach((item, index) => {
         rows.push([
           rows.length + 1, // Serial number (S/N)
-          item.registrationDate || '', // Registration Date
-          item.official.date || '', // Payment Date
-          item.official?.receiptNo || '', // Receipt Number
           item.participant?.name || '', // Received From
-          item.course?.payment || '', // Payment Method
-          item.course?.coursePrice || '', // Price
           item.course?.courseEngName || '', // Course Name
           item.course?.courseLocation || '', // Course Location
-          item.status || '' // Status
-        ]);
+          item.course?.payment || '', // Payment Method
+          item.course?.coursePrice || '', // Price
+          item.status || '', // Payment Status
+          item.official?.receiptNo || '', // Receipt Number
+          item.registrationDate || '', // Registration Date
+          item.official.date || '', // Payment Date
+          item.official?.refundedDate || '',
+          '',
+          item.official?.remarks || ''
+        ])
       });
     });
   
@@ -555,6 +680,32 @@ class ReportSection extends Component {
           filteredMonthYearOptions,
           selectedMonthYear: value, // Assuming you want the name to be centrelocation
         });
+      } else if (name === 'selectedSiteICLocation') {
+        // Get available site options
+        const siteICArray = Array.isArray(this.props.siteIC)
+          ? this.props.siteIC
+          : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
+            ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
+            : this.props.siteIC ? [this.props.siteIC] : [];
+
+        const siteOptions = [];
+        if (siteICArray.length > 1) {
+          siteOptions.push('All Locations');
+        }
+        siteICArray.forEach(loc => {
+          const trimmed = loc.split('-')[0].trim();
+          siteOptions.push(trimmed);
+        });
+
+        // Filter site options based on input value
+        const filteredSiteOptions = siteOptions.filter(site =>
+          site.toLowerCase().includes(value.toLowerCase())
+        );
+
+        this.setState({
+          filteredSiteOptions,
+          selectedSiteICLocation: value,
+        });
       }
     });
   };
@@ -568,11 +719,27 @@ class ReportSection extends Component {
         showMonthYearDropdown: true
       });
     }
+    else if(dropdown === 'showSiteDropdown')
+    {
+      this.setState({
+        showSiteDropdown: true
+      });
+    }
   }
+
+  handleSiteChange = (selectedSite) => 
+  {
+    console.log("Selected Site:", selectedSite);
+    // Keep the actual selected value, including "All Locations"
+    this.setState({ selectedSiteICLocation: selectedSite, showSiteDropdown: false}, async () => {
+      await this.fetchSiteICDetails(this.state.fromDate, this.state.toDate);
+      await this.calculateTotalPriceForDateRange();
+    });
+  };
   
   render() 
   {
-    var {showMonthYearDropdown, filteredMonthYearOptions,} = this.state;
+    var {showMonthYearDropdown, filteredMonthYearOptions, updatedInvoiceData, showSiteICDropdown, selectedSiteICLocation, showSiteDropdown, filteredSiteOptions} = this.state;
     ModuleRegistry.registerModules([AllCommunityModule]);
     return (
       <>
@@ -612,7 +779,67 @@ class ReportSection extends Component {
             {/* Only display the table and export button if a month-year is selected */}
             {this.state.showTable && (
               <>
+              {console.log("This props.1:", this.props)}
                 <div className='report-container'>
+                  {/* Show Site IC dropdown if applicable */}
+                  {this.state.showSiteICDropdown && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', margin: '10px 0' }}>
+                      <label style={{ fontWeight: 'bold', minWidth: '80px' }}>
+                        Select Site:
+                      </label>
+                      <div
+                        id="site-selector"
+                        name="siteSelector"
+                        className={`dropdown-container1 ${showSiteDropdown ? 'open' : ''}`}
+                        style={{ flex: 1, maxWidth: '300px' }}
+                      >
+                        <input
+                          type="text"
+                          id="site-dropdown"
+                          name="selectedSiteICLocation"
+                          value={this.state.selectedSiteICLocation}
+                          onChange={this.handleChange}
+                          onClick={() => this.handleDropdownToggle('showSiteDropdown')}
+                          placeholder="Click to select site"
+                          autoComplete="off"
+                        />
+                        {showSiteDropdown && (
+                          <ul className="dropdown-list1">
+                            {(() => {
+                              // Get available site options
+                              const siteICArray = Array.isArray(this.props.siteIC)
+                                ? this.props.siteIC
+                                : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
+                                  ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
+                                  : this.props.siteIC ? [this.props.siteIC] : [];
+
+                              const allSiteOptions = [];
+                              if (siteICArray.length > 1) {
+                                allSiteOptions.push('All Locations');
+                              }
+                              siteICArray.forEach(loc => {
+                                const trimmed = loc.split('-')[0].trim();
+                                allSiteOptions.push(trimmed);
+                              });
+
+                              // Use filtered options if available, otherwise show all
+                              const optionsToShow = filteredSiteOptions.length > 0 ? filteredSiteOptions : allSiteOptions;
+
+                              return optionsToShow.map((site, idx) => (
+                                <li
+                                  key={idx}
+                                  onClick={() => this.handleSiteChange(site)}
+                                >
+                                  {site}
+                                </li>
+                              ));
+                            })()}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   <p>
                     <strong>
                       Report For {this.state.selectedMonthYear}
@@ -703,6 +930,69 @@ class ReportSection extends Component {
             {this.state.showReport && (
               <>
                 <div className='report-container'>
+                  {/* Show Site IC dropdown for Payment Report */}
+                  {this.state.showSiteICDropdown  &&
+                    this.props.siteIC !== null &&
+                    this.props.siteIC !== undefined &&
+                    this.props.siteIC !== "" && 
+                    (Array.isArray(this.props.siteIC) && this.props.siteIC.length > 0) && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', margin: '10px 0' }}>
+                      <label style={{ fontWeight: 'bold', minWidth: '80px' }}>
+                        Select Site:
+                      </label>
+                      <div
+                        id="site-selector-payment"
+                        name="siteSelectorPayment"
+                        className={`dropdown-container1 ${showSiteDropdown ? 'open' : ''}`}
+                        style={{ flex: 1, maxWidth: '300px', marginLeft: '0px' }}
+                      >
+                        <input
+                          type="text"
+                          id="site-dropdown-payment"
+                          name="selectedSiteICLocation"
+                          value={this.state.selectedSiteICLocation}
+                          onChange={this.handleChange}
+                          onClick={() => this.handleDropdownToggle('showSiteDropdown')}
+                          placeholder="Click to select site"
+                          autoComplete="off"
+                        />
+                        {showSiteDropdown && (
+                          <ul className="dropdown-list1">
+                            {(() => {
+                              // Get available site options
+                              const siteICArray = Array.isArray(this.props.siteIC)
+                                ? this.props.siteIC
+                                : (typeof this.props.siteIC === 'string' && this.props.siteIC.includes(','))
+                                  ? this.props.siteIC.split(',').map(s => s.trim()).filter(Boolean)
+                                  : this.props.siteIC ? [this.props.siteIC] : [];
+
+                              const allSiteOptions = [];
+                              if (siteICArray.length > 1) {
+                                allSiteOptions.push('All Locations');
+                              }
+                              siteICArray.forEach(loc => {
+                                const trimmed = loc.split('-')[0].trim();
+                                allSiteOptions.push(trimmed);
+                              });
+
+                              // Use filtered options if available, otherwise show all
+                              const optionsToShow = filteredSiteOptions.length > 0 ? filteredSiteOptions : allSiteOptions;
+
+                              return optionsToShow.map((site, idx) => (
+                                <li
+                                  key={idx}
+                                  onClick={() => this.handleSiteChange(site)}
+                                >
+                                  {site}
+                                </li>
+                              ));
+                            })()}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
                   <p>
                     <strong>Report For {this.state.dateRange}</strong>
                   </p>
@@ -741,6 +1031,9 @@ class ReportSection extends Component {
               </>
             )}
           </>
+        )}
+        {this.state.showTable && updatedInvoiceData.length === 0 && (
+          <div style={{textAlign: 'center', color: 'red'}}>No data available for the selected period.</div>
         )}
       </>
       );   

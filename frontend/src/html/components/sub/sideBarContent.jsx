@@ -64,10 +64,15 @@ class SideBarContent extends Component {
                     "accountId": accountId
                 }
             );          
-            console.log(response);
+            console.log("Access Rights Response:", response);
 
             // Store the access rights in state
             this.setState({ accessRights: response.data.result });
+            
+            // Pass access rights to parent component
+            if (this.props.onAccessRightsUpdate) {
+                this.props.onAccessRightsUpdate(response.data.result);
+            }
         } catch (error) {
             console.error("Error retrieving access rights:", error);
         }
@@ -84,10 +89,15 @@ class SideBarContent extends Component {
         this.props.toggleDashboardComponent();
     }
 
+    toggleHome = () =>
+    {
+        this.props.toggleHomeComponent();
+    }
+
     handleSubKeyClick = (subKey) => {
         // Add any additional functionality you want to execute on sub-menu item click
        // console.log(`${subKey} clicked`); // Example of handling sub-key click
-       console.log(subKey);
+       console.log("Selected:", subKey);
        if(subKey === "Create Account")
        {
          this.props.toggleAccountsComponent(subKey);
@@ -124,6 +134,16 @@ class SideBarContent extends Component {
        {
         this.props.toggleReportComponent(subKey);
        }
+       else if(subKey === "View Attendance")
+       {
+        console.log("View Attendance clicked");
+        this.props.toggleAttendanceComponent(subKey);
+       }
+       else if(subKey === "View Membership")
+       {
+        console.log("View Membership clicked");
+        this.props.toggleMembershipComponent(subKey);
+       }
     }
 
     closeSubMenu = () =>
@@ -133,6 +153,7 @@ class SideBarContent extends Component {
 
     render() {
         const { accessRights, openKey } = this.state;
+        console.log("Access Rights:", accessRights);
 
         // Map of icons for each main item
         const iconMap = {
@@ -141,15 +162,17 @@ class SideBarContent extends Component {
             "Account": 'fa-solid fa-users',
             "Courses": "fa-solid fa-chalkboard-user",
             "Registration And Payment": 'fa-solid fa-brands fa-wpforms',
+            "Membership": 'fa-solid fas fa-address-card',
             "QR Code": 'fa-solid fa-qrcode',
-            "Reports": 'fa-solid fa-table'
+            "Reports": 'fa-solid fa-table',
+            "Attendances": 'fa-solid fa-calendar-days'
         };
 
         return (
             <div className="sidebar-content"  onMouseLeave={this.closeSubMenu}>
                 <ul>
                     <div style={{marginBottom: "-20px"}}> 
-                        <li key={"Home"}>
+                        <li key={"Home"} onClick={() => this.toggleHome()}>
                             <i className={iconMap["Home"]} aria-hidden="true"></i>
                             <span style={{marginLeft: "5px"}}>Home</span>
                         </li>

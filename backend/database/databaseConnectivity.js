@@ -65,6 +65,97 @@ class DatabaseConnectivity {
         }
     }
 
+    async participantsLogin(dbname, collectionName, username, password)
+    {
+        const db = this.client.db(dbname);
+        try
+        {
+            var table = db.collection(collectionName);
+            
+            // Find a user where contactNumber matches both username AND password
+            const userByUsername = await table.findOne({ 
+                contactNumber: username // This checks if contactNumber equals password too
+            });
+
+            if (userByUsername.contactNumber === password) {
+                // User found, login successful
+                return {
+                    success: true,
+                    message: 'Login successful',
+                    user: userByUsername
+                };
+            } else {
+                // No user found, login failed
+                return {
+                    success: false,
+                    message: 'Invalid contact number or contact number does not match'
+                };
+            }
+        }
+        catch(error)
+        {
+            console.error("Participants login error:", error);
+            return {
+                success: false,
+                message: 'Login error occurred',
+                error: error.message
+            };
+        }
+    }
+
+    async updateParticipant(databaseName, collectionName, participantId, updateData)
+    {
+        const db = this.client.db(databaseName);
+        try
+        {
+            var table = db.collection(collectionName);
+            
+            // Remove _id from updateData to avoid modifying the MongoDB _id field
+            const { _id, ...fieldsToUpdate } = updateData;
+            
+            // Filter out undefined or null values
+            const filteredUpdateData = {};
+            for (const key in fieldsToUpdate) {
+                if (fieldsToUpdate[key] !== undefined && fieldsToUpdate[key] !== null && fieldsToUpdate[key] !== '') {
+                    filteredUpdateData[key] = fieldsToUpdate[key];
+                }
+            }
+            
+            const filter = { _id: new ObjectId(participantId) };
+            const update = { $set: filteredUpdateData };
+            
+            console.log("Update filter:", filter);
+            console.log("Update operation:", update);
+            
+            const result = await table.updateOne(filter, update);
+            
+            if (result.modifiedCount === 1) {
+                return {
+                    success: true,
+                    message: "Participant updated successfully"
+                };
+            } else if (result.matchedCount === 1) {
+                return {
+                    success: true,
+                    message: "No changes made - data was already up to date"
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Participant not found with the provided ID"
+                };
+            }
+        }
+        catch(error)
+        {
+            console.error("Update participant error:", error);
+            return {
+                success: false,
+                message: "Error updating participant"
+            };
+        }
+    }
+
     async logout(dbname, collectionName, accountId, date, time)
     {
         const db = this.client.db(dbname);
@@ -100,6 +191,398 @@ class DatabaseConnectivity {
         catch(error)
         {
             console.log(error);
+        }
+    }
+    
+    // Add this method to your DatabaseConnectivity class
+    async findCoursesRegisteredByNRIC(databaseName, collectionName, nric) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            // Find all courses registered by the participant with the given NRIC
+            const courses = await table.find({ 
+                "participant.nric": nric 
+            }).toArray();
+            
+            console.log(`Found ${courses.length} courses for NRIC: ${nric}`);
+            return courses;
+        } catch (error) {
+            console.error("Error retrieving courses by NRIC:", error);
+            throw error;
+        }
+    }
+    
+    async getAllMembershipRecords(databaseName, collectionName) {  
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const records = await table.find().toArray(); // Convert cursor to array
+            
+            return {
+                success: true,
+                message: `Found ${records.length} membership records`,
+                data: records
+            };
+        } catch (error) {
+            console.error("Error retrieving membership records:", error);
+            return {
+                success: false,
+                message: "Error retrieving membership records",
+                error: error.message
+            };
+        } 
+    }
+
+    async insertAttendanceRecord(databaseName, collectionName, attendanceData) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const result = await table.insertOne(attendanceData);
+    
+            if (result.insertedId) {
+                return {
+                    success: true,
+                    message: "Attendance record inserted successfully",
+                    details: {
+                        insertedId: result.insertedId,
+                        attendanceData: attendanceData
+                    }
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Failed to insert attendance record"
+                };
+            }
+        } catch (error) {
+            console.error("Error inserting attendance record:", error);
+            return {
+                success: false,
+                message: "Error inserting attendance record",
+                error: error.message
+            };
+        }
+    }
+
+    async insertParticipant(databaseName, collectionName, participantData) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const result = await table.insertOne(participantData);
+    
+            if (result.insertedId) {
+                return {
+                    success: true,
+                    message: "Participant inserted successfully",
+                    details: {
+                        insertedId: result.insertedId,
+                        participantData: participantData
+                    }
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Failed to insert participant"
+                };
+            }
+        } catch (error) {
+            console.error("Error inserting participant:", error);
+            return {
+                success: false,
+                message: "Error inserting participant",
+                error: error.message
+            };
+        }
+    }
+
+    // Method to find existing participants by NRIC and phone for duplicate checking
+    async findParticipantByNricAndPhone(databaseName, collectionName, nric, phone) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        
+        try {
+            // Check for exact match with both NRIC and phone
+            if (nric && nric.trim() && phone && phone.trim()) {
+                const exactMatch = await table.find({ 
+                    "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') },
+                    "phone": phone.trim()
+                }).toArray();
+                
+                if (exactMatch.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: exactMatch,
+                        duplicateType: "both",
+                        message: `Found exact match with same NRIC and phone number`,
+                        canUpdate: true
+                    };
+                }
+            }
+            
+            // Check for NRIC duplicates only
+            if (nric && nric.trim()) {
+                const nricResults = await table.find({ 
+                    "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') }
+                }).toArray();
+                
+                if (nricResults.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: nricResults,
+                        duplicateType: "nric",
+                        message: `Found ${nricResults.length} existing participant(s) with same NRIC`,
+                        canUpdate: false
+                    };
+                }
+            }
+            
+            // Check for phone duplicates only
+            if (phone && phone.trim()) {
+                const phoneResults = await table.find({ 
+                    "phone": phone.trim()
+                }).toArray();
+                
+                if (phoneResults.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: phoneResults,
+                        duplicateType: "phone",
+                        message: `Found ${phoneResults.length} existing participant(s) with same phone number`,
+                        canUpdate: false
+                    };
+                }
+            }
+            
+            // No duplicates found
+            return {
+                success: true,
+                found: false,
+                participants: [],
+                duplicateType: null,
+                message: "No existing participants found",
+                canUpdate: false
+            };
+            
+        } catch (error) {
+            console.error("Error finding participant by NRIC/phone:", error);
+            return {
+                success: false,
+                found: false,
+                participants: [],
+                duplicateType: null,
+                message: "Error searching for existing participants",
+                canUpdate: false,
+                error: error.message
+            };
+        }
+    }
+
+    // Method to find participants by NRIC only
+    async findParticipantsByNRIC(databaseName, collectionName, nric) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        
+        try {
+            if (!nric || !nric.trim()) {
+                return {
+                    success: true,
+                    found: false,
+                    participants: [],
+                    message: "No NRIC provided"
+                };
+            }
+
+            const nricResults = await table.find({ 
+                "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') }
+            }).toArray();
+            
+            if (nricResults.length > 0) {
+                return {
+                    success: true,
+                    found: true,
+                    participants: nricResults,
+                    message: `Found ${nricResults.length} participant(s) with NRIC: ${nric.trim()}`
+                };
+            } else {
+                return {
+                    success: true,
+                    found: false,
+                    participants: [],
+                    message: `No participants found with NRIC: ${nric.trim()}`
+                };
+            }
+            
+        } catch (error) {
+            console.error("Error finding participants by NRIC:", error);
+            return {
+                success: false,
+                found: false,
+                participants: [],
+                message: "Error searching for participants by NRIC",
+                error: error.message
+            };
+        }
+    }
+
+    // Method to find participants by phone number only
+    async findParticipantsByPhone(databaseName, collectionName, phoneNumber) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        
+        try {
+            if (!phoneNumber || !phoneNumber.trim()) {
+                return {
+                    success: true,
+                    found: false,
+                    participants: [],
+                    message: "No phone number provided"
+                };
+            }
+
+            const phoneResults = await table.find({ 
+                "phone": phoneNumber.trim()
+            }).toArray();
+            
+            if (phoneResults.length > 0) {
+                return {
+                    success: true,
+                    found: true,
+                    participants: phoneResults,
+                    message: `Found ${phoneResults.length} participant(s) with phone: ${phoneNumber.trim()}`
+                };
+            } else {
+                return {
+                    success: true,
+                    found: false,
+                    participants: [],
+                    message: `No participants found with phone: ${phoneNumber.trim()}`
+                };
+            }
+            
+        } catch (error) {
+            console.error("Error finding participants by phone:", error);
+            return {
+                success: false,
+                found: false,
+                participants: [],
+                message: "Error searching for participants by phone",
+                error: error.message
+            };
+        }
+    }
+
+    async getAllAttendanceRecords(databaseName, collectionName) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const records = await table.find().toArray(); // Convert cursor to array
+            
+            return {
+                success: true,
+                message: `Found ${records.length} attendance records`,
+                data: records
+            };
+        } catch (error) {
+            console.error("Error retrieving attendance records:", error);
+            return {
+                success: false,
+                message: "Error retrieving attendance records",
+                error: error.message
+            };
+        }
+    }
+
+    // Method to get all participants for AI duplicate analysis
+    async getAllParticipants(databaseName, collectionName) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const participants = await table.find().toArray();
+            
+            return {
+                success: true,
+                message: `Retrieved ${participants.length} participants for AI analysis`,
+                participants: participants
+            };
+        } catch (error) {
+            console.error("Error retrieving participants for AI analysis:", error);
+            return {
+                success: false,
+                message: "Error retrieving participants for AI analysis",
+                error: error.message,
+                participants: []
+            };
+        }
+    }
+    
+    async getAttendanceRecords(databaseName, collectionName, filterData = {}) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const records = await table.find(filterData).toArray();
+            
+            return {
+                success: true,
+                message: `Found ${records.length} attendance records`,
+                data: records
+            };
+        } catch (error) {
+            console.error("Error retrieving attendance records:", error);
+            return {
+                success: false,
+                message: "Error retrieving attendance records",
+                error: error.message
+            };
+        }
+    }
+    
+    async updateAttendanceRecord(databaseName, collectionName, attendanceId, updateData) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+    
+        try {
+            const { _id, ...fieldsToUpdate } = updateData;
+            
+            const filter = { _id: new ObjectId(attendanceId) };
+            const update = { $set: fieldsToUpdate };
+            
+            const result = await table.updateOne(filter, update);
+            
+            if (result.modifiedCount === 1) {
+                return {
+                    success: true,
+                    message: "Attendance record updated successfully",
+                    details: fieldsToUpdate
+                };
+            } else if (result.matchedCount === 1) {
+                return {
+                    success: true,
+                    message: "No changes made - data was already up to date",
+                    details: fieldsToUpdate
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "Attendance record not found with the provided ID"
+                };
+            }
+        } catch (error) {
+            console.error("Error updating attendance record:", error);
+            return {
+                success: false,
+                message: "Error updating attendance record",
+                error: error.message
+            };
         }
     }
 
@@ -232,21 +715,87 @@ class DatabaseConnectivity {
                 // Define query object
                 let query = {};
 
+                console.log("=== RETRIEVE COURSE REGISTRATION DEBUG ===");
+                console.log("Database Name:", dbname);
+                console.log("Collection Name:", collectionName);
+                console.log("Role:", role);
+                console.log("SiteIC Type:", typeof siteIC);
+                console.log("SiteIC Value:", siteIC);
+                console.log("SiteIC JSON:", JSON.stringify(siteIC));
+
                 // If role is "Site in-charge", filter by course.courseLocation
                 if (role === "Site in-charge") {
-                    console.log("Site IC", siteIC)
-                    if (siteIC != null){
-                        query["course.courseLocation"] = siteIC; // Filtering based on courseLocation
+                    console.log("Processing Site in-charge filtering...");
+                    if (siteIC != null) {
+                        let allowedLocations = [];
+                        
+                        // Handle different types of siteIC input
+                        if (Array.isArray(siteIC)) {
+                            // Already an array
+                            allowedLocations = siteIC;
+                            console.log("Site IC is array:", allowedLocations);
+                        } else if (typeof siteIC === 'string') {
+                            // Check if it's comma-separated
+                            if (siteIC.includes(',')) {
+                                allowedLocations = siteIC.split(',').map(site => site.trim());
+                                console.log("Site IC is comma-separated:", allowedLocations);
+                            } else {
+                                allowedLocations = [siteIC.trim()];
+                                console.log("Site IC is single string:", allowedLocations);
+                            }
+                        }
+                        
+                        // Use $in operator for multiple sites or single site
+                        if (allowedLocations.length > 1) {
+                            query["course.courseLocation"] = { $in: allowedLocations };
+                            console.log("Using $in query for multiple sites:", allowedLocations);
+                        } else if (allowedLocations.length === 1) {
+                            query["course.courseLocation"] = allowedLocations[0];
+                            console.log("Using exact match for single site:", allowedLocations[0]);
+                        }
+                    } else {
+                        console.log("SiteIC is null, not filtering by location");
                     }
+                } else {
+                    console.log("Role is not Site in-charge, returning all documents");
                 }
                 // If role is not "Site in-charge", return all documents (empty query retrieves all)
                 
+                console.log("Final MongoDB query:", JSON.stringify(query));
+                
                 var result = await table.find(query).toArray();
-                //console.log("Result:",result);
+                console.log("Query result count:", result.length);
+                
+                // Log sample results for debugging
+                if (result.length > 0) {
+                    console.log("Sample results:");
+                    result.slice(0, 3).forEach((record, index) => {
+                        console.log(`Record ${index + 1}:`, {
+                            name: record.participant?.name,
+                            location: record.course?.courseLocation,
+                            course: record.course?.courseEngName,
+                            _id: record._id
+                        });
+                    });
+                } else {
+                    console.log("No records found matching the query");
+                    
+                    // Let's also check total records without filter
+                    const totalCount = await table.countDocuments({});
+                    console.log("Total documents in collection:", totalCount);
+                    
+                    // Check what locations exist in the database
+                    const locationSample = await table.aggregate([
+                        { $group: { _id: "$course.courseLocation", count: { $sum: 1 } } },
+                        { $sort: { count: -1 } }
+                    ]).toArray();
+                    console.log("Available locations in database:", locationSample);
+                }
+                
                 return result;
             }
         } catch (error) {
-            console.log(error);
+            console.log("Database query error:", error);
         }
     }
 
@@ -308,12 +857,31 @@ class DatabaseConnectivity {
                 // Use updateOne to update a single document
                 const filter = { _id: new ObjectId(id) };
     
+                // Declare update variable outside conditionals
+                let update;
+    
                 // Dynamically construct the update object with dot notation
-                const update = {
-                    $set: {
-                        [`participant.${field}`]: editedParticulars, // Use bracket notation for dynamic field
-                    },
-                };
+                if(field === "paymentDate") {
+                    update = {
+                        $set: {
+                           "official.date": editedParticulars,
+                        },
+                    };
+                }
+                else if(field === "refundedDate") {
+                    update = {
+                        $set: {
+                           "official.refundedDate": editedParticulars,
+                        },
+                    };
+                }
+                else {
+                    update = {
+                        $set: {
+                            [`participant.${field}`]: editedParticulars, // Use bracket notation for dynamic field
+                        },
+                    };
+                }
     
                 // Call updateOne
                 const result = await table.updateOne(filter, update);
@@ -322,9 +890,9 @@ class DatabaseConnectivity {
             }
         } catch (error) {
             console.error("Error updating database:", error);
+            throw error; // Re-throw the error to handle it in the calling function
         }
     }
-    
 
     async updateReceiptNumberData(dbname, id, receiptNumber) {
         console.log("Parameters:", dbname, id, receiptNumber);
@@ -381,6 +949,15 @@ class DatabaseConnectivity {
                         }
                     };
                 }
+                else if(status === "Cancelled")
+                {
+                    update = {
+                        $set: {
+                            "status": status,
+                            "official.confirmed": false
+                        }
+                    };
+                }
                 else {
                     update = {
                         $set: {
@@ -403,7 +980,7 @@ class DatabaseConnectivity {
         }
     }
 
-    async updateConfirmtionOfficialUse(dbname, id, name, date, time, status) {
+    async updateConfirmationOfficialUse(dbname, id, name, date, time, status) {
         var db = this.client.db(dbname); // return the db object
         try {
             if (db) {
@@ -545,6 +1122,9 @@ class DatabaseConnectivity {
         if (centreLocation === "Tampines 253 Centre" && courseLocation.startsWith("ECSS/SFC")) {
             regexPattern = `${courseLocation}TP`; // Ensure "TP" appears after courseLocation
         }
+        else if (centreLocation === "Renewal Christian Church" && courseLocation.startsWith("ECSS/SFC")) {
+            regexPattern = `${courseLocation}R` // Ensure "TP" appears after courseLocation
+        }
 
         console.log("Regex Pattern:", regexPattern);
         
@@ -570,6 +1150,10 @@ class DatabaseConnectivity {
                 if (centreLocation === "Tampines 253 Centre") {
                     // Ensure "TP" appears for Tampines 253 Centre
                     regexPattern = new RegExp(`^${courseLocation}TP\\d+/(${currentYear})$`);
+                } 
+                else if (centreLocation === "Renewal Christian Church") {
+                    // Ensure "TP" appears for Tampines 253 Centre
+                    regexPattern = new RegExp(`^${courseLocation}R\\d+/(${currentYear})$`);
                 } else {
                     // Default pattern without "TP"
                     regexPattern = new RegExp(`^${courseLocation}\\d+/(${currentYear})$`);
@@ -585,7 +1169,11 @@ class DatabaseConnectivity {
                 if (centreLocation === "Tampines 253 Centre") {
                     // Enforce "TP" for Tampines 253 Centre receipts
                     regexPattern = new RegExp(`^${courseLocation}TP(\\d+)(?:/\\d+| - \\d+)$`);
-                } else {
+                } else if (centreLocation === "Renewal Christian Church") {
+                    // Enforce "TP" for Tampines 253 Centre receipts
+                    regexPattern = new RegExp(`^${courseLocation}R(\\d+)(?:/\\d+| - \\d+)$`);
+                } 
+                else {
                     // Default pattern without "TP"
                     regexPattern = new RegExp(`^${courseLocation}(\\d+)(?:/\\d+| - \\d+)$`);
                 }
@@ -625,6 +1213,10 @@ class DatabaseConnectivity {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 13 ;
             }
+            else if (centreLocation === "Renewal Christian Church") {
+                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 16 ;
+            }
         } 
         // Logic for 2026 and beyond
         else if (currentYear >= 26) {
@@ -638,6 +1230,10 @@ class DatabaseConnectivity {
                 // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
                 nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
             }
+            else if (centreLocation === "Renewal Christian Church") {
+                // For Pasir Ris West Wellness Centre in 2026 and beyond, start from 1
+                nextNumber = centreReceiptNumbers.length > 0 ? Math.max(...centreReceiptNumbers) + 1 : 1;
+            }
         }
 
         console.log("Tampines 253 Centre Next Receipt:", nextNumber);
@@ -645,9 +1241,14 @@ class DatabaseConnectivity {
         // Pad number to 3 digits if less than 3 digits, else keep original length
         if (nextNumber.toString().length < 3) 
         {
+            
             if(centreLocation === "Tampines 253 Centre")
             {
                 nextNumber = `TP${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
+            }
+            else if(centreLocation === "Renewal Christian Church")
+            {
+                nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
             else
             {
@@ -659,6 +1260,10 @@ class DatabaseConnectivity {
             if(centreLocation === "Tampines 253 Centre")
             {
                 nextNumber = `TP${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
+            }
+            else if(centreLocation === "Renewal Christian Church")
+            {
+                nextNumber = `R${nextNumber.toString().padStart(3, '0')}`; // Pad to 3 digits if less than 3
             }
             else
             {
@@ -675,6 +1280,7 @@ class DatabaseConnectivity {
         let nextNumber;
     
         console.log("Centre Receipt Number:", courseLocation, existingReceipts, centreLocation, currentYear);
+    
 
          // Filter the existing receipts based on the location
         //const filteredReceipts = existingReceipts.filter(receipt => receipt.location === centreLocation);
@@ -705,11 +1311,18 @@ class DatabaseConnectivity {
             nextNumber =  maxReceiptNumber + 1;
         } 
     
+        else if (centreLocation === "Renewal Christian Church") {
+            // For CT Hub, it uses the same logic as the others
+           // console.log("This is a new location");
+            nextNumber =  maxReceiptNumber + 1;
+        } 
+    
         // Determine the length of the next number based on the nextNumber value
         let numberLength = nextNumber.toString().length;
     
         // Format the next number dynamically with leading zeros based on its length
         let formattedNextNumber = String(nextNumber).padStart(numberLength + 3, '0');  // Start with length 4, increase as needed*/
+       // console.log(`Latest Receipt Number1234: ${courseLocation} - ${formattedNextNumber}`)
     
         // Return the formatted receipt number in the format: "courseLocation - 0001"
         return `${courseLocation} - ${formattedNextNumber}`;
@@ -1077,8 +1690,73 @@ class DatabaseConnectivity {
             return { success: false, error };
         }
     }
-    
-    
+
+    async findAllParticipants(databaseName, collectionName) 
+    {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        const participantsSet = new Set();
+        var participantsDetails = [];
+        var duplicateStats = {
+            totalRecords: 0,
+            uniqueParticipants: 0,
+            duplicatesRemoved: 0
+        };
+
+        try {
+            // Retrieve all participants from the collection
+            const participants = await table.find({}).toArray();
+            duplicateStats.totalRecords = participants.length;
+            
+            console.log(`Found ${participants.length} participants in ${collectionName}`);
+            
+            for (const participant of participants) {
+                const participantDetails = participant.participant;
+                
+                if (!participantDetails) {
+                    console.log("Warning: Participant details not found in document:", participant._id);
+                    continue;
+                }
+                
+                // Create a unique key based on the entire participantDetails object
+                const participantDetailsKey = JSON.stringify(participantDetails);
+                
+                if (!participantsSet.has(participantDetailsKey)) {
+                    participantsSet.add(participantDetailsKey);
+                    participantsDetails.push({
+                        participantDetails,
+                        metadata: {
+                            documentId: participant._id,
+                            registrationDate: participant._id.getTimestamp()
+                        }
+                    });
+                } else {
+                    console.log(`Duplicate participant details found for document: ${participant._id}`);
+                    console.log("Duplicate participant details:", JSON.stringify(participantDetails, null, 2));
+                }
+            }
+            
+            // Calculate final statistics
+            duplicateStats.uniqueParticipants = participantsDetails.length;
+            duplicateStats.duplicatesRemoved = duplicateStats.totalRecords - duplicateStats.uniqueParticipants;
+            
+            // Log comprehensive summary
+            console.log("=== DUPLICATE PROCESSING SUMMARY ===");
+            console.log(`Total records processed: ${duplicateStats.totalRecords}`);
+            console.log(`Unique participants retained: ${duplicateStats.uniqueParticipants}`);
+            console.log(`Total duplicates removed: ${duplicateStats.duplicatesRemoved}`);
+            console.log("=====================================");
+            
+            return {
+                participants: participantsDetails,
+                statistics: duplicateStats
+            };
+            
+        } catch (error) {
+            console.error("Error retrieving all participants:", error);
+            throw error;
+        }   
+    }
 
     // Close the connection to the database
     async close() {
@@ -1088,9 +1766,283 @@ class DatabaseConnectivity {
             console.log("MongoDB connection closed.");
         }
     }
+
+    // Enhanced method to find participants by NRIC, phone, and name with smart matching
+    async findParticipantByNricPhoneAndName(databaseName, collectionName, nric, phone, name) {
+        const db = this.client.db(databaseName);
+        const table = db.collection(collectionName);
+        
+        try {
+            // First check for exact matches (highest priority)
+            if (nric && nric.trim() && phone && phone.trim()) {
+                const exactMatch = await table.find({ 
+                    "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') },
+                    "phone": phone.trim()
+                }).toArray();
+                
+                if (exactMatch.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: exactMatch,
+                        duplicateType: "both",
+                        message: `Found exact match with same NRIC and phone number`,
+                        canUpdate: true,
+                        recommendation: 'UPDATE_EXISTING_PROFILE'
+                    };
+                }
+            }
+            
+            // Check for NRIC duplicates only
+            if (nric && nric.trim()) {
+                const nricResults = await table.find({ 
+                    "nric": { $regex: new RegExp(`^${nric.trim()}$`, 'i') }
+                }).toArray();
+                
+                if (nricResults.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: nricResults,
+                        duplicateType: "nric",
+                        message: `Found ${nricResults.length} existing participant(s) with same NRIC`,
+                        canUpdate: false,
+                        recommendation: 'BLOCK_REGISTRATION_NRIC_CONFLICT'
+                    };
+                }
+            }
+            
+            // Check for phone duplicates only
+            if (phone && phone.trim()) {
+                const phoneResults = await table.find({ 
+                    "phone": phone.trim()
+                }).toArray();
+                
+                if (phoneResults.length > 0) {
+                    return {
+                        success: true,
+                        found: true,
+                        participants: phoneResults,
+                        duplicateType: "phone",
+                        message: `Found ${phoneResults.length} existing participant(s) with same phone number`,
+                        canUpdate: false,
+                        recommendation: 'MANUAL_REVIEW_PHONE_CONFLICT'
+                    };
+                }
+            }
+
+            // Smart name similarity checking using regex patterns
+            if (name && name.trim()) {
+                const nameVariations = this.generateNameVariations(name.trim());
+                const nameQuery = {
+                    $or: nameVariations.map(variation => ({
+                        "participantName": { $regex: new RegExp(variation, 'i') }
+                    }))
+                };
+                
+                const nameResults = await table.find(nameQuery).toArray();
+                
+                if (nameResults.length > 0) {
+                    // Filter out exact matches we might have already found
+                    const filteredResults = nameResults.filter(participant => {
+                        const sameNric = nric && participant.nric && 
+                            participant.nric.toLowerCase() === nric.toLowerCase();
+                        const samePhone = phone && participant.phone && 
+                            participant.phone === phone;
+                        return !(sameNric || samePhone);
+                    });
+
+                    if (filteredResults.length > 0) {
+                        return {
+                            success: true,
+                            found: true,
+                            participants: filteredResults,
+                            duplicateType: "name_similarity",
+                            message: `Found ${filteredResults.length} participant(s) with similar names`,
+                            canUpdate: false,
+                            recommendation: 'FLAG_FOR_REVIEW'
+                        };
+                    }
+                }
+            }
+            
+            // No duplicates found
+            return {
+                success: true,
+                found: false,
+                participants: [],
+                duplicateType: null,
+                message: "No existing participants found",
+                canUpdate: false,
+                recommendation: 'PROCEED_WITH_REGISTRATION'
+            };
+            
+        } catch (error) {
+            console.error("Error finding participant by NRIC/phone/name:", error);
+            return {
+                success: false,
+                found: false,
+                participants: [],
+                duplicateType: null,
+                message: "Error searching for existing participants",
+                canUpdate: false,
+                error: error.message
+            };
+        }
+    }
+
+    // Helper method to generate name variations for smart matching
+    generateNameVariations(name) {
+        const variations = [];
+        const cleanName = name.replace(/[^\w\s]/g, '').trim();
+        
+        // Original name
+        variations.push(cleanName);
+        
+        // Remove extra spaces and normalize
+        const normalizedName = cleanName.replace(/\s+/g, ' ');
+        variations.push(normalizedName);
+        
+        // Different word order combinations
+        const words = normalizedName.split(' ');
+        if (words.length > 1) {
+            // Reverse order
+            variations.push(words.reverse().join(' '));
+            
+            // First and last name only
+            if (words.length >= 2) {
+                variations.push(`${words[0]} ${words[words.length - 1]}`);
+                variations.push(`${words[words.length - 1]} ${words[0]}`);
+            }
+            
+            // Each individual word (for partial matches)
+            words.forEach(word => {
+                if (word.length > 2) { // Only meaningful words
+                    variations.push(word);
+                }
+            });
+        }
+        
+        // Escape special regex characters and create patterns
+        return variations.map(variation => 
+            variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        );
+    }
+
+    // Bulk update method for registration records
+    async bulkUpdateRegistrations(databaseName, updates, staff, date, time) {
+        const db = this.client.db(databaseName);
+        const table = db.collection("Registration Forms");
+
+        try {
+            if (!updates || !Array.isArray(updates) || updates.length === 0) {
+                return {
+                    success: false,
+                    message: "No updates provided"
+                };
+            }
+
+            // Prepare bulk write operations
+            const bulkOps = updates.map(update => {
+                const { id, paymentStatus, paymentMethod } = update;
+                
+                // Validate required fields
+                if (!id) {
+                    throw new Error(`Missing ID for update: ${JSON.stringify(update)}`);
+                }
+
+                // Build update object based on what fields are being updated
+                const updateFields = {};
+
+                if (paymentStatus) {
+                    updateFields.status = paymentStatus;
+                    
+                    // Add official details for payment status updates
+                    updateFields["official.name"] = staff;
+                    updateFields["official.date"] = date;
+                    updateFields["official.time"] = time;
+
+                    // Reset certain fields based on status
+                    if (paymentStatus === "Paid" || paymentStatus === "SkillsFuture Done" || paymentStatus === "Generating SkillsFuture Invoice") {
+                        // Keep existing official data for successful payments
+                    } else if (paymentStatus === "Cancelled") {
+                        updateFields["official.confirmed"] = false;
+                    } else {
+                        // For other statuses like "Pending", reset confirmation
+                        updateFields["official.confirmed"] = false;
+                        updateFields["official.receiptNo"] = "";
+                    }
+                }
+
+                if (paymentMethod) {
+                    updateFields["course.payment"] = paymentMethod;
+                    
+                    // Reset payment-related fields when changing payment method
+                    updateFields.status = "Pending";
+                    updateFields["official.receiptNo"] = "";
+                    updateFields["official.name"] = staff;
+                    updateFields["official.date"] = date;
+                    updateFields["official.time"] = time;
+                    updateFields["official.confirmed"] = false;
+                }
+
+                return {
+                    updateOne: {
+                        filter: { _id: new ObjectId(id) },
+                        update: { $set: updateFields }
+                    }
+                };
+            });
+
+            console.log(`Executing bulk update with ${bulkOps.length} operations`);
+            console.log("Sample bulk operation:", JSON.stringify(bulkOps[0], null, 2));
+
+            // Execute bulk write operation
+            const result = await table.bulkWrite(bulkOps, { ordered: false });
+
+            console.log("Bulk update result:", {
+                matchedCount: result.matchedCount,
+                modifiedCount: result.modifiedCount,
+                upsertedCount: result.upsertedCount,
+                insertedCount: result.insertedCount
+            });
+
+            // Check for any write errors
+            if (result.writeErrors && result.writeErrors.length > 0) {
+                console.error("Bulk write errors:", result.writeErrors);
+                return {
+                    success: false,
+                    message: `Bulk update completed with ${result.writeErrors.length} errors`,
+                    details: {
+                        total: updates.length,
+                        successful: result.modifiedCount,
+                        failed: result.writeErrors.length,
+                        errors: result.writeErrors
+                    }
+                };
+            }
+
+            return {
+                success: true,
+                message: `Successfully updated ${result.modifiedCount} out of ${updates.length} records`,
+                details: {
+                    total: updates.length,
+                    matched: result.matchedCount,
+                    modified: result.modifiedCount,
+                    upserted: result.upsertedCount
+                }
+            };
+
+        } catch (error) {
+            console.error("Error during bulk update:", error);
+            return {
+                success: false,
+                message: "Error performing bulk update",
+                error: error.message
+            };
+        }
+    }
 }
-
-
 
 // Export the instance for use in other modules
 module.exports = DatabaseConnectivity;

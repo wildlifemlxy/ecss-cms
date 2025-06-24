@@ -1,0 +1,10 @@
+{
+  "kty": "EC",
+  "x": "-Rfvusaw8CX-Wn768xm7uzM7vLTScf5Wd0yMdf8o0s8",
+  "y": "1SDLjGHPuVBpFe_qQJ8syAPmcpJ_u2BVzEAfpR343PI",
+  "crv": "P-256",
+  "d": "JvgI690zt3FThebW5XxlVNvp3s8JYJOaFrTsMLocFUs",
+  "use": "enc",
+  "alg": "ECDH-ES+A256KW",
+  "kid": "ec-encryption-key-f407a12d"
+}

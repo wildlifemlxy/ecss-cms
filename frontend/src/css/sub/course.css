@@ -13,6 +13,9 @@
   width: 100%; /* Ensure the container takes full width */
 }
 
+
+
+
 /* Table wrapper to control scrolling */
 .table-wrapper {
   width: 80vw; /* Table wrapper occupies 80% of the width of its container */

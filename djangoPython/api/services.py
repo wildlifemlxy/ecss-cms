@@ -189,6 +189,7 @@ class WooCommerceAPI:
             # Parse short description to find "vacancy"
             short_description = product.get("short_description", "")
             array = short_description.split("<p>")
+            print("Short Description Array:", array)
             if array and array[0] == '':
                 array.pop(0)  # Remove empty first entry
 
@@ -214,7 +215,7 @@ class WooCommerceAPI:
             print(f"Processing status: {status}")
 
             # **Stock Update Logic**
-            if status == "Cancelled":
+            if status == "Withdrawn":
                 if new_stock_quantity < vacancies:  # Only increase stock if it is below vacancies
                     print("Increase stock by 1")
                     new_stock_quantity += 1

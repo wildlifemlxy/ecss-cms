@@ -1,962 +1,932 @@
 import React, { Component } from "react";
 import axios from 'axios';
-import Plot from 'react-plotly.js';
-import '../../../css/sub/dashboardSection.css';  // Ensure the CSS file is imported
+import '../../../css/sub/dashboardSection.css';
 
 class DashboardSection extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            productData: [], // Stores fetched data for products
-            salesData: [],
-            showPopup: false, // Tracks popup visibility
-            selectedLocation: '', // Tracks selected location for the main chart
-            popupLocation: '', // Tracks location specifically for the popup
-            selectedLocation1: '', // Tracks selected location for the main chart
-            popupLocation1: '', // Tracks location specifically for the popup
-            popupQuarter: '', // Tracks location specifically for the popup
-            showPopup2: false, // Controls visibility of Popup 2
-            popupContent2: null,
-            showPopup3: false, // Controls visibility of Popup 2
-            popupContent3: null,
-            selectedLocation2: '', // Tracks selected location for the main chart
-            popupLocation2: '', // Tracks location specifically for the popup
-            popupCourse: '', // Tracks location specifically for the popup
-            selectedCourse: '', // Tracks selected location for the main chart
-            currentQuarter: ''
+            registrationData: [],
+            loading: true,
+            error: null,
+            selectedQuarter: '',
+            selectedLocation: '',
+            selectedCourse: '',
+            selectedCourseType: 'All', // Default to All courses
+            statistics: {
+                totalRegistrations: 0,
+                totalPaid: 0,
+                totalNotPaid: 0,
+                totalRefunded: 0,
+                totalConfirmed: 0,
+                cashPayments: 0,
+                paynowPayments: 0,
+                skillsfuturePayments: 0,
+                paymentCompletionRate: 0
+            }
         };
     }
 
-    // Fetch product stock data when the component is mounted
-    fetchCourseReportVisualization = async () => {
-        try {
-            //const response = await axios.post('http://localhost:3002/course_report/');
-            const response = await axios.post('https://ecss-backend-django.azurewebsites.net/course_report/');
-            const data = response.data;
-            console.log("Fetch Course Report:", response);
-
-            // Set the state with the fetched data
-            this.setState({
-                productData: data.product_data,
-            });
-        } catch (error) {
-            console.error('Error fetching product stock data:', error);
-        }
-    };
-
-
-    // Fetch product stock data when the component is mounted
-    fetchSalesReportVisualization = async () => 
+    componentDidMount = async() =>
     {
-        try 
-        {
-            const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/sales_report/`);
-            const data = response.data;
-            console.log(data.aggregated_data)
-
-            // Set the state with the fetched data
-            this.setState({
-                salesData: data.aggregated_data
-            });
-        } catch (error) {
-            console.error('Error fetching product stock data:', error);
-        }
-    };
-
-    getCurrentQuarter(currentDate) 
-    {
-        const month = currentDate.getMonth(); // 0-indexed month (0 = January, 11 = December)
-        const year = currentDate.getFullYear(); // 0-indexed month (0 = January, 11 = December)
-      
-        let quarter;
-      
-        if (month >= 0 && month <= 2) {
-          quarter = "Q1 January - March";
-        } else if (month >= 3 && month <= 5) {
-          quarter = "Q2 April -June ";
-        } else if (month >= 6 && month <= 8) {
-          quarter = "Q3 July - September";
-        } else {
-          quarter = "Q4 Octocber - December";
-        }
-      
-        return `${quarter} ${year}`;
+        console.log('DashboardSection mounted');
+        await this.fetchRegistrationData();
+        //console.log("This props:", this.props);
+        this.props.closePopup1();
     }
 
-    componentDidMount = async () => {
-        this.props.loadingPopup();
-        var dashboard = document.getElementById("data-visualization-section1");
-        dashboard.style.display = "none";
-        
+    // Fetch registration data from backend
+    fetchRegistrationData = async () => {
         try {
-            // Fetch and update course report visualization
-            await this.fetchCourseReportVisualization();
+            // Get user role and siteIC from props, localStorage, or default values
+            const role = this.props.role || localStorage.getItem('userRole') || 'admin';
+            const siteIC = this.props.siteIC || localStorage.getItem('siteIC') || '';
             
-            // Calculate the current quarter based on the current date
-            var currentDate = new Date();
-            var currentQuarter = this.getCurrentQuarter(currentDate);
+            console.log('Fetching data with role:', role, 'and siteIC:', siteIC);
             
-            // Update the state with the current quarter
-            this.setState(prevState => {
-                if (prevState.currentQuarter !== currentQuarter) {
-                    return { currentQuarter: currentQuarter };
+            const response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`, { 
+                purpose: 'retrieve', 
+                role, 
+                siteIC 
+            });
+
+            console.log('Registration data loaded from API:', response.data);
+            
+            // Ensure response.data is an array - handle different API response structures
+            const dataArray = Array.isArray(response.data) ? response.data : 
+                             (response.data && Array.isArray(response.data.result)) ? response.data.result :
+                             (response.data && Array.isArray(response.data.data)) ? response.data.data :
+                             [];
+            
+            console.log('Processed registration data array:', dataArray);
+            
+            // Filter data based on siteIC
+            const filteredData = this.filterDataBySiteIC(dataArray, siteIC);
+            console.log('Filtered data based on siteIC:', filteredData);
+            
+            this.setState({
+                registrationData: filteredData,
+                loading: false
+            }, () => {
+                // Set the earliest quarter as default
+                const quarters = this.getAvailableQuarters();
+                if (quarters.length > 0 && !this.state.selectedQuarter) {
+                    this.setState({ selectedQuarter: quarters[0] }, () => {
+                        this.calculateStatistics();
+                    });
+                } else {
+                    this.calculateStatistics();
                 }
             });
-            
-            // Fetch and update the sales report visualization
-            await this.fetchSalesReportVisualization();
+
         } catch (error) {
-            console.error("Error during component mount:", error);
-        }finally {
-            // Show the dashboard after data is fetched
-            dashboard.style.display = "grid";
-            this.props.closePopup1();
+            console.error('Error fetching registration data:', error);
+            this.setState({
+                error: 'Failed to load registration data. Please try again.',
+                loading: false
+            });
         }
     };
-    
-    // Function to open the popup with the larger graph
-    openPopup = () => {
-        document.body.style.overflow = 'hidden'; // Disable body scrolling
-        this.setState({
-            showPopup: true,  // Open the popup
-            popupLocation: this.state.selectedLocation// Keep track of the selected location in the popup
+
+    // Filter data based on siteIC
+    filterDataBySiteIC = (dataArray, siteIC) => {
+        console.log('Filtering data with siteIC:', siteIC);
+        
+        // If siteIC is empty string, show all data
+        if (!siteIC || siteIC === '') {
+            console.log('siteIC is empty, showing all data');
+            return dataArray;
+        }
+        
+        // If siteIC is an array and has more than one element, show all data
+        if (Array.isArray(siteIC) && siteIC.length > 1) {
+            console.log('siteIC is an array with more than one element, showing all data');
+            return dataArray;
+        }
+        
+        // If siteIC is an array with only one element, filter for that site
+        if (Array.isArray(siteIC) && siteIC.length === 1) {
+            console.log('siteIC is an array with one element, filtering for site:', siteIC[0]);
+            return dataArray.filter(record => {
+                const recordSite = record.course?.courseLocation || record.siteIC || '';
+                return recordSite === siteIC[0];
+            });
+        }
+        
+        // If siteIC is a specific value, show only data for that site
+        console.log('siteIC is a specific value, filtering for site:', siteIC);
+        return dataArray.filter(record => {
+            const recordSite = record.course?.courseLocation || record.siteIC || '';
+            return recordSite === siteIC;
         });
     };
 
-    // Function to close the popup
-    closePopup = () => {
-        document.body.style.overflow = 'auto'; // Enable body scrolling
-        this.setState({
-            showPopup: false,  // Close the popup
-        });
-    };
-    
-    // Handlers for Popup 2
-    openPopup2 = () => {
-        document.body.style.overflow = 'hidden'; // Disable body scrolling
-        this.setState({
-            showPopup2: true,
-            popupQuarter: this.state.selectedQuarter// Keep track of the selected location in the popup
-        });
+    // Get quarter from date string
+    getQuarterFromDate = (dateString) => {
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                console.warn('Invalid date string:', dateString);
+                return null;
+            }
+
+            const month = date.getMonth();
+            const year = date.getFullYear();
+            
+            if (month >= 0 && month <= 2) {
+                return `Q1 January - March ${year}`;
+            } else if (month >= 3 && month <= 5) {
+                return `Q2 April - June ${year}`;
+            } else if (month >= 6 && month <= 8) {
+                return `Q3 July - September ${year}`;
+            } else {
+                return `Q4 October - December ${year}`;
+            }
+        } catch (error) {
+            console.error('Error parsing date for quarter calculation:', dateString, error);
+            return null;
+        }
     };
 
-    closePopup2 = () => {
-        document.body.style.overflow = 'auto'; // Enable body scrolling
-        this.setState({
-            showPopup2: false,
+    // Get available quarters from registration data
+    getAvailableQuarters = () => {
+        const { registrationData } = this.state;
+        const quarters = new Set();
+
+        // Ensure registrationData is an array
+        if (!Array.isArray(registrationData)) {
+            console.warn('registrationData is not an array:', registrationData);
+            return [];
+        }
+
+        registrationData.forEach(record => {
+            if (record.course && record.course.courseDuration) {
+                try {
+                    const courseDuration = record.course.courseDuration;
+                    const startDateStr = courseDuration.split(' - ')[0].trim();
+                    
+                    const quarter = this.getQuarterFromDate(startDateStr);
+                    if (quarter) {
+                        console.log(`Course: ${record.course.courseEngName}, Start Date: ${startDateStr}, Quarter: ${quarter}`);
+                        quarters.add(quarter);
+                    }
+                } catch (error) {
+                    console.error('Error processing courseDuration:', record.course.courseDuration, error);
+                }
+            }
         });
+        
+        // Convert to array and sort with earliest first
+        const sortedQuarters = Array.from(quarters).sort((a, b) => {
+            const getYearAndQuarter = (quarterStr) => {
+                const year = parseInt(quarterStr.match(/\d{4}/)[0]);
+                const qNum = parseInt(quarterStr.match(/Q(\d)/)[1]);
+                return { year, quarter: qNum };
+            };
+            
+            const aData = getYearAndQuarter(a);
+            const bData = getYearAndQuarter(b);
+            
+            if (aData.year !== bData.year) {
+                return aData.year - bData.year; // Earliest year first
+            }
+            return aData.quarter - bData.quarter; // Earliest quarter first
+        });
+        
+        console.log('Available quarters:', sortedQuarters);
+        return sortedQuarters;
     };
 
-    // Handlers for Popup 2
-    openPopup3 = () => {
-        document.body.style.overflow = 'hidden'; // Disable body scrolling
-        this.setState({
-            showPopup3: true,
-            popupQuarter: this.state.selectedQuarter// Keep track of the selected location in the popup
+    // Get available locations from registration data based on selected course type and quarter
+    getAvailableLocations = () => {
+        const { registrationData, selectedCourseType, selectedQuarter } = this.state;
+        const locations = new Set();
+
+        // Ensure registrationData is an array
+        if (!Array.isArray(registrationData)) {
+            console.warn('registrationData is not an array:', registrationData);
+            return [];
+        }
+
+        registrationData.forEach(record => {
+            if (record.course && 
+                record.course.courseLocation && 
+                (selectedCourseType === 'All' || record.course.courseType === selectedCourseType)) {
+                
+                // Check quarter filter
+                let quarterMatch = true;
+                if (selectedQuarter && record.course && record.course.courseDuration) {
+                    const startDateStr = record.course.courseDuration.split(' - ')[0].trim();
+                    const recordQuarter = this.getQuarterFromDate(startDateStr);
+                    quarterMatch = recordQuarter === selectedQuarter;
+                } else if (selectedQuarter) {
+                    quarterMatch = false;
+                }
+                
+                if (quarterMatch) {
+                    locations.add(record.course.courseLocation);
+                }
+            }
         });
+
+        const locationArray = Array.from(locations).sort();
+        console.log(`Available locations for course type ${selectedCourseType} and quarter ${selectedQuarter}:`, locationArray);
+        return locationArray;
     };
 
-    closePopup3 = () => {
-        document.body.style.overflow = 'auto'; // Enable body scrolling
-        this.setState({
-            showPopup3: false,
+    // Get available courses from registration data based on selected course type, location, and quarter
+    getAvailableCourses = () => {
+        const { registrationData, selectedCourseType, selectedLocation, selectedQuarter } = this.state;
+        const courses = new Set();
+
+        // Ensure registrationData is an array
+        if (!Array.isArray(registrationData)) {
+            console.warn('registrationData is not an array:', registrationData);
+            return [];
+        }
+
+        registrationData.forEach(record => {
+            if (record.course && 
+                record.course.courseEngName && 
+                (selectedCourseType === 'All' || record.course.courseType === selectedCourseType) &&
+                (selectedLocation === '' || record.course.courseLocation === selectedLocation)) {
+                
+                // Check quarter filter
+                let quarterMatch = true;
+                if (selectedQuarter && record.course && record.course.courseDuration) {
+                    const startDateStr = record.course.courseDuration.split(' - ')[0].trim();
+                    const recordQuarter = this.getQuarterFromDate(startDateStr);
+                    quarterMatch = recordQuarter === selectedQuarter;
+                } else if (selectedQuarter) {
+                    quarterMatch = false;
+                }
+                
+                if (quarterMatch) {
+                    courses.add(record.course.courseEngName);
+                }
+            }
         });
-    };
-    
-    handleLocationChange = (event) => {
-        const value = event.target.value;
-        this.setState({ selectedLocation: value, popupLocation: value }, () => {
-            // Update the chart data here if needed
-            console.log('Chart Data Updated for Location:', this.getChartData(value));
-        });
+
+        const courseArray = Array.from(courses).sort();
+        console.log(`Available courses for course type ${selectedCourseType}, location ${selectedLocation}, and quarter ${selectedQuarter}:`, courseArray);
+        return courseArray;
     };
 
-    handleLocationChange1 = (event) => {
-        const value = event.target.value;
-        this.setState({ selectedLocation1: value, popupLocation1: value }, () => {
-            // Update the chart data here if needed
-            console.log('Chart Data Updated for Location:', this.getChartData(value));
+    // Calculate statistics based on filters
+    calculateStatistics = () => {
+        const { registrationData, selectedQuarter, selectedLocation, selectedCourse, selectedCourseType } = this.state;
+        
+        console.log(`Calculating statistics for ${selectedCourseType} courses`);
+        
+        // Ensure registrationData is an array
+        if (!Array.isArray(registrationData)) {
+            console.warn('registrationData is not an array:', registrationData);
+            this.setState({
+                statistics: {
+                    totalRegistrations: 0,
+                    totalPaid: 0,
+                    totalNotPaid: 0,
+                    totalRefunded: 0,
+                    totalConfirmed: 0,
+                    cashPayments: 0,
+                    paynowPayments: 0,
+                    skillsfuturePayments: 0,
+                    paymentCompletionRate: 0
+                }
+            });
+            return;
+        }
+        
+        const filteredData = registrationData.filter(record => {
+            // Course type filter
+            const hasCourse = record.course && (selectedCourseType === 'All' || record.course.courseType === selectedCourseType);
+            
+            // Quarter filter
+            let quarterMatch = true;
+            if (selectedQuarter && record.course && record.course.courseDuration) {
+                const startDateStr = record.course.courseDuration.split(' - ')[0].trim();
+                const recordQuarter = this.getQuarterFromDate(startDateStr);
+                quarterMatch = recordQuarter === selectedQuarter;
+            } else if (selectedQuarter) {
+                quarterMatch = false;
+            }
+            
+            // Location filter
+            let locationMatch = true;
+            if (selectedLocation && record.course && record.course.courseLocation) {
+                locationMatch = record.course.courseLocation === selectedLocation;
+            } else if (selectedLocation) {
+                locationMatch = false;
+            }
+            
+            // Course filter
+            let courseMatch = true;
+            if (selectedCourse && record.course && record.course.courseEngName) {
+                courseMatch = record.course.courseEngName === selectedCourse;
+            } else if (selectedCourse) {
+                courseMatch = false;
+            }
+            
+            return hasCourse && quarterMatch && locationMatch && courseMatch;
         });
+
+        const totalRegistrations = filteredData.length;
+        
+        // Debug: Log all unique statuses to understand the data
+        const allStatuses = filteredData.map(record => (record.status || '').toString().toLowerCase());
+        const uniqueStatuses = [...new Set(allStatuses)];
+        console.log('Unique statuses found in data:', uniqueStatuses);
+        
+        // Count different statuses - ensure they are mutually exclusive
+        const paidCount = filteredData.filter(record => {
+            const status = (record.status || '').toString().toLowerCase();
+            return status === 'paid';
+        }).length;
+
+        const confirmedCount = filteredData.filter(record => {
+            const status = (record.status || '').toString().toLowerCase();
+            return status === 'confirmed';
+        }).length;
+
+        const refundedCount = filteredData.filter(record => {
+            const status = (record.status || '').toString().toLowerCase();
+            return status === 'refunded';
+        }).length;
+
+        const unpaidCount = filteredData.filter(record => {
+            const status = (record.status || '').toString().toLowerCase();
+            return status === 'pending' || status === 'not paid' || status === 'unpaid' || status === '';
+        }).length;
+
+        // Total paid includes both 'paid' and 'confirmed' for payment method counting
+        const totalPaidCount = paidCount + confirmedCount;
+
+        // Payment method counting - only count from paid and confirmed registrations
+        const paidAndConfirmedRecords = filteredData.filter(record => {
+            const status = (record.status || '').toString().toLowerCase();
+            return status === 'paid' || status === 'confirmed';
+        });
+
+        // Debug: Log payment methods to understand the data
+        const allPayments = paidAndConfirmedRecords.map(record => record.course?.payment || 'no payment info');
+        const uniquePayments = [...new Set(allPayments)];
+        console.log('Unique payment methods found in paid records:', uniquePayments);
+        console.log('Total paid and confirmed records:', paidAndConfirmedRecords.length);
+
+        const cashCount = paidAndConfirmedRecords.filter(record => {
+            const payment = record.course && record.course.payment ? 
+                record.course.payment.toString().toLowerCase() : '';
+            return payment.includes('cash');
+        }).length;
+
+        const paynowCount = paidAndConfirmedRecords.filter(record => {
+            const payment = record.course && record.course.payment ? 
+                record.course.payment.toString().toLowerCase() : '';
+            return payment.includes('paynow') || payment.includes('pay now');
+        }).length;
+
+        const skillsfutureCount = paidAndConfirmedRecords.filter(record => {
+            const payment = record.course && record.course.payment ? 
+                record.course.payment.toString().toLowerCase() : '';
+            return payment.includes('skillsfuture') || payment.includes('skills future') || payment.includes('sf');
+        }).length;
+
+        console.log('Payment method counts - Cash:', cashCount, 'PayNow:', paynowCount, 'SkillsFuture:', skillsfutureCount);
+
+        const completionRate = totalRegistrations > 0 ? (totalPaidCount / totalRegistrations) * 100 : 0;
+
+        // Add debug logging to verify the math
+        console.log('Status counts - Paid:', paidCount, 'Confirmed:', confirmedCount, 'Pending:', unpaidCount, 'Refunded:', refundedCount);
+        console.log('Total from status counts:', paidCount + confirmedCount + unpaidCount + refundedCount, 'vs Total Registrations:', totalRegistrations);
+
+        const statistics = {
+            totalRegistrations,
+            totalPaid: totalPaidCount,
+            totalNotPaid: unpaidCount,
+            totalRefunded: refundedCount,
+            totalConfirmed: confirmedCount,
+            cashPayments: cashCount,
+            paynowPayments: paynowCount,
+            skillsfuturePayments: skillsfutureCount,
+            paymentCompletionRate: completionRate
+        };
+
+        this.setState({ statistics });
+        return statistics;
     };
-    
-    
+
+    // Get detailed course breakdown for summary
+    getCourseBreakdown = () => {
+        const { registrationData, selectedQuarter, selectedLocation, selectedCourseType } = this.state;
+        const courseStats = {};
+
+        if (!Array.isArray(registrationData)) {
+            return [];
+        }
+
+        const filteredData = registrationData.filter(record => {
+            const hasCourse = record.course && (selectedCourseType === 'All' || record.course.courseType === selectedCourseType);
+            
+            let quarterMatch = true;
+            if (selectedQuarter && record.course && record.course.courseDuration) {
+                const startDateStr = record.course.courseDuration.split(' - ')[0].trim();
+                const recordQuarter = this.getQuarterFromDate(startDateStr);
+                quarterMatch = recordQuarter === selectedQuarter;
+            } else if (selectedQuarter) {
+                quarterMatch = false;
+            }
+            
+            let locationMatch = true;
+            if (selectedLocation && record.course && record.course.courseLocation) {
+                locationMatch = record.course.courseLocation === selectedLocation;
+            } else if (selectedLocation) {
+                locationMatch = false;
+            }
+            
+            return hasCourse && quarterMatch && locationMatch;
+        });
+
+        filteredData.forEach(record => {
+            const courseName = record.course?.courseEngName || 'Unknown Course';
+            const location = record.course?.courseLocation || 'Unknown Location';
+            const status = (record.status || '').toString().toLowerCase();
+            
+            if (!courseStats[courseName]) {
+                courseStats[courseName] = {
+                    name: courseName,
+                    location: location,
+                    total: 0,
+                    paid: 0,
+                    pending: 0,
+                    refunded: 0
+                };
+            }
+            
+            courseStats[courseName].total += 1;
+            
+            if (status === 'paid' || status === 'confirmed') {
+                courseStats[courseName].paid += 1;
+            } else if (status === 'refunded') {
+                courseStats[courseName].refunded += 1;
+            } else {
+                courseStats[courseName].pending += 1;
+            }
+        });
+
+        return Object.values(courseStats).sort((a, b) => b.total - a.total);
+    };
+
+    // Get location breakdown
+    getLocationBreakdown = () => {
+        const { registrationData, selectedCourseType, selectedQuarter } = this.state;
+        const locationStats = {};
+
+        if (!Array.isArray(registrationData)) {
+            return [];
+        }
+
+        const filteredData = registrationData.filter(record => {
+            const hasCourse = record.course && (selectedCourseType === 'All' || record.course.courseType === selectedCourseType);
+            
+            let quarterMatch = true;
+            if (selectedQuarter && record.course && record.course.courseDuration) {
+                const startDateStr = record.course.courseDuration.split(' - ')[0].trim();
+                const recordQuarter = this.getQuarterFromDate(startDateStr);
+                quarterMatch = recordQuarter === selectedQuarter;
+            } else if (selectedQuarter) {
+                quarterMatch = false;
+            }
+            
+            return hasCourse && quarterMatch;
+        });
+
+        filteredData.forEach(record => {
+            const location = record.course?.courseLocation || 'Unknown Location';
+            const status = (record.status || '').toString().toLowerCase();
+            
+            if (!locationStats[location]) {
+                locationStats[location] = {
+                    name: location,
+                    total: 0,
+                    paid: 0,
+                    pending: 0,
+                    refunded: 0
+                };
+            }
+            
+            locationStats[location].total += 1;
+            
+            if (status === 'paid' || status === 'confirmed') {
+                locationStats[location].paid += 1;
+            } else if (status === 'refunded') {
+                locationStats[location].refunded += 1;
+            } else {
+                locationStats[location].pending += 1;
+            }
+        });
+
+        return Object.values(locationStats).sort((a, b) => b.total - a.total);
+    };
+
+    // Handle filter changes
     handleQuarterChange = (event) => {
-        const value = event.target.value;
-        this.setState({ selectedQuarter: value, popupQuarter: value, selectedLocation1: "", popupLocation1: "" }, () => {
-            // Update the chart data here if needed
-            console.log('Chart Data Updated for Quarter:', this.getChartData1(value));
+        console.log('Quarter changed to:', event.target.value);
+        // Reset dependent filters when quarter changes
+        this.setState({ 
+            selectedQuarter: event.target.value,
+            selectedLocation: '', // Reset location when quarter changes
+            selectedCourse: ''    // Reset course when quarter changes
+        }, () => {
+            this.calculateStatistics();
         });
     };
 
-    handleLocationChange2 = (event) => {
-        const value = event.target.value;
-        console.log("Location 2:", value);
-        console.log(this.state);
-        this.setState({ selectedLocation2: value, popupLocation2: value }, () => {
-            // Update the chart data here if needed
-            console.log('Chart Data Updated for Location:', this.getChartData(value));
+    handleLocationChange = (event) => {
+        console.log('Location changed to:', event.target.value);
+        this.setState({ 
+            selectedLocation: event.target.value,
+            selectedCourse: '' // Reset course selection when location changes
+        }, () => {
+            console.log('Location filter applied, course reset');
+            this.calculateStatistics();
         });
     };
 
     handleCourseChange = (event) => {
-        const value = event.target.value;
-        this.setState({ selectedCourse: value, popupCourse: value, selectedLocation2: "", popupLocation2: "" }, () => {
-            // Update the chart data here if needed
-            console.log('Chart Data Updated for Quarter:', this.getChartData1(value));
+        console.log('Course changed to:', event.target.value);
+        this.setState({ selectedCourse: event.target.value }, () => {
+            this.calculateStatistics();
         });
     };
 
-    getChartData = (location) => {
-        const { productData } = this.state;
-    
-        // Filter data based on selected location for the main graph
-        const filteredData = location
-            ? productData.filter((product) => product.name.split("|")[1].trim() === location)
-            : productData;
-    
-        const productNames = filteredData.map((product) => product.name.replace(/\s?\|\s?/g, ' '));
-        const stockQuantities = filteredData.map((product) => product.stock);
-    
-        const maxStock = Math.min(...stockQuantities);
-        const minStock = Math.max(...stockQuantities);
-        const mostPopularProductIndex = stockQuantities.indexOf(maxStock);
-        const leastPopularProductIndex = stockQuantities.indexOf(minStock);
-    
-        const colors = stockQuantities.map((stock, index) => {
-            if (index === mostPopularProductIndex) {
-                return 'green'; // Most popular product color
-            } else if (index === leastPopularProductIndex) {
-                return 'red'; // Least popular product color
-            } else {
-                return 'blue'; // Default color for others
-            }
+    handleCourseTypeChange = (event) => {
+        console.log('Course type changed to:', event.target.value);
+        this.setState({ 
+            selectedCourseType: event.target.value,
+            selectedLocation: '', // Reset location selection when type changes
+            selectedCourse: '' // Reset course selection when type changes
+        }, () => {
+            console.log('Course type filter applied, location and course reset');
+            this.calculateStatistics();
         });
-    
-        // Create hovertext with course name and vacancies
-        const hoverText = filteredData.map(product => 
-            `Course Name: ${product.name.replace(/\s?\|\s?/g, ' ')}<br>Vacancies: ${product.stock}`
-        );
-    
-        return {
-            data: [
-                {
-                    x: productNames,
-                    y: stockQuantities,
-                    type: 'bar',
-                    name: 'Stock Level',
-                    marker: { color: colors }, // Apply colors to the bars
-                    hovertext: hoverText, // Custom hover text with course name and vacancies
-                    hoverinfo: 'text', // Show hover text
-                }
-            ],
-            layout: {
-                title: '',
-                xaxis: {
-                    title: 'Courses',
-                    tickangle: 55,
-                    tickfont: {
-                        size: 7, // Decrease font size to fit the labels
-                    },
-                    tickmode: 'array',
-                    tickvals: productNames, // Ensure all labels are visible
-                },
-                yaxis: {
-                    title: 'Vacancies',
-                },
-                barmode: 'group',
-                hovermode: 'closest', // Hover over a specific bar
-                margin: { t: 60, b: 250, l: 60, r: 100 }, // Adjust margins to fit axis titles
-                autosize: false, // Disable auto-sizing of the graph
-            },
-            config: {
-                displayModeBar: false, // Hide all graph buttons
-                displaylogo: false, // Remove the Plotly logo
-                responsive: false, // Disable responsiveness
-            }
-        };
     };
 
-    getChartData1 = (quarters, locations) => {
-        const { salesData } = this.state;
-    
-        // Filter the sales data based on selected quarter and location(s)
-        const filteredData1 = salesData.filter((product) =>
-            product.locations.some((location) =>
-                location.quarters.some((quarter) =>
-                    (quarters ? quarter.courseQuarter === quarters : true) &&
-                    (locations ? locations === location.courseLocation : true)
-                )
-            )
-        );
-    
-        // Get course names, locations, and totalPrice for the filtered data
-        const productNamesAndLocations = filteredData1.map((product) =>
-            product.locations.flatMap((location) =>
-                location.quarters.map((quarter) => ({
-                    courseName: product.courseEngName,
-                    location: location.courseLocation,
-                    totalPrice: quarter.totalPrice
-                }))
-            )
-        ).flat(); // Flatten to a single array
-    
-        // Prepare the chart data
-        const productNames1 = productNamesAndLocations.map((item) => item.courseName);
-        const courseTotalPrice = productNamesAndLocations.map((item) => parseFloat(item.totalPrice.toFixed(2)));
-    
-        return {
-            data: [
-                {
-                    x: productNames1,
-                    y: courseTotalPrice,
-                    type: 'bar',
-                    name: 'Total Price by Course and Location',
-                    marker: { color: 'blue' }, // Bar color
-                }
-            ],
-            layout: {
-                title: ``, // Dynamic title using quarters and locations
-                xaxis: {
-                    title: 'Courses',
-                    tickangle: 55,
-                    tickfont: {
-                        size: 7, // Font size for x-axis labels
-                    },
-                },
-                yaxis: {
-                    title: 'Total Price ($)',
-                    tickformat: '.2f', // Format y-axis with 2 decimal places
-                },
-                barmode: 'group',
-                hovermode: 'closest',
-                margin: { t: 60, b: 250, l: 60, r: 100 },
-                autosize: false,
-            },
-            config: {
-                displayModeBar: false,
-                displaylogo: false,
-                responsive: false,
-            }
-        };
-        
-    };
-
-    getChartData3 = (courses, locations) => {
-        const { salesData } = this.state;
-    
-        // Filter the sales data based on selected quarter and location(s)
-        const filteredData1 = salesData.filter((product) =>
-            product.locations.some((location) =>
-                location.quarters.some((quarter) =>
-                    (courses ? courses === product.courseEngName : true) &&
-                    (locations ? locations === location.courseLocation : true)
-                )
-            )
-        );
-    
-        const productNamesAndLocations = filteredData1.map((product) =>
-            product.locations.flatMap((location) =>
-                location.quarters.map((quarter) => ({
-                    courseQuarter: quarter.courseQuarter, // Now using courseQuarter
-                    location: location.courseLocation,
-                    totalPrice: quarter.totalPrice
-                }))
-            )
-        ).flat(); // Flatten to a single array
-        
-    
-        // Prepare the chart data
-        const courseQuarters = productNamesAndLocations.map((item) => item.courseQuarter);
-        const courseTotalPrice = productNamesAndLocations.map((item) => parseFloat(item.totalPrice.toFixed(2)));
-    
-        return {
-            data: [
-                {
-                    x: courseQuarters,
-                    y: courseTotalPrice,
-                    type: 'line',
-                    name: 'Total Price by Course and Location',
-                    marker: { color: 'blue' }, // Bar color
-                }
-            ],
-            layout: {
-                title: ``, // Dynamic title using quarters and locations
-                xaxis: {
-                    title: 'Quarters',
-                    tickangle: 55,
-                    tickfont: {
-                        size: 7, // Font size for x-axis labels
-                    },
-                },
-                yaxis: {
-                    title: 'Total Price ($)',
-                    tickformat: '.2f', // Format y-axis with 2 decimal places
-                },
-                barmode: 'group',
-                hovermode: 'closest',
-                margin: { t: 60, b: 250, l: 60, r: 100 },
-                autosize: false,
-            },
-            config: {
-                displayModeBar: false,
-                displaylogo: false,
-                responsive: false,
-            }
-        };
-        
-    };
-
-    getChartData2 = (quarters, locations) => {
-        const { salesData } = this.state;
-    
-        // Filter the sales data based on selected quarter and location(s)
-        const filteredData1 = salesData.filter((product) =>
-            product.locations.some((location) =>
-                location.quarters.some((quarter) =>
-                    (quarters ? quarter.courseQuarter === quarters : true) &&
-                    (locations ? locations === location.courseLocation : true)
-                )
-            )
-        );
-    
-        // Get course names, locations, and totalPrice for the filtered data
-        const productNamesAndLocations = filteredData1.map((product) =>
-            product.locations.flatMap((location) =>
-                location.quarters.map((quarter) => ({
-                    courseName: product.courseEngName,
-                    location: location.courseLocation,
-                    totalPrice: quarter.totalPrice,
-                    quarter: quarter.courseQuarter // Add quarter information here
-                }))
-            )
-        ).flat(); // Flatten to a single array
-    
-        // Prepare the chart data
-        const productNames1 = productNamesAndLocations.map((item) => item.courseName);
-        const courseTotalPrice = productNamesAndLocations.map((item) => parseFloat(item.totalPrice.toFixed(2)));
-        const totalPriceSum = courseTotalPrice.reduce((acc, price) => acc + price, 0);
-    
-        // Calculate total price for the selected quarter
-        const selectedQuarterData = filteredData1.flatMap((product) =>
-            product.locations.flatMap((location) =>
-                location.quarters.filter((quarter) => quarters ? quarter.courseQuarter === quarters : true)
-            )
-        );
-        
-        const selectedQuarterPrice = selectedQuarterData.reduce((acc, quarter) => acc + parseFloat(quarter.totalPrice.toFixed(2)), 0);
-    
-        // Create the title and subtitle
-        let gtitle = "";
-        let subtitle = "";
-    
-        if (quarters === undefined && locations === "") {
-            gtitle = "";
-            subtitle = "";  // No specific data
-        } else {
-            gtitle = `${quarters} - ${locations}`;
-            subtitle = `Total Price for this Quarter: $${selectedQuarterPrice.toFixed(2)}`;
-        }
-    
-        // Position the subtitle slightly above or below the main title
-        const subtitlePosition = 1.15; // Adjust this value to move subtitle further up or down (1.15 for more space)
-    
-        return {
-            data: [
-                {
-                    x: productNames1,
-                    y: courseTotalPrice,
-                    type: 'bar',
-                    name: 'Total Price by Course and Location',
-                    marker: { color: 'blue' }, // Bar color
-                }
-            ],
-            layout: {
-                title: gtitle, // Dynamic title using quarters and locations
-                xaxis: {
-                    title: 'Course',
-                    tickangle: 55,
-                    tickfont: {
-                        size: 7, // Font size for x-axis labels
-                    },
-                },
-                yaxis: {
-                    title: 'Total Price ($)',
-                    tickformat: '$.2f', // Format y-axis with 2 decimal places
-                },
-                barmode: 'group',
-                hovermode: 'closest',
-                margin: { t: 100, b: 250, l: 150, r: 200 }, // Increase top margin to accommodate title and subtitle
-                autosize: false,
-                annotations: [
-                    {
-                        x: 0.5, // Position of the subtitle (adjust as needed)
-                        y: subtitlePosition, // Position slightly above (1.15) the title to create space
-                        xref: 'paper',
-                        yref: 'paper',
-                        text: subtitle, // Subtitle text
-                        showarrow: false,
-                        font: {
-                            size: 12,
-                            color: 'black'
-                        },
-                        align: 'center'
-                    }
-                ]
-            },
-            config: {
-                displayModeBar: false,
-                displaylogo: false,
-                responsive: false,
-            }
-        };
-    };
-    
-    getChartData4 = (courses, locations) => {
-        const { salesData } = this.state;
-    
-        // Filter the sales data based on selected quarter and location(s)
-        const filteredData1 = salesData.filter((product) =>
-            product.locations.some((location) =>
-                location.quarters.some((quarter) =>
-                    (courses ? courses === product.courseEngName : true) &&
-                    (locations ? locations === location.courseLocation : true)
-                )
-            )
-        );
-    
-        const productNamesAndLocations = filteredData1.map((product) =>
-            product.locations.flatMap((location) =>
-                location.quarters.map((quarter) => ({
-                    courseQuarter: quarter.courseQuarter, // Now using courseQuarter
-                    location: location.courseLocation,
-                    totalPrice: quarter.totalPrice
-                }))
-            )
-        ).flat(); // Flatten to a single array
-        
-    
-        // Prepare the chart data
-        const courseQuarters = productNamesAndLocations.map((item) => item.courseQuarter);
-        const courseTotalPrice = productNamesAndLocations.map((item) => parseFloat(item.totalPrice.toFixed(2)));
-    
-        return {
-            data: [
-                {
-                    x: courseQuarters,
-                    y: courseTotalPrice,
-                    type: 'line',
-                    name: 'Total Price by Course and Location',
-                    marker: { color: 'blue' }, // Bar color
-                }
-            ],
-            layout: {
-                title: ``, // Dynamic title using quarters and locations
-                xaxis: {
-                    title: 'Course',
-                    tickangle: 55,
-                    tickfont: {
-                        size: 7, // Font size for x-axis labels
-                    },
-                },
-                yaxis: {
-                    title: 'Total Price ($)',
-                    tickformat: '.2f', // Format y-axis with 2 decimal places
-                },
-                barmode: 'group',
-                hovermode: 'closest',
-                margin: { t: 60, b: 250, l: 60, r: 100 },
-                autosize: false,
-            },
-            config: {
-                displayModeBar: false,
-                displaylogo: false,
-                responsive: false,
-            }
-        };
-        
+    // Reset all filters
+    resetFilters = () => {
+        this.setState({
+            selectedQuarter: '',
+            selectedLocation: '',
+            selectedCourse: '',
+            selectedCourseType: 'All'
+        }, () => {
+            this.calculateStatistics();
+        });
     };
 
     render() {
-        const { productData, salesData, showPopup, selectedLocation, popupLocation, popupCourse, selectedLocation1, popupLocation1, popupLocation2, selectedQuarter, popupQuarter, showPopup2, showPopup3, selectedCourse, selectedLocation2, currentQuarter} = this.state;
+        const { 
+            loading, 
+            error, 
+            selectedQuarter, 
+            selectedLocation, 
+            selectedCourse, 
+            selectedCourseType,
+            statistics 
+        } = this.state;
 
-        // Get unique locations for the dropdown
-        const productLocation = new Set(productData.map((product) => product.name.split("|")[1].trim()));
+        if (loading) {
+            return (
+                <div className="dashboard-loading">
+                    <div className="loading-spinner"></div>
+                    <p>Loading dashboard data...</p>
+                </div>
+            );
+        }
 
-        // Get chart data for the main chart (using selectedLocation)
-        const mainChartData = this.getChartData("");
-        const mainChartData1 = this.getChartData1("");
-        const mainChartData2 = this.getChartData3("");
+        if (error) {
+            return (
+                <div className="dashboard-error">
+                    <h3>Error</h3>
+                    <p>{error}</p>
+                    <button onClick={this.fetchRegistrationData} className="retry-btn">
+                        Retry
+                    </button>
+                </div>
+            );
+        }
 
-        // Get chart data for the popup (using popupLocation)
-        const popupChartData = this.getChartData(popupLocation);
-        const popupChartData1 = this.getChartData2(popupQuarter, popupLocation1);
-        const popupChartData2 = this.getChartData4(popupCourse, popupLocation2);
-
-        // Get the most and least popular courses from the filtered data for the main chart
-        const filteredData = selectedLocation
-            ? productData.filter((product) => product.name.split("|")[1].trim() === selectedLocation)
-            : productData;
-
-        const productNames = filteredData.map((product) => product.name.replace(/\s?\|\s?/g, ' '));
-        const stockQuantities = filteredData.map((product) => product.stock);
-
-        const maxStock = Math.min(...stockQuantities);
-        const minStock = Math.max(...stockQuantities);
-        const mostPopularProductIndex = stockQuantities.indexOf(maxStock);
-        const leastPopularProductIndex = stockQuantities.indexOf(minStock);
-
+        const availableQuarters = this.getAvailableQuarters();
+        const availableLocations = this.getAvailableLocations();
+        const availableCourses = this.getAvailableCourses();
 
         return (
             <>
-            <h1>Dashboard</h1>
-            <div id="data-visualization-section1" className="data-visualization-section">
-            <div className="graph-item">
-                <div
-                    onClick={this.openPopup} // Click on graph to open the popup
-                    style={{
-                        cursor: 'pointer',
-                        width: '100%',
-                        height: '100%',
-                        marginBottom: '20px',
-                    }}
-                >
-                    <Plot {...mainChartData} />
-                </div>
-                <h3>Course Vacancies For {currentQuarter}</h3>
-            </div>
-            <div className="graph-item">
-            <div
-                    onClick={this.openPopup2} // Click on graph to open the popup
-                    style={{
-                        cursor: 'pointer',
-                        width: '100%',
-                        height: '100%',
-                        marginBottom: '20px',
-                    }}
-                >
-                    <Plot {...mainChartData1} />
-                </div>
-                <h3>Sales Report By Location</h3>
-            </div>
-            <div className="graph-item">
-                <div
-                    onClick={this.openPopup3} // Click on graph to open the popup
-                    style={{
-                        cursor: 'pointer',
-                        width: '100%',
-                        height: '100%',
-                        marginBottom: '20px',
-                    }}
-                >
-                    <Plot {...mainChartData2} />
-                </div>
-                <h3>Sales Report By Quarter</h3>
-            </div>
-            </div>
-                {showPopup && (
-                    <div className="popup-overlay5">
-                        <div className="popup-container">
-                            <div className="popup-header">
-                                <button onClick={this.closePopup} className="popup-close-btn5">&times;</button>
-                            </div>
-                            <div className="popup-body">
-                                <h1>Course Report</h1>
-                                <br/>
-                                <label htmlFor="locationSelect">Select Location:</label>
-                                <select id="locationSelect" value={selectedLocation} onChange={this.handleLocationChange}>
-                                    <option value="">All Locations</option>
-                                    {Array.from(productLocation).map((location, index) => (
-                                        <option key={index} value={location}>
-                                            {location}
-                                        </option>
-                                    ))}
-                                </select>
-                                
-                                {/* Plot component - your updated chart for the popup */}
-                                <Plot {...popupChartData} />
-                            </div>
-                            <div className="popup-footer">
-                                <h4>Details Summary</h4>
-                                <p>Most popular course: {productNames[mostPopularProductIndex]}</p>
-                                <p>Least popular course: {productNames[leastPopularProductIndex]}</p>
-                            </div>
-                        </div>
+                <div className="dashboard-header">
+                    <div className="header-left">
+                        <h2>Registration Dashboard</h2>
                     </div>
-                )}
-                {showPopup2 && (
-                    <div className="popup-overlay5">
-                        <div className="popup-container">
-                        <div className="popup-header">
-                            <button onClick={this.closePopup2} className="popup-close-btn5">&times;</button>
-                        </div>
-                        <div className="popup-body">
-                            <h1>Sales Report</h1>
-                            <br />
-                            <label htmlFor="quarterSelect">Select Quarter:</label>
+                    <div className="header-right">
+                        <div className="quarter-display">
                             <select 
-                            id="quarterSelect" 
-                            value={selectedQuarter} 
-                            onChange={this.handleQuarterChange}
+                                className="quarter-dropdown"
+                                value={selectedQuarter}
+                                onChange={this.handleQuarterChange}
                             >
-                            <option value="">All Quarters</option>
-                            {
-                                    // Iterate over salesData to extract course names and quarters
-                                    salesData.flatMap((product) =>
-                                        product.locations.flatMap((location) =>
-                                            location.quarters.map((quarter) => ({
-                                                courseEngName: product.courseEngName,
-                                                courseQuarter: quarter.courseQuarter
-                                            }))
-                                        )
-                                    )
-                                    // Remove duplicate courseQuarter values, keeping the courseEngName with it
-                                    .map((item, index, self) =>
-                                        self.findIndex((t) => t.courseQuarter === item.courseQuarter) === index ? item : null
-                                    )
-                                    .filter(Boolean)
-                                    .map((item) => (
-                                        <option key={item.courseQuarter} value={item.courseQuarter}>
-                                            {`${item.courseQuarter}`}
-                                        </option>
-                                    ))
-                                }
-                            </select>
-                            <label htmlFor="locationSelect">Select Location:</label>
-                            <select 
-                            id="locationSelect" 
-                            value={selectedLocation1} 
-                            onChange={this.handleLocationChange1}
-                            >
-                            <option value="">All Locations</option>
-                            {Array.from(
-                                new Set(
-                                salesData.flatMap((product) =>
-                                    product.locations.flatMap((location) =>
-                                    location.quarters.flatMap((quarter) =>
-                                        quarter.courseQuarter === selectedQuarter 
-                                        ? [location.courseLocation] 
-                                        : [] 
-                                    )
-                                    )
-                                )
-                                )
-                            ).map((courseLocation) => (
-                                <option key={courseLocation} value={courseLocation}>
-                                {courseLocation === 'SpecificLocation' ? 'Special Label' : courseLocation}
-                                </option>
-                            ))}
-                        </select>
-                    <Plot {...popupChartData1} />
-                    </div>
-                    {/* Detail Summary Section */}
-                    {(selectedQuarter === "" || selectedLocation1 === "") ? (
-                            (() => {
-                                // Gather all sales data
-                                const allData = salesData
-                                    .flatMap((product) =>
-                                        product.locations.flatMap((location) =>
-                                            location.quarters.map((quarter) => ({
-                                                product: product.courseEngName,
-                                                totalSales: quarter.totalPrice,
-                                            }))
-                                        )
-                                    );
-
-                                if (allData.length === 0) {
-                                    return <p>No sales data available.</p>;
-                                }
-
-                                const highestSales = Math.max(...allData.map((data) => data.totalSales));
-                                const lowestSales = Math.min(...allData.map((data) => data.totalSales));
-
-                                const highestSalesProduct = allData.find((data) => data.totalSales === highestSales);
-                                const lowestSalesProduct = allData.find((data) => data.totalSales === lowestSales);
-
-                                return (
-                                    <div className="popup-footer">
-                                        <p><strong>Highest Sales:</strong> {highestSalesProduct.product} ${parseFloat(highestSales).toFixed(2)}</p>
-                                        <p><strong>Lowest Sales:</strong> {lowestSalesProduct.product} ${parseFloat(lowestSales).toFixed(2)}</p>
-                                    </div>
-                                );
-                            })()
-                        ) : (
-                            (() => {
-                                // Filtering data based on selected quarter and location
-                                const filteredData = salesData
-                                    .flatMap((product) =>
-                                        product.locations
-                                            .filter((location) =>
-                                                location.courseLocation === selectedLocation1 &&
-                                                location.quarters.some(
-                                                    (quarter) => quarter.courseQuarter === selectedQuarter
-                                                )
-                                            )
-                                            .map((location) =>
-                                                location.quarters
-                                                    .filter((quarter) => quarter.courseQuarter === selectedQuarter)
-                                                    .map((quarter) => ({
-                                                        product: product.courseEngName,
-                                                        totalSales: quarter.totalPrice,
-                                                    }))
-                                            )
-                                    )
-                                    .flat();
-
-
-                                if (filteredData.length === 0) {
-                                    return <p>No sales data available for the selected quarter and location.</p>;
-                                }
-
-                                const highestSales = Math.max(...filteredData.map((data) => data.totalSales));
-                                const lowestSales = Math.min(...filteredData.map((data) => data.totalSales));
-
-                                const highestSalesProduct = filteredData.find((data) => data.totalSales === highestSales);
-                                const lowestSalesProduct = filteredData.find((data) => data.totalSales === lowestSales);
-
-                                return (
-                                    <div className="popup-footer">
-                                        <p><strong>Highest Sales:</strong> {highestSalesProduct.product} ${parseFloat(highestSales).toFixed(2)}</p>
-                                        <p><strong>Lowest Sales:</strong> {lowestSalesProduct.product} ${parseFloat(lowestSales).toFixed(2)}</p>
-                                    </div>
-                                );
-                            })()
-                        )}
-                    </div>
-                </div>
-            )}
-            {showPopup3 && (
-                    <div className="popup-overlay5">
-                        <div className="popup-container">
-                        <div className="popup-header">
-                            <button onClick={this.closePopup3} className="popup-close-btn5">&times;</button>
-                        </div>
-                        <div className="popup-body">
-                            <h1>Sales Quarter Report</h1>
-                            <br />
-                            <label htmlFor="quarterSelect">Select Course:</label>
-                            <select 
-                            id="courseSelect" 
-                            value={selectedCourse} 
-                            onChange={this.handleCourseChange}
-                            >
-                            <option value="">All Courses</option>
-                            {
-                                Array.from(
-                                    new Set(salesData.flatMap((product) => product.courseEngName))
-                                ).map((courseName) => (
-                                    <option key={courseName} value={courseName}>
-                                        {courseName}
+                                <option value="">All Quarters</option>
+                                {availableQuarters.map(quarter => (
+                                    <option key={quarter} value={quarter}>
+                                        {quarter}
                                     </option>
-                                    ))
-                            }
+                                ))}
                             </select>
-
-                            <label htmlFor="locationSelect">Select Location:</label>
-                            <select 
-                            id="locationSelect" 
-                            value={selectedLocation2} 
-                            onChange={this.handleLocationChange2}
-                            >
-                            <option value="">All Locations</option>
-                            {Array.from(
-                                new Set(
-                                salesData.flatMap((product) =>
-                                    product.locations.flatMap((location) =>
-                                    location.quarters.flatMap((quarter) =>
-                                        product.courseEngName === selectedCourse 
-                                        ? [location.courseLocation] 
-                                        : [] 
-                                    )
-                                    )
-                                )
-                                )
-                            ).map((courseLocation) => (
-                                <option key={courseLocation} value={courseLocation}>
-                                {courseLocation === 'SpecificLocation' ? 'Special Label' : courseLocation}
-                                </option>
-                            ))}
-                        </select>
-                    <Plot {...popupChartData2} />
+                        </div>
                     </div>
-                    {/* Detail Summary Section */}
-                    {(selectedCourse === "" || selectedLocation2 === "") ? (
-                            (() => {
-                                // Gather all sales data
-                                const allData = salesData
-                                    .flatMap((product) =>
-                                        product.locations.flatMap((location) =>
-                                            location.quarters.map((quarter) => ({
-                                               quarter: quarter.courseQuarter,
-                                                totalSales: quarter.totalPrice,
-                                            }))
-                                        )
-                                    );
+                </div>
 
-                                if (allData.length === 0) {
-                                    return <p>No sales data available.</p>;
-                                }
+                {/* Filters Section */}
+                <div className="dashboard-filters">
+                    <h3>Filters</h3>
+                    <div className="filter-row">
+                        <div className="filter-group">
+                            <label>Course Type:</label>
+                            <div className="button-group">
+                                <button 
+                                    className={`filter-btn ${selectedCourseType === 'All' ? 'active' : ''}`}
+                                    onClick={() => this.handleCourseTypeChange({ target: { value: 'All' } })}
+                                >
+                                    All Courses
+                                </button>
+                                <button 
+                                    className={`filter-btn ${selectedCourseType === 'NSA' ? 'active' : ''}`}
+                                    onClick={() => this.handleCourseTypeChange({ target: { value: 'NSA' } })}
+                                >
+                                    NSA
+                                </button>
+                                <button 
+                                    className={`filter-btn ${selectedCourseType === 'ILP' ? 'active' : ''}`}
+                                    onClick={() => this.handleCourseTypeChange({ target: { value: 'ILP' } })}
+                                >
+                                    ILP
+                                </button>
+                            </div>
+                        </div>
 
-                                const highestSales = Math.max(...allData.map((data) => data.totalSales));
-                                const lowestSales = Math.min(...allData.map((data) => data.totalSales));
+                        <div className="filter-group">
+                            <label>Location:</label>
+                            <div className="button-group">
+                                <button 
+                                    className={`filter-btn ${selectedLocation === '' ? 'active' : ''}`}
+                                    onClick={() => this.handleLocationChange({ target: { value: '' } })}
+                                >
+                                    All Locations
+                                </button>
+                                {availableLocations.map(location => (
+                                    <button 
+                                        key={location}
+                                        className={`filter-btn ${selectedLocation === location ? 'active' : ''}`}
+                                        onClick={() => this.handleLocationChange({ target: { value: location } })}
+                                    >
+                                        {location}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
-                                const highestSalesProduct = allData.find((data) => data.totalSales === highestSales);
-                                const lowestSalesProduct = allData.find((data) => data.totalSales === lowestSales);
+                        <div className="filter-group">
+                            <label>Courses:</label>
+                            <div className="button-group">
+                                <button 
+                                    className={`filter-btn ${selectedCourse === '' ? 'active' : ''}`}
+                                    onClick={() => this.handleCourseChange({ target: { value: '' } })}
+                                >
+                                    All Courses
+                                </button>
+                                {availableCourses.map(course => (
+                                    <button 
+                                        key={course}
+                                        className={`filter-btn ${selectedCourse === course ? 'active' : ''}`}
+                                        onClick={() => this.handleCourseChange({ target: { value: course } })}
+                                        title={course}
+                                    >
+                                        {course}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                                return (
-                                    <div className="popup-footer">
-                                        <p><strong>Highest Sales:</strong> {highestSalesProduct.quarter} ${parseFloat(highestSales).toFixed(2)}</p>
-                                        <p><strong>Lowest Sales:</strong> {lowestSalesProduct.quarter} ${parseFloat(lowestSales).toFixed(2)}</p>
-                                    </div>
-                                );
-                            })()
-                        ) : (
-                            (() => {
-                                const filteredData = salesData
-                                    .filter((product) => product.courseEngName === selectedCourse) // Check product.courseEngName
-                                    .flatMap((product) =>
-                                        product.locations
-                                        .filter((location) => location.courseLocation === selectedLocation2) // Check location
-                                        .flatMap((location) =>
-                                            location.quarters.map((quarter) => ({
-                                            quarter: quarter.courseQuarter,
-                                            totalSales: quarter.totalPrice,
-                                            }))
-                                        )
-                                    );
-
-                              // Check if data is available
-                              if (filteredData.length === 0) {
-                                return <p>No sales data available for the selected quarter and location.</p>;
-                              }
-                              
-                              // Extract highest and lowest sales
-                              const highestSales = Math.max(...filteredData.map((data) => data.totalSales));
-                              const lowestSales = Math.min(...filteredData.map((data) => data.totalSales));
-                              
-                              // Find products with highest and lowest sales
-                              const highestSalesProduct = filteredData.find(
-                                (data) => data.totalSales === highestSales
-                              );
-                              const lowestSalesProduct = filteredData.find(
-                                (data) => data.totalSales === lowestSales
-                              );
-                              
-                              // Render the results
-                              return (
-                                <div className="popup-footer">
-                                  <p>
-                                    <strong>Highest Sales:</strong> {highestSalesProduct.quarter} ${highestSales.toFixed(2)}
-                                  </p>
-                                  <p>
-                                    <strong>Lowest Sales:</strong> {lowestSalesProduct.quarter} ${lowestSales.toFixed(2)}
-                                  </p>
+                {/* Statistics Cards */}
+                <div className="dashboard-stats">
+                    {/* Registration Overview Group */}
+                    <div className="stats-group">
+                        <div className="stats-group-header">
+                            <h4>Registration Overview</h4>
+                            {selectedLocation && (
+                                <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}>
+                                    📍 Location: {selectedLocation}
+                                </p>
+                            )}
+                            {!selectedLocation && availableLocations.length > 0 && (
+                                <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}>
+                                    📍 All Locations ({availableLocations.length} locations)
+                                </p>
+                            )}
+                        </div>
+                        <div className="stats-grid">
+                            <div className="stat-card primary">
+                                <div className="stat-icon">📊</div>
+                                <div className="stat-content">
+                                    <h3>Total Registrations</h3>
+                                    <p className="stat-number">{statistics.totalRegistrations}</p>
+                                    {selectedLocation && (
+                                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                                            at {selectedLocation}
+                                        </p>
+                                    )}
+                                    {!selectedLocation && availableLocations.length > 0 && (
+                                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
+                                            across {availableLocations.length} location{availableLocations.length !== 1 ? 's' : ''}
+                                        </p>
+                                    )}
                                 </div>
-                              );
-                            })()
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Payment Status Group */}
+                    <div className="stats-group">
+                        <div className="stats-group-header">
+                            <h4>Payment Status</h4>
+                        </div>
+                        <div className="stats-grid">
+                            <div className="stat-card success">
+                                <div className="stat-icon">✅</div>
+                                <div className="stat-content">
+                                    <h3>Paid</h3>
+                                    <p className="stat-number">{statistics.totalPaid}</p>
+                                </div>
+                            </div>
+
+                            <div className="stat-card warning">
+                                <div className="stat-icon">⏳</div>
+                                <div className="stat-content">
+                                    <h3>Pending</h3>
+                                    <p className="stat-number">{statistics.totalNotPaid}</p>
+                                </div>
+                            </div>
+
+                            <div className="stat-card danger">
+                                <div className="stat-icon">💰</div>
+                                <div className="stat-content">
+                                    <h3>Refunded</h3>
+                                    <p className="stat-number">{statistics.totalRefunded}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Payment Methods Group */}
+                    <div className="stats-group">
+                        <div className="stats-group-header">
+                            <h4>Payment Methods</h4>
+                        </div>
+                        <div className="stats-grid">
+                            <div className="stat-card info">
+                                <div className="stat-icon">💵</div>
+                                <div className="stat-content">
+                                    <h3>Cash Payments</h3>
+                                    <p className="stat-number">{statistics.cashPayments}</p>
+                                </div>
+                            </div>
+
+                            <div className="stat-card info">
+                                <div className="stat-icon">📱</div>
+                                <div className="stat-content">
+                                    <h3>PayNow Payments</h3>
+                                    <p className="stat-number">{statistics.paynowPayments}</p>
+                                </div>
+                            </div>
+
+                            <div className="stat-card info">
+                                <div className="stat-icon">🎓</div>
+                                <div className="stat-content">
+                                    <h3>SkillsFuture</h3>
+                                    <p className="stat-number">{statistics.skillsfuturePayments}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Summary Section */}
+                <div className="dashboard-summary">
+                    <h3>Summary</h3>
+                    <div className="summary-content">
+                        <p>
+                            Showing statistics for <strong>{selectedCourseType === 'All' ? 'All' : selectedCourseType}</strong> courses
+                            {selectedQuarter && ` in ${selectedQuarter}`}
+                            {selectedLocation && ` at ${selectedLocation}`}
+                            {selectedCourse && ` for "${selectedCourse}"`}
+                        </p>
+                        
+                        {statistics.totalRegistrations > 0 && (
+                            <div className="summary-insights">
+                                <h4>Key Insights:</h4>
+                                <ul>
+                                    <li>
+                                        {statistics.paymentCompletionRate >= 80 ? '✅' : statistics.paymentCompletionRate >= 60 ? '⚠️' : '❌'} 
+                                        Payment completion rate: {statistics.paymentCompletionRate.toFixed(1)}%
+                                    </li>
+                                    <li>
+                                        Most popular payment method: {
+                                            Math.max(statistics.cashPayments, statistics.paynowPayments, statistics.skillsfuturePayments) === statistics.cashPayments ? 'Cash' :
+                                            Math.max(statistics.paynowPayments, statistics.skillsfuturePayments) === statistics.paynowPayments ? 'PayNow' : 'SkillsFuture'
+                                        }
+                                    </li>
+                                    {statistics.totalRefunded > 0 && (
+                                        <li>⚠️ {statistics.totalRefunded} refund(s) processed</li>
+                                    )}
+                                </ul>
+                            </div>
+                        )}
+
+                        {/* Location Breakdown */}
+                        {!selectedLocation && (
+                            <div className="breakdown-section">
+                                <h4>Registration by Location:</h4>
+                                <div className="breakdown-chart">
+                                    {this.getLocationBreakdown().map((location, index) => {
+                                        const percentage = statistics.totalRegistrations > 0 ? 
+                                            (location.total / statistics.totalRegistrations) * 100 : 0;
+                                        return (
+                                            <div key={location.name} className="chart-bar-container">
+                                                <div className="chart-label">
+                                                    <span className="location-name">{location.name}</span>
+                                                    <span className="location-stats">
+                                                        {location.total} total ({location.paid} paid, {location.pending} pending)
+                                                    </span>
+                                                </div>
+                                                <div className="chart-bar">
+                                                    <div 
+                                                        className="chart-bar-fill"
+                                                        style={{ 
+                                                            width: `${percentage}%`,
+                                                            backgroundColor: `hsl(${210 + (index * 30)}, 70%, 50%)`
+                                                        }}
+                                                    ></div>
+                                                    <span className="chart-percentage">{percentage.toFixed(1)}%</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Course Breakdown */}
+                        {!selectedCourse && (
+                            <div className="breakdown-section">
+                                <h4>Registration by Course:</h4>
+                                <div className="breakdown-chart">
+                                    {this.getCourseBreakdown().slice(0, 10).map((course, index) => {
+                                        const percentage = statistics.totalRegistrations > 0 ? 
+                                            (course.total / statistics.totalRegistrations) * 100 : 0;
+                                        return (
+                                            <div key={course.name} className="chart-bar-container">
+                                                <div className="chart-label">
+                                                    <span className="course-name" title={course.name}>
+                                                        {course.name}
+                                                    </span>
+                                                    <span className="course-details">
+                                                        📍 {course.location} | {course.total} total 
+                                                        ({course.paid} paid, {course.pending} pending
+                                                        {course.refunded > 0 && `, ${course.refunded} refunded`})
+                                                    </span>
+                                                </div>
+                                                <div className="chart-bar">
+                                                    <div 
+                                                        className="chart-bar-fill"
+                                                        style={{ 
+                                                            width: `${percentage}%`,
+                                                            backgroundColor: `hsl(${120 + (index * 25)}, 60%, 50%)`
+                                                        }}
+                                                    ></div>
+                                                    <span className="chart-percentage">{percentage.toFixed(1)}%</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {this.getCourseBreakdown().length > 10 && (
+                                    <p className="breakdown-note">
+                                        Showing top 10 courses out of {this.getCourseBreakdown().length} total courses
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
-            )}
             </>
         );
     }

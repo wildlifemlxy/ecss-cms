@@ -7,12 +7,27 @@ import FormPage from './html/components/formPage';
 import MassImportPage from './html/components/massImportPage';
 import CourseSelectionPage from './html/components/courseSelectionPage';
 import SingpassPage from './html/components/singpassPage';
-import MyInfoRedirectPage from './html/components/MyInfoRedirectPage';
+import CallPagePage from './html/components/CallbackPage';
 import MyInfoResultsPage from './html/components/MyInfoResultsPage';
+import MyInfoErrorTest from './html/pages/MyInfoErrorTest'; // Import the test page
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { AuthProvider  } from './AuthContext';
 import ProtectedRoute from './ProtectedRoute';
 import ErrorPage from './html/components/errorPage';
+import { PublicClientApplication } from '@azure/msal-browser';
+import { MsalProvider } from '@azure/msal-react';
+import { msalConfig } from './utils/authConfig';
+
+// Initialize MSAL instance
+const msalInstance = new PublicClientApplication(msalConfig);
+
+// Initialize MSAL
+msalInstance.initialize().then(() => {
+  console.log('✅ MSAL initialized successfully');
+}).catch((error) => {
+  console.error('❌ MSAL initialization failed:', error);
+});
+
 
 class App extends Component
 {
@@ -28,9 +43,10 @@ class App extends Component
           <Route path="/new" component={NewCustomersPage} />
           <Route path="/mass" component={MassImportPage} />
           <Route path="/coursesSelection" component={CourseSelectionPage}/>
-          {/*<Route exact path="/singpass" component={SingpassPage} />
-          <Route path="/myinfo-redirect" component={MyInfoRedirectPage} />
-          <Route path="/myinfo-results" component={MyInfoResultsPage} />*/}
+          <Route exact path="/singpass" component={SingpassPage} />
+          <Route path="/callback" component={CallPagePage} />
+          <Route path="/myinfo-results" component={MyInfoResultsPage} />
+          <Route path="/myinfo-error-test" component={MyInfoErrorTest} />
           <Route component={ErrorPage} />
         </Switch>
       </Router>

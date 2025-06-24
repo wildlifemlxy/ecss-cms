@@ -51,5 +51,36 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
+    
+    <!-- OneSignal SDK -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "e215cf65-e110-4f8c-9e40-90e1f1e85d8e",
+          allowLocalhostAsSecureOrigin: true,
+          
+          // Add path tracking for notification filtering
+          notifyButton: {
+            enable: true,
+          }
+        });
+        
+        // Set tag for current path
+        const currentPath = window.location.pathname;
+        console.log('Setting OneSignal path tag:', currentPath);
+        OneSignal.sendTag('current_path', currentPath);
+        
+        // Track path changes
+        const originalPushState = history.pushState;
+        history.pushState = function() {
+          originalPushState.apply(this, arguments);
+          const newPath = window.location.pathname;
+          console.log('Path changed, updating OneSignal tag:', newPath);
+          OneSignal.sendTag('current_path', newPath);
+        };
+      });
+    </script>
   </body>
 </html>

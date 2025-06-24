@@ -285,7 +285,7 @@ class receiptGenerator {
         doc.moveDown(1);
 
         // Add the date on a new line
-        doc.font(fontPathTimesRegular).fontSize(12).text("This is a computer generated receipt... Do not need any signature...", leftMargin, doc.y, {
+        doc.font(fontPathTimesRegular).fontSize(12).text("This is a computer generated invoice and requires no signature.", leftMargin, doc.y, {
             align: 'left' // Align the date to the left
         });
 

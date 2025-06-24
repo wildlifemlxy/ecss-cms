@@ -21,7 +21,7 @@ class ReceiptController {
                 console.log("New Receipt Number:", newReceiptNumber);
 
 
-                // Return the newly generated receipt number
+               // Return the newly generated receipt number
                 return {
                     success: true,
                     message: "New receipt number generated successfully",

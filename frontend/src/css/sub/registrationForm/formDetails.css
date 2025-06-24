@@ -54,8 +54,55 @@
   }
 }
 
+/* Mobile-first scrollable layout for very small screen widths */
+@media (max-width: 768px) {
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  .form-details-section {
+    height: 61vh; /* Full height of the screen */
+    overflow-y: auto; /* Enable vertical scrolling */
+    margin: 10px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .description, .notification
+  {
+    font-size: 0.5em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .introduction {
+    padding: 15px;
+    font-size: 2em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    position: sticky;
+    top: 0;
+    z-index: 1; /* Ensure it stays above other content */
+    background-color: #fff; /* Prevent transparency when scrolling */
+  }
+
+  .image-container {
+    margin-top: 20px;
+    padding: 15px;
+  }
+
+  .registration-image {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+
 /* Non-mobile button layout (larger screens) */
-@media (min-width: 769px) {
+@media (min-width: 769px) 
+{
   .button-container {
     display: flex; /* Use Flexbox for layout */
     justify-content: space-between; /* Space out the buttons */

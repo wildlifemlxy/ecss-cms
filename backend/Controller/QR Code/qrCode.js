@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = 'Crafting Connections (Tampines North Community Centre).jpg'; 
+            const filename = `自然保护与可持续性发展学习之旅 Nature & Sustainability Learning Journey (Tampines North Community Centre).jpg`; 
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator('https://ecss.org.sg/product/crafting-connectionstncc/');
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e8%87%aa%e7%84%b6%e4%bf%9d%e6%8a%a4%e4%b8%8e%e5%8f%af%e6%8c%81%e7%bb%ad%e6%80%a7%e5%8f%91%e5%b1%95%e5%ad%a6%e4%b9%a0%e4%b9%8b%e6%97%85nature-sustainability-learning-journeytampines-north-community/`);
 qrCodeGenerator.generate();

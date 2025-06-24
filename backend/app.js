@@ -17,11 +17,16 @@ var receiptRouter = require("./routes/receipt");
 var invoiceRouter = require("./routes/invoice");
 var singpassRouter = require("./routes/singpass");
 var massimportRouter = require("./routes/massimport");
+var coursesRegisteredRouter = require("./routes/coursesRegistered");
+var attendanceRouter = require('./routes/attendance');
+var membershipRouter = require('./routes/membership');
+const jwksRouter = require('./routes/jwks');
+const excelRouter = require('./routes/excel');
 
 app.use(cors()); // Enable CORS
 app.use(logger('dev')); // HTTP request logger
 app.use(express.json()); // For parsing JSON
-app.use(express.urlencoded({ extended: false })); // For parsing URL-encoded data
+app.use(express.urlencoded({ extended: true })); // For parsing URL-encoded data
 app.use(cookieParser()); // For parsing cookies
 
 // Set up views (if you're using templates)okok
@@ -36,20 +41,37 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/participantsLogin', usersRouter);
 app.use("/login", loginRouter);
 app.use("/courseregistration", coursesRegistrationRouter);
 app.use("/accountDetails", accountDetailsRouter);
 app.use("/accessRights", accessRightsRouter);
 app.use("/receipt", receiptRouter);
 app.use("/invoice", invoiceRouter);
+app.use('/', jwksRouter);
 app.use("/singpass", singpassRouter);
 app.use("/massimport", massimportRouter);
+app.use("/coursesRegistered", coursesRegisteredRouter);
+app.use("/attendance", attendanceRouter);
+app.use("/", excelRouter);
+app.use("/membership", membershipRouter);
+
+// Increase payload limits for Azure App Service
+app.use(express.json({ 
+  limit: '10mb',
+  extended: true 
+}));
+
+app.use(express.urlencoded({ 
+  limit: '10mb',
+  extended: true,
+  parameterLimit: 50000
+}));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

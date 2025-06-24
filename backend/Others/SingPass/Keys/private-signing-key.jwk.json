@@ -1,0 +1,10 @@
+{
+  "kty": "EC",
+  "x": "XiV6mrzYIqnB5C5jg2E_Ot51TalaOd_lxfzp04xYKWg",
+  "y": "KioV9MN3bqXAAGrEE8onEDFr5s_BwmoqFRspSOgYx-k",
+  "crv": "P-256",
+  "d": "M65DMRGEXmJThRZ15-_OKrVz7RmgDGQxGYUqt7lErWs",
+  "use": "sig",
+  "alg": "ES256",
+  "kid": "signing-key-f407a12d"
+}

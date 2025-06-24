@@ -504,6 +504,14 @@ class Popup extends Component {
     this.setState({ countdown: 10 });
   }
 
+  // Handle proceeding with manual form entry after MyInfo error
+  handleProceedManually = () => {
+    if (this.props.onProceedManually) {
+      this.props.onProceedManually();
+    }
+    this.props.closePopup();
+  }
+
   goBackHome = async() =>
   {
     this.props.goBackLoginPage();
@@ -886,11 +894,15 @@ class Popup extends Component {
               {Object.keys(message4)
               .filter(mainKey => mainKey !== "id" && mainKey !== 'accType' && mainKey !== 'name' && mainKey !== 'sn') // Exclude unnecessary keys
               .map((mainKey) => {
+                console.log("Main Key:", mainKey);
                 const formattedKey = 
                   mainKey === "accounts" ? "Account" : 
                   mainKey === "regPay" ? "Registration And Payment" : 
                   mainKey === "qRCode" ? "QR Code" : 
                   mainKey === "courses" ? "Courses" : 
+                  mainKey === "attendance" ? "Attendances" : 
+                  mainKey === "reports" ? "Reports" : 
+                  mainKey === "membership" ? "Membership" : 
                   mainKey;
 
                 return (
@@ -986,6 +998,41 @@ class Popup extends Component {
               <div className="confirmation-buttons">
                   <button onClick={() => this.handlePortOver(this.props.id, this.props.participantInfo, this.props.courseInfo, this.props.status)} className="confirm-btn">Confirm</button>
                   <button onClick={this.cancel} className="cancel-btn">Cancel</button>
+              </div>
+            </div>
+          ): type === "myinfo-error" ? (
+            // Layout for MyInfo error type
+            <div className="myinfo-error-message">
+              <div className="myinfo-modal-header">
+                <div className="myinfo-error-icon">⚠️</div>
+                <h2 className="myinfo-modal-title">MyInfo Unavailable</h2>
+              </div>
+              
+              <div className="myinfo-modal-message">
+
+                <p><strong>Error:</strong> {message}</p>
+                <p>MyInfo service is currently experiencing issues. This could be due to:</p>
+                <ul style={{ textAlign: 'left', paddingLeft: '20px' }}>
+                  <li>Network connectivity problems</li>
+                  <li>MyInfo service maintenance</li>
+                  <li>Authentication or session timeout</li>
+                </ul>
+                <p><strong>✅ No worries!</strong> You can still proceed to fill in the form manually with your personal information.</p>
+              </div>
+              
+              <div className="myinfo-modal-buttons">
+                <button 
+                  className="myinfo-modal-button primary" 
+                  onClick={() => this.handleProceedManually()}
+                >
+                  Proceed Manually
+                </button>
+                <button 
+                  className="myinfo-modal-button secondary" 
+                  onClick={this.cancel}
+                >
+                  Try Again Later
+                </button>
               </div>
             </div>
           )
