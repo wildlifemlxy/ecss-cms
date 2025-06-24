@@ -377,18 +377,18 @@ class PersonalInfo extends Component {
         {hasSingPassData && (
           <div className="clear-singpass-container">
             <p className="singpass-info">
-              📄 Some fields have been populated with your SingPass data and are protected from editing.
+              📄 Some fields have been populated with your Singpass data and are protected from editing.
             </p>
             <button 
               type="button"
               className="clear-singpass-button"
               onClick={() => {
-                if (window.confirm('Are you sure you want to clear all SingPass data? This will empty all populated fields.')) {
+                if (window.confirm('Are you sure you want to clear all Singpass data? This will empty all populated fields.')) {
                   onClearSingPassData && onClearSingPassData();
                 }
               }}
             >
-              🗑️ Clear SingPass Data
+              🗑️ Clear Singpass Data
             </button>
           </div>
         )}

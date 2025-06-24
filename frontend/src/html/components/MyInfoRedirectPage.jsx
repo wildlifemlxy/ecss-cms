@@ -653,7 +653,7 @@ class MyInfoRedirectPage extends Component {
             margin: '0 auto 20px'
           }}></div>
           <h2 style={{ color: '#333', marginBottom: '10px' }}>Processing Authentication...</h2>
-          <p style={{ color: '#666' }}>Please wait while we verify your SingPass credentials.</p>
+          <p style={{ color: '#666' }}>Please wait while we verify your Singpass credentials.</p>
         </div>
       );
     }
@@ -710,7 +710,7 @@ class MyInfoRedirectPage extends Component {
           backgroundColor: '#f8fff8'
         }}>
           <h2 style={{ color: '#333', marginBottom: '10px' }}>Authentication Successful!</h2>
-          <p style={{ color: '#666', marginBottom: '20px' }}>You have successfully logged in with SingPass.</p>
+          <p style={{ color: '#666', marginBottom: '20px' }}>You have successfully logged in with Singpass.</p>
           
           <div style={{
             margin: '20px 0',

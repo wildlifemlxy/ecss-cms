@@ -17,13 +17,13 @@ class CallbackPage extends Component {
 
       // Check for authorization errors
       if (error) {
-        console.error(`SingPass authorization error: ${error} - ${errorDescription}`);
+        console.error(`Singpass authorization error: ${error} - ${errorDescription}`);
       //  window.location.href = '/?error=' + encodeURIComponent(error);
         return;
       }
 
       if (!authorizationCode) {
-        console.error('No authorization code received from SingPass');
+        console.error('No authorization code received from Singpass');
       //  window.location.href = '/?error=no_code';
         return;
       }
@@ -40,7 +40,7 @@ class CallbackPage extends Component {
         return;
       }
 
-      // Call backend API to handle SingPass token exchange
+      // Call backend API to handle Singpass token exchange
       await this.callBackendTokenExchange(authorizationCode, storedCodeVerifier, storedNonce, returnedState);
 
     } catch (error) {
@@ -167,7 +167,7 @@ class CallbackPage extends Component {
         endpointUsed
       } = data;
 
-      console.log('SingPass authentication completed via:', endpointUsed);
+      console.log('Singpass authentication completed via:', endpointUsed);
       console.log('Storing user data...');
 
       // Store authentication data securely
@@ -312,7 +312,7 @@ class CallbackPage extends Component {
       window.location.href = redirectUrl;
 
     } catch (error) {
-      console.error('Backend SingPass API error:', error);
+      console.error('Backend Singpass API error:', error);
       console.error('Error details:', {
         message: error.message,
         response: error.response?.data,
@@ -358,7 +358,7 @@ class CallbackPage extends Component {
         </style>
 
         <h2 style={{ color: '#333', marginBottom: '20px', fontFamily: 'Poppins, sans-serif' }}>
-          Processing SingPass Authentication...
+          Processing Singpass Authentication...
         </h2>
         
         <div style={{

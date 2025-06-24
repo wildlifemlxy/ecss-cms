@@ -637,7 +637,8 @@ class FormPage extends Component {
     // Clear SingPass session data
     sessionStorage.removeItem("singpass_user_data_json");
     sessionStorage.removeItem("singpass_access_token");
-    
+    console.log("Form data", this.state.formData);
+
     // Reset form data to empty values for SingPass populated fields
     const clearedFormData = {
       ...this.state.formData,
