@@ -676,10 +676,10 @@ class Popup extends Component {
       errors.email = '';
     }
 
-    if (!participant.postalCode) {
-      errors.postalCode = 'Postal Code is required.';
+    if (!participant.address) {
+      errors.address = 'Address is required.';
     } else {
-      errors.postalCode = '';
+      errors.address = '';
     }
 
     // Update state with errors

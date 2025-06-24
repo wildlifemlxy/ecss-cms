@@ -109,7 +109,6 @@ class MyInfoRedirectPage extends Component {
       dob: userData.dob,
       contactNumber: this.extractMobileNumber(userData.mobileno),
       email: this.extractValue(userData.email) || '',
-      postalCode: this.extractPostalCode(userData.regadd),
       educationLevel: this.extractValue(userData.education) || '',
       workStatus: this.extractValue(userData.workstatus) || ''
     };
@@ -128,6 +127,7 @@ class MyInfoRedirectPage extends Component {
     }
     
     // Handle simple string/number values
+    if (typeof field === 'string' || typeof field === 'number') {
     if (typeof field === 'string' || typeof field === 'number') {
       return String(field).trim();
     }

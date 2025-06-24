@@ -746,7 +746,7 @@ class FormPage extends Component {
       case 1: // Personal Info section
         return formData.pName && formData.nRIC && formData.rESIDENTIALSTATUS && 
                formData.rACE && formData.gENDER && formData.dOB && 
-               formData.cNO && formData.eMAIL && formData.postalCode && 
+               formData.cNO && formData.eMAIL && formData.address && 
                formData.eDUCATION && formData.wORKING;
     
       case 2: // Course Details section
@@ -784,6 +784,7 @@ class FormPage extends Component {
     var contactNumber = formData.cNO;
     var email = formData.eMAIL;
     var postalCode = formData.postalCode;
+    if (!postalCode && formData.address) postalCode = (formData.address.match(/Singapore\s*(\d{6})/i) || [])[1] || "";
     var educationLevel = formData.eDUCATION;
     var workStatus = formData.wORKING;
 
