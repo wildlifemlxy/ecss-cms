@@ -43,6 +43,7 @@ class FormPage extends Component {
         dOB: '',
         cNO: '',
         eMAIL: '',
+        address: '',
         postalCode: '',
         eDUCATION: '',
         wORKING: '',
@@ -565,20 +566,24 @@ class FormPage extends Component {
     this.setState({ isAuthenticated: true });
   };
 
-  // Add the missing populateFormWithSingPassData method
-  populateFormWithSingPassData = () => {
+    populateFormWithSingPassData = () => {
     try {
       const userData = this.getSingPassUserData();
       this.navigateToSection(1);
-      
+  
       if (!userData) {
         console.log('No SingPass user data available');
         return;
       }
-
-      console.log('Populating form with SingPass data:', userData);
-
-      // Extract and format the data
+  
+      // Build address string and remove any ', ,'
+      let address = '';
+      if (userData.regadd) {
+        address = `${userData.regadd.block.value} ${userData.regadd.street.value} #${userData.regadd.floor.value}-${userData.regadd.unit.value}, ${userData.regadd.building.value}, ${userData.regadd.country.desc} ${userData.regadd.postal.value}`;
+        address = address.replace(/, ,/g, ',').replace(/ ,/g, ',').replace(/,,/g, ','); // Remove double commas and extra spaces before commas
+        address = address.replace(/(,\s*)+/g, ', ').replace(/,\s*$/, ''); // Clean up trailing commas
+      }
+  
       const formattedData = {
         pName: userData.name || '',
         nRIC: userData.uinfin || '',
@@ -588,10 +593,11 @@ class FormPage extends Component {
         dOB: userData.dob ? userData.dob.formattedDate1 || userData.dob : '',
         cNO: this.extractMobileNumber(userData.mobileno),
         eMAIL: userData.email || '',
-        postalCode: userData.regadd ? userData.regadd.postal.val || '' : ''
+        address: address,
+        postalCode: userData.regadd && userData.regadd.postal ? userData.regadd.postal.value : '',
       };
-
-      // Track which fields were populated by SingPass (government verified data)
+  
+      // ...rest of your code (no changes needed)
       const singPassPopulatedFields = {
         pName: !!userData.name,
         nRIC: !!userData.uinfin,
@@ -599,16 +605,12 @@ class FormPage extends Component {
         rACE: !!userData.race,
         gENDER: !!userData.sex,
         dOB: !!userData.dob,
+        address: !!(userData.regadd),
         postalCode: !!(userData.regadd && userData.regadd.postal),
-        // Mobile and email are editable as they're non-government verified
         cNO: false,
         eMAIL: false
       };
-
-      console.log('Formatted SingPass data:', formattedData);
-      console.log('SingPass populated fields:', singPassPopulatedFields);
-
-      // Update the form data and track populated fields
+  
       this.setState(prevState => ({
         formData: {
           ...prevState.formData,
@@ -616,7 +618,7 @@ class FormPage extends Component {
         },
         singPassPopulatedFields: singPassPopulatedFields
       }));
-
+  
       console.log('Form populated with SingPass data successfully');
     } catch (error) {
       console.error('Error populating form with SingPass data:', error);
@@ -645,6 +647,7 @@ class FormPage extends Component {
       rACE: '',
       gENDER: '',
       dOB: '',
+      address: '',
       postalCode: '',
       cNO: '',
       eMAIL: ''
@@ -993,15 +996,8 @@ class FormPage extends Component {
       if (!formData.eMAIL) {
         errors.eMAIL = 'Email is required. 电子邮件是必填项。';
       }
-      if (!formData.postalCode) 
-      {
-          errors.postalCode = 'Postal Code is required. 邮政编码是必填项。';
-      }
-      if (formData.postalCode && /[^0-9]/.test(formData.postalCode)) {
-          errors.postalCode = 'Postal Code must contain only numbers. 邮政编码只能包含数字。';
-      }
-      if (formData.postalCode && formData.postalCode.length !== 6) {
-          errors.postalCode = 'Postal Code must be exactly 6 digits. 邮政编码必须是6位数字。';
+      if (!formData.address) {
+          errors.address = 'Address is required. 地址是必填项。';
       }
       if (!formData.eDUCATION) {
         errors.eDUCATION = 'Education Level is required. 教育水平是必填项。';

@@ -931,7 +931,11 @@ class ReportSection extends Component {
               <>
                 <div className='report-container'>
                   {/* Show Site IC dropdown for Payment Report */}
-                  {this.state.showSiteICDropdown && (
+                  {this.state.showSiteICDropdown  &&
+                    this.props.siteIC !== null &&
+                    this.props.siteIC !== undefined &&
+                    this.props.siteIC !== "" && 
+                    (Array.isArray(this.props.siteIC) && this.props.siteIC.length > 0) && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', margin: '10px 0' }}>
                       <label style={{ fontWeight: 'bold', minWidth: '80px' }}>
                         Select Site:

@@ -58,6 +58,7 @@ router.post('/', async function(req, res, next)
     {
         const io = req.app.get('io');
         var participantsParticulars = req.body.participantDetails;
+        console.log("Participant Details:", participantsParticulars);
 
         // Set registration date and official info
         participantsParticulars.registrationDate = getCurrentDateTime().date;

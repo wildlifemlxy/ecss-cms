@@ -687,7 +687,7 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .myinfo-error-message {
-    width: 90%;
+    width: 80%;
     max-width: 25rem;
   }
 }
