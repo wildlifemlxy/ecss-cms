@@ -57,8 +57,8 @@ class CallbackPage extends Component {
         : 'http://localhost:singpass/token';  // Local development backend*/
     
     const backendUrl = window.location.hostname === "localhost"
-      ? "http://localhost:3001/singpass/token"
-      : "https://salmon-wave-09f02b100.6.azurestaticapps.net/singpass/token";
+      ? "http://localhost:3001/singpass"
+      : "https://ecss-backend-node.azurewebsites.net/singpass";
 
       console.log('Exchanging tokens via backend...');
       console.log('Backend URL:', backendUrl);
