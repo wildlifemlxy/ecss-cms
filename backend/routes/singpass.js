@@ -7,8 +7,8 @@ const path = require('path');
 // Constants defined at top level - Azure SWA environment handling
 //const CLIENT_ID = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
 const CLIENT_ID = "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS"
-//const JWTTOKENURL = "id.singpass.gov.sg";
-const JWTTOKENURL = "https://id.singpass.gov.sg";
+const JWTTOKENURL = "id.singpass.gov.sg";
+//const JWTTOKENURL = "https://id.singpass.gov.sg";
 //const SPTOKENURL = "https://stg-id.singpass.gov.sg/token";
 const SPTOKENURL = "https://id.singpass.gov.sg/token";
 
