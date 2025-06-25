@@ -592,7 +592,7 @@ class FormPage extends Component {
         gENDER: this.formatGender(userData.sex),
         dOB: userData.dob ? userData.dob.formattedDate1 || userData.dob : '',
         cNO: this.extractMobileNumber(userData.mobileno),
-        eMAIL: userData.email || '',
+        eMAIL: userData.email.toLowerCase(),
         address: address,
         postalCode: userData.regadd && userData.regadd.postal ? userData.regadd.postal.value : '',
       };
