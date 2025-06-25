@@ -7,8 +7,8 @@ const path = require('path');
 // Constants defined at top level - Azure SWA environment handling
 //const CLIENT_ID = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
 const CLIENT_ID = "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS"
-const JWTTOKENURL = "id.singpass.gov.sg";
-//const JWTTOKENURL = "https://id.singpass.gov.sg";
+//const JWTTOKENURL = "id.singpass.gov.sg";
+const JWTTOKENURL = "https://id.singpass.gov.sg";
 //const SPTOKENURL = "https://stg-id.singpass.gov.sg/token";
 const SPTOKENURL = "https://id.singpass.gov.sg/token";
 
@@ -19,11 +19,9 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
   ? "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback"  // Updated to match frontend
   : "http://localhost:3000/callback";*/
 
-/*const REDIRECT_URI = window.location.hostname === "localhost"
+const REDIRECT_URI = window.location.hostname === "localhost"
   ? "http://localhost:3000/callback"
-  : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";*/
-
-const REDIRECT_URI = "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
+  : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
 
 //const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
 const USERINFO_URL = "https://id.singpass.gov.sg/userinfo";

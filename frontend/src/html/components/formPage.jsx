@@ -508,7 +508,18 @@ class FormPage extends Component {
     }
   }
 
-  async fetchCourses(courseType) {
+  /*async fetchCourses(courseType) {
+    try {
+      var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/courses/`, {courseType});
+      var courses = response.data.courses;
+      return courses;
+    }
+    catch(error) {
+      console.error("Error:", error)
+    }
+  }*/
+
+    async fetchCourses(courseType) {
     try {
       var response = await axios.post(`${window.location.hostname === "localhost" ? "http://localhost:3002" : "https://ecss-backend-django.azurewebsites.net"}/courses/`, {courseType});
       var courses = response.data.courses;

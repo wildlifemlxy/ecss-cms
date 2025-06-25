@@ -10,9 +10,7 @@ const oidcConfig = {
   //authority: "https://stg-id.singpass.gov.sg", // Staging discovery endpoint
   authority: "https://id.singpass.gov.sg",
   client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS",
-  redirect_uri: window.location.hostname === "localhost" 
-      ? "http://localhost:3000/callback" 
-      : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
+  redirect_uri: "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",
   response_type: "code",
   scope: "openid", // Start with minimal scope as per SingPass best practices
   automaticSilentRenew: false, // Required for SingPass

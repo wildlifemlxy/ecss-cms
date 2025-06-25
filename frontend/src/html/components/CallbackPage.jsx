@@ -52,13 +52,9 @@ class CallbackPage extends Component {
   callBackendTokenExchange = async (authorizationCode, codeVerifier, nonce, returnedState) => {
     try {
       // Use your backend API endpoint - Azure SWA will proxy /api/* to your backend
-      /*const backendUrl = process.env.NODE_ENV === 'production' 
+      const backendUrl = process.env.NODE_ENV === 'production' 
         ? '/api/singpass/token'  // Azure SWA API proxy route
-        : 'http://localhost:singpass/token';  // Local development backend*/
-    
-    const backendUrl = window.location.hostname === "localhost"
-      ? "http://localhost:3001/singpass/token"
-      : "https://ecss-backend-node.azurewebsites.net/singpass/token";
+        : 'http://localhost:3001/singpass/token';  // Local development backend
 
       console.log('Exchanging tokens via backend...');
       console.log('Backend URL:', backendUrl);
