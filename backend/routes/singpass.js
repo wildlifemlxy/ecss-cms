@@ -19,7 +19,9 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
   ? "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback"  // Updated to match frontend
   : "http://localhost:3000/callback";*/
 
-  //const REDIRECT_URI = "http://localhost:3000/callback";
+const REDIRECT_URI = window.location.hostname === "localhost"
+  ? "http://localhost:3000/callback"
+  : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
 
 //const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
 const USERINFO_URL = "https://id.singpass.gov.sg/userinfo";

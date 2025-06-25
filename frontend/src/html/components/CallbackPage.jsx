@@ -54,9 +54,11 @@ class CallbackPage extends Component {
       // Use your backend API endpoint - Azure SWA will proxy /api/* to your backend
       /*const backendUrl = process.env.NODE_ENV === 'production' 
         ? '/api/singpass/token'  // Azure SWA API proxy route
-        : 'http://localhost:3001/singpass/token';  // Local development backend*/
+        : 'http://localhost:singpass/token';  // Local development backend*/
     
-      const backendUrl = 'http://localhost:3001/singpass/token';  // Azure SWA API proxy route
+    const backendUrl = window.location.hostname === "localhost"
+      ? "http://localhost:3001/singpass/token"
+      : "https://salmon-wave-09f02b100.6.azurestaticapps.net/singpass/token";
 
       console.log('Exchanging tokens via backend...');
       console.log('Backend URL:', backendUrl);
