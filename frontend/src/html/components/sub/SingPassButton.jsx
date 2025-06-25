@@ -221,16 +221,17 @@ class SingPassButton extends Component {
       const nonce = window.crypto.randomUUID();
 
       // SingPass Authorization Endpoint - exact URL from documentation
-      const authorizationEndpoint = "https://stg-id.singpass.gov.sg/auth";
-      //const authorizationEndpoint = "https://id.singpass.gov.sg/auth";
+      //const authorizationEndpoint = "https://stg-id.singpass.gov.sg/auth";
+      const authorizationEndpoint = "https://id.singpass.gov.sg/auth"
       
       // Required parameters with EXACT SingPass scopes as approved
       const authParams = new URLSearchParams({
-        client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
+        //client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
+        client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS",
         //client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS", // Exact client ID as per SingPass documentation
         response_type: "code",
         // EXACT SingPass scope format - space-separated as approved by SingPass
-        scope: "openid dob email mobileno name nationality race regadd residentialstatus sex uinfin",
+        scope: "openid dob email mobileno name race regadd residentialstatus sex uinfin",
         redirect_uri: window.location.hostname === "localhost" 
           ? "http://localhost:3000/callback" 
           : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",

@@ -91,7 +91,8 @@ class MyInfoServiceMonitor {
     
     try {
       // Check SingPass authorization endpoint
-      const authEndpoint = "https://stg-id.singpass.gov.sg";
+      //const authEndpoint = "https://stg-id.singpass.gov.sg";
+      const authEndpoint = "https://id.singpass.gov.sg";
       const healthCheckPromise = this.checkEndpoint(authEndpoint);
       
       const result = await Promise.race([

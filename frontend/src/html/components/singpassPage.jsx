@@ -77,11 +77,13 @@ class SingpassPage extends Component {
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
       const state = window.crypto.randomUUID();
       const nonce = window.crypto.randomUUID();
-      const authorizationEndpoint = "https://stg-id.singpass.gov.sg/auth";
+      //const authorizationEndpoint = "https://stg-id.singpass.gov.sg/auth";
+      const authorizationEndpoint = "https://id.singpass.gov.sg/auth";
       const authParams = new URLSearchParams({
-        client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
+        //client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
+        client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS",
         response_type: "code",
-        scope: "openid dob email mobileno name nationality race regadd residentialstatus sex uinfin",
+        scope: "openid dob email mobileno name race regadd residentialstatus sex uinfin",
         redirect_uri: "http://localhost:3000/callback",
         state: state,
         nonce: nonce,

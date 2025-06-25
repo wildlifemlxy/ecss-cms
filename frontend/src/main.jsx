@@ -7,8 +7,9 @@ import './index.css'
 
 // SingPass OIDC Configuration following exact SingPass specifications
 const oidcConfig = {
-  authority: "https://stg-id.singpass.gov.sg", // Staging discovery endpoint
-  client_id: "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo",
+  //authority: "https://stg-id.singpass.gov.sg", // Staging discovery endpoint
+  authority: "https://id.singpass.gov.sg",
+  client_id: "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS",
   redirect_uri: window.location.hostname === "localhost" 
       ? "http://localhost:3000/callback" 
       : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback",

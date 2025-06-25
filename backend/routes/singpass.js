@@ -5,9 +5,12 @@ const axios = require('axios');
 const path = require('path');
 
 // Constants defined at top level - Azure SWA environment handling
-const CLIENT_ID = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
-const JWTTOKENURL = "https://stg-id.singpass.gov.sg";
-const SPTOKENURL = "https://stg-id.singpass.gov.sg/token";
+//const CLIENT_ID = "mHlUcRS43LOQAjkYJ22MNvSpE8vzPmfo";
+const CLIENT_ID = "ZrjDybXZeOFUA70KYMwb1dnfmdEXFfAS"
+//const JWTTOKENURL = "id.singpass.gov.sg";
+const JWTTOKENURL = "https://id.singpass.gov.sg";
+//const SPTOKENURL = "https://stg-id.singpass.gov.sg/token";
+const SPTOKENURL = "https://id.singpass.gov.sg/token";
 
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
@@ -18,7 +21,8 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
   //const REDIRECT_URI = "http://localhost:3000/callback";
 
-const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
+//const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
+const USERINFO_URL = "https://id.singpass.gov.sg/userinfo";
 
 // Initialize jose as null and import it dynamically
 let jose = null;
@@ -436,7 +440,8 @@ async function invokeUserEndpoint(accessToken, options = {}) {
   let attempt = 0;
   
   // Step 5: SingPass User Endpoint - exact URL from documentation
-  const USER_ENDPOINT_URL = "https://stg-id.singpass.gov.sg/user";
+  //const USER_ENDPOINT_URL = "https://stg-id.singpass.gov.sg/user";
+  const USER_ENDPOINT_URL = "https://id.singpass.gov.sg/user";
   
   console.log('=== STEP 5: USER ENDPOINT DEBUG START ===');
   console.log('User Endpoint URL:', USER_ENDPOINT_URL);

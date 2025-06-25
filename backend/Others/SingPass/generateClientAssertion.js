@@ -23,7 +23,8 @@ async function main() {
     const signedJwt = await new jose.SignJWT({
       sub: "tLRDBkf1CNy5Rsi34mEKuOD5EpQAwjIq", // Update Client ID
       iss: "tLRDBkf1CNy5Rsi34mEKuOD5EpQAwjIq", // Update Client ID
-      aud: "https://stg-id.singpass.gov.sg",
+      //aud: "https://stg-id.singpass.gov.sg",
+        aud: "https://id.singpass.gov.sg",
       iat: nowTime,
       exp: futureTime,
     })
