@@ -19,9 +19,11 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
   ? "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback"  // Updated to match frontend
   : "http://localhost:3000/callback";*/
 
-const REDIRECT_URI = window.location.hostname === "localhost"
+/*const REDIRECT_URI = window.location.hostname === "localhost"
   ? "http://localhost:3000/callback"
-  : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
+  : "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";*/
+
+const REDIRECT_URI = "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
 
 //const USERINFO_URL = "https://stg-id.singpass.gov.sg/userinfo";
 const USERINFO_URL = "https://id.singpass.gov.sg/userinfo";
@@ -732,9 +734,10 @@ async function invokeUserEndpoint(accessToken, options = {}) {
 router.post('/token', async (req, res) => {
   try {
     // Set CORS headers for Azure SWA
-    res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
+    /*res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
       ? 'https://salmon-wave-09f02b100.6.azurestaticapps.net' 
-      : 'http://localhost:3000');
+      : 'http://localhost:3000');*/
+    res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Platform');
     res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
     
@@ -796,7 +799,7 @@ router.post('/token', async (req, res) => {
     }
 
     // Step 4.2: Determine correct redirect URI based on platform and environment
-    const getCorrectRedirectUri = (platform, env) => {
+    /*const getCorrectRedirectUri = (platform, env) => {
       //console.log('Determining redirect URI for platform:', platform, 'env:', env);
 
       // Check if request came from Android app
@@ -813,11 +816,15 @@ router.post('/token', async (req, res) => {
         console.log('Using development web redirect URI');
         return "http://localhost:3000/callback";
       }
+    };*/
+
+    const getCorrectRedirectUri = (platform, env) => {
+        return "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
     };
 
     console.log("href:", href);
     // Helper to determine redirect URI based on href
-    const getRedirectUriFromHref = (href) => {
+    /*const getRedirectUriFromHref = (href) => {
       if (typeof href === 'string' && href.includes('localhost')) {
         return "http://localhost:3000/callback";
       }
@@ -826,7 +833,12 @@ router.post('/token', async (req, res) => {
       }
       // Default to production if not localhost
       return "com.ecss.ecssapp://callback";
-    };
+    };*/
+
+      const getRedirectUriFromHref = (href) => {
+        return "https://salmon-wave-09f02b100.6.azurestaticapps.net/callback";
+      };
+
 
     // Usage: Dynamically set REDIRECT_URI based on req.body.href
     const dynamicRedirectUri = getRedirectUriFromHref(href);
@@ -1115,7 +1127,8 @@ router.options('/token', (req, res) => {
   /*res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
     ? 'https://salmon-wave-09f02b100.6.azurestaticapps.net' 
     : 'http://localhost:3000');*/
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  //res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Origin', 'https://salmon-wave-09f02b100.6.azurestaticapps.net');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.sendStatus(200);
