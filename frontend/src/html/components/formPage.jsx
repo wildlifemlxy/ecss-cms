@@ -583,6 +583,8 @@ class FormPage extends Component {
         address = address.replace(/, ,/g, ',').replace(/ ,/g, ',').replace(/,,/g, ','); // Remove double commas and extra spaces before commas
         address = address.replace(/(,\s*)+/g, ', ').replace(/,\s*$/, ''); // Clean up trailing commas
       }
+
+      console.log('SingPass user data:', userData);
   
       const formattedData = {
         pName: userData.name || '',
@@ -592,7 +594,7 @@ class FormPage extends Component {
         gENDER: this.formatGender(userData.sex),
         dOB: userData.dob ? userData.dob.formattedDate1 || userData.dob : '',
         cNO: this.extractMobileNumber(userData.mobileno),
-        eMAIL: userData.email.toLowerCase(),
+       eMAIL: userData.email.replace(/^([^@]*)@/, (match, p1) => p1.toLowerCase() + '@'),
         address: address,
         postalCode: userData.regadd && userData.regadd.postal ? userData.regadd.postal.value : '',
       };
