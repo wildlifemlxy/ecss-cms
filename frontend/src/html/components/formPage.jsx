@@ -461,8 +461,8 @@ class FormPage extends Component {
           this.setState((prevState) => ({
             formData: {
               ...prevState.formData,
-              englishName: courseParts[0],
-              chineseName: courseParts[1] || '',
+              englishName: courseParts[0] || '',
+              //chineseName: courseParts[1] || '',
               location: selectedLocation,
               price: formattedPrice,
               type,
@@ -594,7 +594,7 @@ class FormPage extends Component {
         gENDER: this.formatGender(userData.sex),
         dOB: userData.dob ? userData.dob.formattedDate1 || userData.dob : '',
         cNO: this.extractMobileNumber(userData.mobileno),
-       eMAIL: userData.email.replace(/^([^@]*)@/, (match, p1) => p1.toLowerCase() + '@'),
+        eMAIL: userData.email ? userData.email.replace(/^([^@]*)@/, (match, p1) => p1.toLowerCase() + '@'): "",
         address: address,
         postalCode: userData.regadd && userData.regadd.postal ? userData.regadd.postal.value : '',
       };
