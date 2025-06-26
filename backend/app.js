@@ -21,7 +21,6 @@ var coursesRegisteredRouter = require("./routes/coursesRegistered");
 var attendanceRouter = require('./routes/attendance');
 var membershipRouter = require('./routes/membership');
 const jwksRouter = require('./routes/jwks');
-const excelRouter = require('./routes/excel');
 
 app.use(cors()); // Enable CORS
 app.use(logger('dev')); // HTTP request logger
@@ -58,7 +57,6 @@ app.use("/singpass", singpassRouter);
 app.use("/massimport", massimportRouter);
 app.use("/coursesRegistered", coursesRegisteredRouter);
 app.use("/attendance", attendanceRouter);
-app.use("/", excelRouter);
 app.use("/membership", membershipRouter);
 
 // Increase payload limits for Azure App Service
