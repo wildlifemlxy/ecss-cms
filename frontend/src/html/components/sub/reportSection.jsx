@@ -294,6 +294,7 @@ class ReportSection extends Component {
           : this.props.siteIC ? [this.props.siteIC] : [];
       // Always show only the part before '-' and trim
       const siteICDisplayArray = siteICArray.map(loc => loc.split('-')[0].trim());
+      console.log("This Props:", this.props);
   
       // Filter and map the data to ensure the index always starts from 1 after each filter
       let customIndex = 1; // Always start the index from 1
@@ -309,7 +310,6 @@ class ReportSection extends Component {
         // Use selectedSiteIC for filtering if set (support "all" option for multiple locations)
         const selectedSiteIC = this.state.selectedSiteICLocation;
         let targetLocations;
-        
         if (selectedSiteIC === 'All Locations' || selectedSiteIC === 'all' || selectedSiteIC === '' || !selectedSiteIC) {
           // If "All Locations" is selected, empty, or no selection, use all available locations
           targetLocations = siteICDisplayArray;
@@ -319,13 +319,15 @@ class ReportSection extends Component {
         }
         if (payment) {
           if (fromParsed && toParsed && isValidDate(fromParsed) && isValidDate(toParsed)) {
+            console.log("From1234", this.props.role, this.props.role.toLowerCase().includes("in-charge"));  
             if (this.props.role && (this.props.role.toLowerCase() === "admin" || this.props.role.toLowerCase() === "sub-admin")) {
               // Admins see all sites
               return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
-            } else if (this.props.siteIC === null || this.props.siteIC === undefined || this.props.siteIC == "") {
+            } /*else if (this.props.siteIC === null || this.props.siteIC === undefined || this.props.siteIC == "") {
               return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
-            } 
+            } */
             else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
+              console.log("In-charge Role Detected:", this.props.role);
               // NSA in-charge: can see only CT Hub, Site in-charge: can see only their assigned sites
               if (this.props.role.toLowerCase() === "nsa in-charge") {
                 return (
@@ -352,8 +354,25 @@ class ReportSection extends Component {
           } else if (!fromParsed && !toParsed) {
             if (this.props.role && (this.props.role.toLowerCase() === "admin" || this.props.role.toLowerCase() === "sub-admin")) {
               return item.course.payment !== "SkillsFuture";
-            } else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
-              return targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture";
+            }else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
+              // NSA in-charge: can see only CT Hub, Site in-charge: can see only their assigned sites
+              if (this.props.role.toLowerCase() === "nsa in-charge") {
+                return (
+                  payment >= fromParsed &&
+                  payment <= toParsed &&
+                  targetLocations.includes("CT Hub") &&
+                  item.course.payment !== "SkillsFuture" &&
+                  item.status !== "Pending"
+                );
+              } else {
+                return (
+                  payment >= fromParsed &&
+                  payment <= toParsed &&
+                  targetLocations.includes(courseLocation) &&
+                  item.course.payment !== "SkillsFuture" &&
+                  item.status !== "Pending"
+                );
+              }
             }
             return targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture";
           }
