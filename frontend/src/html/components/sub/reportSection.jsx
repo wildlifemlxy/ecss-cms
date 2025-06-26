@@ -324,10 +324,28 @@ class ReportSection extends Component {
               return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
             } else if (this.props.siteIC === null || this.props.siteIC === undefined || this.props.siteIC == "") {
               return payment >= fromParsed && payment <= toParsed && item.course.payment !== "SkillsFuture" && item.status != "Pending";
-            } else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
-              // NSA in-charge or Site in-charge: can see only their assigned sites
-              return payment >= fromParsed && payment <= toParsed && targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture" && item.status != "Pending";
-            } else {
+            } 
+            else if (this.props.role && this.props.role.toLowerCase().includes("in-charge")) {
+              // NSA in-charge: can see only CT Hub, Site in-charge: can see only their assigned sites
+              if (this.props.role.toLowerCase() === "nsa in-charge") {
+                return (
+                  payment >= fromParsed &&
+                  payment <= toParsed &&
+                  courseLocation === "CT Hub" &&
+                  item.course.payment !== "SkillsFuture" &&
+                  item.status !== "Pending"
+                );
+              } else {
+                return (
+                  payment >= fromParsed &&
+                  payment <= toParsed &&
+                  targetLocations.includes(courseLocation) &&
+                  item.course.payment !== "SkillsFuture" &&
+                  item.status !== "Pending"
+                );
+              }
+            }
+            else {
               // Default: restrict to targetLocations
               return payment >= fromParsed && payment <= toParsed && targetLocations.includes(courseLocation) && item.course.payment !== "SkillsFuture" && item.status != "Pending";
             }
