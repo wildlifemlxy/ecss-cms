@@ -1054,7 +1054,10 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`G${rowIndex}`).value = detail.participantInfo.race.split(" ")[0][0];
             sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.contactNumber;
             sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.email;
-            sourceSheet.getCell(`J${rowIndex}`).value = detail.participantInfo.educationLevel;
+            const educationParts = detail.participantInfo.educationLevel.split(" ");
+            let educationValue = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
+            if (educationValue === "Master's Degree") educationValue = "Masters/Doctorate";
+            sourceSheet.getCell(`J${rowIndex}`).value = educationValue;
 
             // ILP-specific: Course code and name
             let courseEngName = detail.courseInfo.courseEngName;
