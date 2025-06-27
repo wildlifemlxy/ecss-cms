@@ -995,9 +995,21 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`K${rowIndex}`).value = detail.participantInfo.email;
             sourceSheet.getCell(`L${rowIndex}`).value = detail.participantInfo.postalCode;
     
-            const educationParts = detail.participantInfo.educationLevel.split(" ");
-            let educationValue = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
-            if (educationValue === "Master's Degree") educationValue = "Masters/Doctorate";
+            //const educationParts = detail.participantInfo.educationLevel.split(" ");
+            let educationValue = detail.participantInfo.educationLevel
+            .replace(/[\u4e00-\u9fa5]+/g, '') // Remove Chinese characters
+            .replace(/No Formal Education.*/, 'No formal education')
+            .replace(/Primary.*/, 'Primary')
+            .replace(/Secondary.*/, 'Secondary')
+            .replace(/Post-Secondary.*|Post Secondary.*/, 'Post Secondary')
+            .replace(/Diploma.*/, 'Diploma')
+            .replace(/Bachelor'?s Degree.*/, "Bachelor’s Degree")
+            .replace(/Master'?s Degree.*/, "Masters/Doctorate")
+            .replace(/Masters.*/, "Masters/Doctorate")
+            .replace(/Others?.*/, "Others")
+            .trim();
+           // let educationValue = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
+            //if (educationValue === "Master's Degree") educationValue = "Masters/Doctorate";
             sourceSheet.getCell(`M${rowIndex}`).value = educationValue;
     
             const workParts = detail.participantInfo.workStatus.split(" ");
@@ -1054,10 +1066,23 @@ class RegistrationPaymentSection extends Component {
             sourceSheet.getCell(`G${rowIndex}`).value = detail.participantInfo.race.split(" ")[0][0];
             sourceSheet.getCell(`H${rowIndex}`).value = detail.participantInfo.contactNumber;
             sourceSheet.getCell(`I${rowIndex}`).value = detail.participantInfo.email;
-            const educationParts = detail.participantInfo.educationLevel.split(" ");
+            let educationValue = detail.participantInfo.educationLevel
+            .replace(/[\u4e00-\u9fa5]+/g, '') // Remove Chinese characters
+            .replace(/No Formal Education.*/, 'No formal education')
+            .replace(/Primary.*/, 'Primary')
+            .replace(/Secondary.*/, 'Secondary')
+            .replace(/Post-Secondary.*|Post Secondary.*/, 'Post Secondary')
+            .replace(/Diploma.*/, 'Diploma')
+            .replace(/Bachelor'?s Degree.*/, "Bachelor’s Degree")
+            .replace(/Master'?s Degree.*/, "Masters/Doctorate")
+            .replace(/Masters.*/, "Masters/Doctorate")
+            .replace(/Others?.*/, "Others")
+            .trim();
+            sourceSheet.getCell(`J${rowIndex}`).value = educationValue;
+            /*const educationParts = detail.participantInfo.educationLevel.split(" ");
             let educationValue = educationParts.length === 3 ? educationParts[0] + " " + educationParts[1] : educationParts[0];
             if (educationValue === "Master's Degree") educationValue = "Masters/Doctorate";
-            sourceSheet.getCell(`J${rowIndex}`).value = educationValue;
+            sourceSheet.getCell(`J${rowIndex}`).value = educationValue;*/
 
             // ILP-specific: Course code and name
             let courseEngName = detail.courseInfo.courseEngName;

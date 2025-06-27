@@ -327,6 +327,7 @@ class PersonalInfo extends Component {
       const residentalStatusOptions = ['SC 新加坡公民', 'PR 永久居民'];
       const genderOptions = ['M 男', 'F 女'];
       const educationOptions = [
+        'No Formal Education 无正规教育',
         'Primary 小学',
         'Secondary 中学',
         'Post-Secondary (Junior College/ITE) 专上教育',
