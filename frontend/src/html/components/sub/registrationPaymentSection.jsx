@@ -674,6 +674,29 @@ class RegistrationPaymentSection extends Component {
       }
     };
   
+    // Helper to send WhatsApp message
+  automatedWhatsappMessage = async (participantInfo, courseInfo, template, purpose) => {
+    try {
+      console.log("Sending WhatsApp message with template", participantInfo, courseInfo, template, purpose);
+      const payload = {
+        phoneNumber: participantInfo.contactNumber,
+        name: participantInfo.name,
+        course: courseInfo.courseEngName,
+        location: courseInfo.courseLocation,
+        date: courseInfo.courseDuration.split(' - ')[0],
+        template,
+        purpose
+      };
+      await axios.post(
+        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/whatsapp`,
+        payload
+      );
+      console.log("WhatsApp message sent successfully");
+    } catch (error) {
+      console.error("Failed to send WhatsApp message:", error?.response?.data || error.message);
+    }
+  }
+
     createReceiptInDatabase = async (receiptNo, location, registration_id, url) => {
       try {
         console.log("Creating receipt in database:", {
@@ -754,7 +777,7 @@ class RegistrationPaymentSection extends Component {
               const receiptNo = await this.generateReceiptNumber(course, newMethod);
               console.log("Receipt N11o:", receiptNo);
               await this.generatePDFReceipt(id, participant, course, receiptNo, value);
-              await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");    
+              await this.createReceiptInDatabase(receiptNo, course.courseLocation, id, "");  
             } 
             catch (error) 
             {
@@ -983,7 +1006,7 @@ class RegistrationPaymentSection extends Component {
     
             const dob = detail?.participantInfo?.dateOfBirth;
             if (dob) {
-              const [day, month, year] = dob.split("/");
+              const [day, month] = dob.split("/");
               sourceSheet.getCell(`E${rowIndex}`).value = day?.trim();
               sourceSheet.getCell(`F${rowIndex}`).value = month?.trim();
               sourceSheet.getCell(`G${rowIndex}`).value = year?.trim();
@@ -1058,7 +1081,7 @@ class RegistrationPaymentSection extends Component {
     
             const dob = detail?.participantInfo?.dateOfBirth;
             if (dob) {
-              const [day, month, year] = dob.split("/");
+              const [day, month] = dob.split("/");
               sourceSheet.getCell(`E${rowIndex}`).value = year?.trim();
             }
     
@@ -1730,7 +1753,7 @@ class RegistrationPaymentSection extends Component {
       editable: true,
       width: 350,
     },
-    {
+{
       headerName: "Receipt/Invoice Number",
       field: "recinvNo",
       width: 300,
@@ -1765,7 +1788,7 @@ class RegistrationPaymentSection extends Component {
   if (Array.isArray(siteIC) || !siteIC) {
     columnDefs.splice(
       4,
-      0,
+           0,
       {
         headerName: "Course Location",
         field: "location",
@@ -2200,7 +2223,8 @@ class RegistrationPaymentSection extends Component {
                       await Promise.all([
                         this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, "Paid"),
                         //console.log("Course Info:", courseInfo)
-                        this.autoReceiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue, "Paid")
+                        this.autoReceiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue, "Paid"),
+                        this.automatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment")
                       ]);
                       console.log("Updated Successfully");
                     } catch (error) {
@@ -2326,34 +2350,19 @@ class RegistrationPaymentSection extends Component {
                       await Promise.all([
                         this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
                         this.receiptGenerator(id, participantInfo, courseInfo, officialInfo, newValue),
+                        // WhatsApp automation for Paid status
+                        newValue === "Paid" ? this.automatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_om", "payment") : Promise.resolve()
                       ]);
                       console.log("Both tasks completed successfully.");
                     } catch (error) {
                       console.error("Error occurred during parallel task execution:", error);
                     }};
-                    await performParallelTasks();
-                  }
-            }
-            else if(paymentMethod === "SkillsFuture")
-            {
-              if(newValue === "SkillsFuture Done")
-              {
-                const performParallelTasks = async () => {
-                  try {
-                    // Run the two functions in parallel using Promise.all
-                    await Promise.all([
-                      this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
-                    ]);
-                    console.log("Both tasks completed successfully.");
-                  } catch (error) {
-                    console.error("Error occurred during parallel task execution:", error);
-                  }};
                   await performParallelTasks();
+                }
               }
-              else if(newValue === "Cancelled")
+              else if(paymentMethod === "SkillsFuture")
               {
-                console.log("SkillsFuture, Old Payment Status:", oldPaymentStatus);
-                if(oldPaymentStatus === "SkillsFuture Done")
+                if(newValue === "SkillsFuture Done")
                 {
                   const performParallelTasks = async () => {
                     try {
@@ -2362,18 +2371,35 @@ class RegistrationPaymentSection extends Component {
                         this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
                       ]);
                       console.log("Both tasks completed successfully.");
-                      const response = await axios.post(
-                        `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
-                        {
-                          id: id,
-                          purpose: 'removedRefundedDate'
-                        }
-                      );
-                      console.log("Response Add Refunded Date:", response);
                     } catch (error) {
                       console.error("Error occurred during parallel task execution:", error);
                     }};
                     await performParallelTasks();
+                }
+                else if(newValue === "Cancelled")
+                {
+                  console.log("SkillsFuture, Old Payment Status:", oldPaymentStatus);
+                  if(oldPaymentStatus === "SkillsFuture Done")
+                  {
+                    const performParallelTasks = async () => {
+                      try {
+                        // Run the two functions in parallel using Promise.all
+                        await Promise.all([
+                          this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
+                        ]);
+                        console.log("Both tasks completed successfully.");
+                        const response = await axios.post(
+                          `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/courseregistration`,
+                          {
+                            id: id,
+                            purpose: 'removedRefundedDate'
+                          }
+                        );
+                        console.log("Response Add Refunded Date:", response);
+                      } catch (error) {
+                        console.error("Error occurred during parallel task execution:", error);
+                      }};
+                      await performParallelTasks();
                 }
                 else if(newValue === "Refunded")
                 {
@@ -2403,6 +2429,7 @@ class RegistrationPaymentSection extends Component {
                     // Run the two functions in parallel using Promise.all
                     await Promise.all([
                       this.updateWooCommerceForRegistrationPayment(courseChiName, courseName, courseLocation, newValue),
+                      this.automatedWhatsappMessage(participantInfo, courseInfo, "course_reservation_successful_ilp", "payment")
                     ]);
                     console.log("Both tasks completed successfully.");
                   } catch (error) {

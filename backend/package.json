@@ -20,6 +20,7 @@
     "express": "^4.21.2",
     "fast-levenshtein": "^3.0.0",
     "fs": "^0.0.1-security",
+    "is-promise": "^4.0.0",
     "jade": "^1.11.0",
     "jose": "^6.0.11",
     "moment": "^2.30.1",

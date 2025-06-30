@@ -851,7 +851,8 @@ class FormPage extends Component {
               phoneNumber: participantDetails.participant.contactNumber,
               name: participantDetails.participant.name,
               course: participantDetails.course.courseEngName,
-              template: "course_registration_submission"
+              template: "course_registration_submission",
+              purpose: "registration"
             }
           ).then(() => {
             // Optionally handle success, e.g. show a message or log
