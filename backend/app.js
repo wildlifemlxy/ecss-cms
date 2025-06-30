@@ -20,7 +20,8 @@ var massimportRouter = require("./routes/massimport");
 var coursesRegisteredRouter = require("./routes/coursesRegistered");
 var attendanceRouter = require('./routes/attendance');
 var membershipRouter = require('./routes/membership');
-const jwksRouter = require('./routes/jwks');
+var jwksRouter = require('./routes/jwks');
+var whatsappRouter = require('./routes/whatsapp');
 
 app.use(cors()); // Enable CORS
 app.use(logger('dev')); // HTTP request logger
@@ -58,6 +59,7 @@ app.use("/massimport", massimportRouter);
 app.use("/coursesRegistered", coursesRegisteredRouter);
 app.use("/attendance", attendanceRouter);
 app.use("/membership", membershipRouter);
+app.use("/whatsapp", whatsappRouter);
 
 // Increase payload limits for Azure App Service
 app.use(express.json({ 

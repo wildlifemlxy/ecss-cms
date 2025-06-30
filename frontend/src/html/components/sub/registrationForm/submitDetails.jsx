@@ -1,5 +1,6 @@
 import React from 'react';
 import '../../../../css/sub/registrationForm/submitDetails.css';
+import axios from 'axios';
 
 class SubmitDetailsSection extends React.Component {
   render() {

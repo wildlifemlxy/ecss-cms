@@ -844,15 +844,38 @@ class FormPage extends Component {
         console.log('Form submitted successfully', response.data);
         if (response.data) {
           // Clear session storage after successful submission
-          this.clearCourseData();
-          
+          // Send WhatsApp registration message via backend using Interakt template "course_registration_submission"
+          axios.post(
+            `${window.location.hostname === "localhost" ? "http://localhost:3001" : "https://ecss-backend-node.azurewebsites.net"}/whatsapp`,
+            {
+              phoneNumber: participantDetails.participant.contactNumber,
+              name: participantDetails.participant.name,
+              course: participantDetails.course.courseEngName,
+              template: "course_registration_submission"
+            }
+          ).then(() => {
+            // Optionally handle success, e.g. show a message or log
+            console.log('WhatsApp registration message sent successfully');
+            this.clearCourseData();
+                      // Set a 10-second timeout to close the window after success
+              setTimeout(() => {
+                //window.close(); // This will close the window after 10 seconds
+              }, 10000);
+          }).catch(err => {
+            // Optionally handle error
+            console.error('Failed to send WhatsApp registration message:', err);
+             console.log('WhatsApp registration message sent successfully');
+            this.clearCourseData();
+                      // Set a 10-second timeout to close the window after success
+              setTimeout(() => {
+                //window.close(); // This will close the window after 10 seconds
+              }, 10000);
+          });
+
+
           // Success alert
           // alert("Success");
     
-          // Set a 10-second timeout to close the window after success
-          setTimeout(() => {
-            //window.close(); // This will close the window after 10 seconds
-          }, 10000);
         } else {
           // Handle failure if necessary
           alert("Error during submission");
