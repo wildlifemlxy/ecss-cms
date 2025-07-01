@@ -1006,7 +1006,7 @@ class RegistrationPaymentSection extends Component {
     
             const dob = detail?.participantInfo?.dateOfBirth;
             if (dob) {
-              const [day, month] = dob.split("/");
+              const [day, month, year] = dob.split("/");
               sourceSheet.getCell(`E${rowIndex}`).value = day?.trim();
               sourceSheet.getCell(`F${rowIndex}`).value = month?.trim();
               sourceSheet.getCell(`G${rowIndex}`).value = year?.trim();
@@ -1081,7 +1081,7 @@ class RegistrationPaymentSection extends Component {
     
             const dob = detail?.participantInfo?.dateOfBirth;
             if (dob) {
-              const [day, month] = dob.split("/");
+              const [day, month, year] = dob.split("/");
               sourceSheet.getCell(`E${rowIndex}`).value = year?.trim();
             }
     
@@ -1751,7 +1751,7 @@ class RegistrationPaymentSection extends Component {
         );
       },
       editable: true,
-      width: 350,
+      width:  350,
     },
 {
       headerName: "Receipt/Invoice Number",
