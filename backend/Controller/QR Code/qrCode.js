@@ -18,7 +18,7 @@ class QRCodeGenerator {
             const buffer = await QRCode.toBuffer(this.text, this.options);
 
             // Save the buffer to a JPG file
-            const filename = `衍纸的乐趣 Fun with Paper Quilling (Pasir Ris West Wellness Centre).jpg`; 
+            const filename = `音乐祝福社区木箱鼓基础1 Community Cajon Foundation 1 (Pasir Ris West Wellness Centre).jpg`; 
             fs.writeFileSync(filename, buffer);
             console.log(`QR code generated and saved as ${filename}`);
         } catch (error) {
@@ -28,5 +28,5 @@ class QRCodeGenerator {
 }
 
 // Usage
-const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e8%a1%8d%e7%ba%b8%e7%9a%84%e4%b9%90%e8%b6%a3fun-with-paper-quillingtampines-253-centre-copy/`);
+const qrCodeGenerator = new QRCodeGenerator(`https://ecss.org.sg/product/%e9%9f%b3%e4%b9%90%e7%a5%9d%e7%a6%8f%e7%a4%be%e5%8c%ba%e6%9c%a8%e7%ae%b1%e9%bc%93%e5%9f%ba%e7%a1%801community-cajon-foundation-1pasir-ris-west-wellness-centre/`);
 qrCodeGenerator.generate();
